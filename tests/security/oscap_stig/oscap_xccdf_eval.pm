@@ -34,7 +34,7 @@ sub run {
                     Rule.*content_rule_grub2_password.*Result.*fail.*
                     Rule.*content_rule_no_files_unowned_by_user.*Result.*fail/sxx';
 
-    $self->oscap_evaluate ($f_ssg_ds,$profile_ID,$n_passed_rules,$n_failed_rules,$eval_match);
+    $self->oscap_evaluate($f_ssg_ds, $profile_ID, $n_passed_rules, $n_failed_rules, $eval_match);
 }
 
 sub test_flags {

@@ -19,7 +19,7 @@ sub run {
     my $f_ssg_ds = is_sle ? $oscap_tests::f_ssg_sle_ds : $oscap_tests::f_ssg_tw_ds;
     my $profile_ID = is_sle ? $oscap_tests::profile_ID_sle_stig : $oscap_tests::profile_ID_tw;
 
-    $self->oscap_remediate ($f_ssg_ds,$profile_ID);
+    $self->oscap_remediate($f_ssg_ds, $profile_ID);
 }
 
 sub test_flags {

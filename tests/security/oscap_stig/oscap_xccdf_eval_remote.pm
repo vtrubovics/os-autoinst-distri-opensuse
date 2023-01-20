@@ -21,7 +21,7 @@ sub run {
     my $profile_ID =
       is_sle ? $oscap_tests::profile_ID_sle_stig : $oscap_tests::profile_ID_tw;
 
-    $self->oscap_evaluate_remote ($f_ssg_ds,$profile_ID);
+    $self->oscap_evaluate_remote($f_ssg_ds, $profile_ID);
 }
 
 sub test_flags {

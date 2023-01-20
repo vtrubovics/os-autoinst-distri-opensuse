@@ -146,7 +146,7 @@ sub oscap_security_guide_setup {
     record_info("Pkg_ver", "openscap security guide packages' version:\n $out");
 
     # Set ds file
-    $self->set_ds_file();
+    set_ds_file();
 
     # Check the ds file information for reference
     my $f_ssg_ds = is_sle ? $oscap_tests::f_ssg_sle_ds : $oscap_tests::f_ssg_tw_ds;
@@ -159,7 +159,7 @@ sub oscap_security_guide_setup {
 }
 
 sub oscap_remediate {
-    my ($self,$f_ssg_ds,$profile_ID) = @_;
+    my ($self, $f_ssg_ds, $profile_ID) = @_;
 
     select_console 'root-console';
 
@@ -168,8 +168,7 @@ sub oscap_remediate {
       = script_run("oscap xccdf eval --profile $profile_ID --remediate --oval-results --report $f_report --verbose $f_vlevel $f_ssg_ds > $f_stdout 2> $f_stderr", timeout => 600);
     record_info("Return=$ret", "# oscap xccdf eval --profile $profile_ID --remediate\" returns: $ret");
     if ($ret != 0 and $ret != 2) {
-        $self->result('fail');
-        record_info('bsc#1194676', 'remediation should be succeeded');
+        record_info('bsc#1194676', 'remediation should be succeeded', result => 'fail');
     }
     if ($oscap_tests::remediated == 0) {
         $oscap_tests::remediated = 1;
@@ -181,7 +180,7 @@ sub oscap_remediate {
 }
 
 sub oscap_evaluate {
-    my ($self,$f_ssg_ds,$profile_ID,$n_passed_rules,$n_failed_rules,$eval_match) = @_;
+    my ($self, $f_ssg_ds, $profile_ID, $n_passed_rules, $n_failed_rules, $eval_match) = @_;
     select_console 'root-console';
 
     my $passed_rules_ref;
@@ -217,11 +216,10 @@ sub oscap_evaluate {
             #Verify number of passed and failed rules
             my $pass_count = pattern_count_in_file($data, $f_pregex, $passed_rules_ref);
             if ($pass_count != $n_passed_rules) {
-                $self->result('fail');
                 record_info(
                     "Failed check of passed rules count",
                     "Pattern $f_pregex count in file $f_stdout is $pass_count, expected $n_passed_rules. Matched rules: \n" . join "\n",
-                    @$passed_rules_ref
+                    @$passed_rules_ref, result => 'fail'
                 );
             }
             else {
@@ -233,11 +231,10 @@ sub oscap_evaluate {
             }
             my $fail_count = pattern_count_in_file($data, $f_fregex, $failed_rules_ref);
             if ($fail_count != $n_failed_rules) {
-                $self->result('fail');
                 record_info(
                     "Failed check of failed rules count",
                     "Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules. Matched rules: \n" . join "\n",
-                    @$failed_rules_ref
+                    @$failed_rules_ref, result => 'fail'
                 );
             }
             else {
@@ -250,8 +247,7 @@ sub oscap_evaluate {
         }
     }
     else {
-        record_info("errno=$ret", "# oscap xccdf eval --profile \"$profile_ID\" returns: $ret");
-        $self->result('fail');
+        record_info("errno=$ret", "# oscap xccdf eval --profile \"$profile_ID\" returns: $ret", result => 'fail');
     }
 
     # Upload logs & ouputs for reference
@@ -259,7 +255,7 @@ sub oscap_evaluate {
 }
 
 sub oscap_evaluate_remote {
-    my ($self,$f_ssg_ds,$profile_ID) = @_;
+    my ($self, $f_ssg_ds, $profile_ID) = @_;
 
     select_console 'root-console';
 
@@ -279,8 +275,7 @@ sub oscap_evaluate_remote {
         "# oscap xccdf eval --fetch-remote-resources --profile $profile_ID\" returns: $ret"
     );
     if ($ret == 137) {
-        record_info('bsc#1194724');
-        $self->result('fail');
+        record_info('bsc#1194724', "eval returned $ret", result => 'fail');
     }
 
     # Upload logs & ouputs for reference
