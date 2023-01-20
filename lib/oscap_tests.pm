@@ -6,7 +6,7 @@
 # Summary: Base module for STIG test cases
 # Maintainer: QE Security <none@suse.de>
 
-package stigtest;
+package oscap_tests;
 
 use strict;
 use warnings;
