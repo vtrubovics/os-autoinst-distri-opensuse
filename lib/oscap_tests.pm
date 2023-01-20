@@ -149,7 +149,7 @@ sub oscap_security_guide_setup {
     set_ds_file();
 
     # Check the ds file information for reference
-    my $f_ssg_ds = is_sle ? $oscap_tests::f_ssg_sle_ds : $oscap_tests::f_ssg_tw_ds;
+    my $f_ssg_ds = is_sle ? f_ssg_sle_ds : f_ssg_tw_ds;
     $out = script_output("oscap info $f_ssg_ds");
     record_info("oscap info", "\"# oscap info $f_ssg_ds\" returns:\n $out");
 
@@ -170,8 +170,8 @@ sub oscap_remediate {
     if ($ret != 0 and $ret != 2) {
         record_info('bsc#1194676', 'remediation should be succeeded', result => 'fail');
     }
-    if ($oscap_tests::remediated == 0) {
-        $oscap_tests::remediated = 1;
+    if (remediated == 0) {
+        remediated = 1;
         record_info('remediated', 'setting status remediated');
     }
 
@@ -193,7 +193,7 @@ sub oscap_evaluate {
         # Note: the system cannot be fully remediated in this test and some rules are verified failing
         my $data = script_output "cat $f_stdout";
         # For a new installed OS the first time remediate can permit fail
-        if ($oscap_tests::remediated == 0) {
+        if (remediated == 0) {
             record_info('non remediated', 'before remediation more rules fails are expected');
             my $pass_count = pattern_count_in_file($data, $f_pregex, $passed_rules_ref);
             record_info(
