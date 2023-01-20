@@ -112,6 +112,7 @@ sub pattern_count_in_file {
             push(@rules, $lines[$i - 4]);
         }
     }
+    record_info("In function count", "Returning:\n " . join "\n", @rules);
 
     #Returning by reference array of matched rules
     $_[3] = \@rules;
@@ -189,9 +190,10 @@ sub oscap_evaluate {
     # Verify detection mode
     my $ret = script_run("oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr", timeout => 600);
     if ($ret == 0 || $ret == 2) {
-        record_info('PASS');
+        record_info('Returned $ret', "oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr");
         # Note: the system cannot be fully remediated in this test and some rules are verified failing
         my $data = script_output "cat $f_stdout";
+        record_info('Data', "$data");
         # For a new installed OS the first time remediate can permit fail
         if ($remediated == 0) {
             record_info('non remediated', 'before remediation more rules fails are expected');
