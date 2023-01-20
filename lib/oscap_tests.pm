@@ -112,7 +112,6 @@ sub pattern_count_in_file {
             push(@rules, $lines[$i - 4]);
         }
     }
-    record_info("In function count", "Returning:\n " . join "\n", @rules);
 
     #Returning by reference array of matched rules
     $_[3] = \@rules;
@@ -166,7 +165,7 @@ sub oscap_remediate {
 
     # Verify mitigation mode
     my $ret
-      = script_run("oscap xccdf eval --profile $profile_ID --remediate --oval-results --report $f_report --verbose $f_vlevel $f_ssg_ds > $f_stdout 2> $f_stderr", timeout => 600);
+      = script_run("oscap xccdf eval --profile $profile_ID --remediate --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr", timeout => 600);
     record_info("Return=$ret", "# oscap xccdf eval --profile $profile_ID --remediate\" returns: $ret");
     if ($ret != 0 and $ret != 2) {
         record_info('bsc#1194676', 'remediation should be succeeded', result => 'fail');
