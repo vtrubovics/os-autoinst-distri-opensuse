@@ -189,7 +189,7 @@ sub oscap_evaluate {
     # Verify detection mode
     my $ret = script_run("oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr", timeout => 600);
     if ($ret == 0 || $ret == 2) {
-        record_info('Returned $ret', "oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr");
+        record_info("Returned $ret", "oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr");
         # Note: the system cannot be fully remediated in this test and some rules are verified failing
         my $data = script_output "cat $f_stdout";
         record_info('Data', "$data");
