@@ -212,7 +212,7 @@ sub oscap_evaluate {
         else {
             record_info('remediated', 'after remediation less rules are failing');
             #Verify remediated rules
-            validate_script_output "cat $f_stdout", sub { m/$eval_match/ }, timeout => 300;
+            validate_script_output "cat $f_stdout", sub { $eval_match }, timeout => 300;
 
             #Verify number of passed and failed rules
             my $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref);
