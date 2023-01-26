@@ -199,34 +199,35 @@ sub oscap_evaluate {
             my $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref);
             record_info(
                 "Passed rules count=$pass_count",
-                "Pattern $f_pregex count in file $f_stdout is $pass_count. Matched rules: \n " . join "\n",
+                "Pattern $f_pregex count in file $f_stdout is $pass_count. Matched rules:\n " . join "\n",
                 @$passed_rules_ref
             );
             my $fail_count = pattern_count_in_file(1, $data, $f_fregex, $failed_rules_ref);
             record_info(
                 "Failed rules count=$fail_count",
-                "Pattern $f_fregex count in file $f_stdout is $fail_count. Matched rules: \n" . join "\n",
+                "Pattern $f_fregex count in file $f_stdout is $fail_count. Matched rules:\n" . join "\n",
                 @$failed_rules_ref
             );
         }
         else {
             record_info('remediated', 'after remediation less rules are failing');
             #Verify remediated rules
-            validate_script_output "cat $f_stdout", sub { $eval_match }, timeout => 300;
+            validate_script_output "cat $f_stdout", sub { m/$eval_match/ }, timeout => 300;
 
             #Verify number of passed and failed rules
             my $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref);
             if ($pass_count != $n_passed_rules) {
                 record_info(
                     "Failed check of passed rules count",
-                    "Pattern $f_pregex count in file $f_stdout is $pass_count, expected $n_passed_rules. Matched rules: \n" . join "\n",
-                    @$passed_rules_ref, result => 'fail'
+                    "Pattern $f_pregex count in file $f_stdout is $pass_count, expected $n_passed_rules. Matched rules:\n" . join "\n",
+                    @$passed_rules_ref
                 );
+                result('fail');
             }
             else {
                 record_info(
                     "Passed check of passed rules count",
-                    "Pattern $f_pregex count in file $f_stdout is $pass_count. Matched rules: \n" . join "\n",
+                    "Pattern $f_pregex count in file $f_stdout is $pass_count. Matched rules:\n" . join "\n",
                     @$passed_rules_ref
                 );
             }
@@ -235,8 +236,9 @@ sub oscap_evaluate {
                 record_info(
                     "Failed check of failed rules count",
                     "Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules. Matched rules: \n" . join "\n",
-                    @$failed_rules_ref, result => 'fail'
+                    @$failed_rules_ref
                 );
+                result('fail');
             }
             else {
                 record_info(
@@ -248,7 +250,8 @@ sub oscap_evaluate {
         }
     }
     else {
-        record_info("errno=$ret", "# oscap xccdf eval --profile \"$profile_ID\" returns: $ret", result => 'fail');
+        record_info("errno=$ret", "# oscap xccdf eval --profile \"$profile_ID\" returns: $ret");
+        result('fail');
     }
 
     # Upload logs & ouputs for reference
