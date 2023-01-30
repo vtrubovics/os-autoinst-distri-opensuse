@@ -49,6 +49,7 @@ our $f_ssg_tw_ds = '/usr/share/xml/scap/ssg/content/ssg-opensuse-ds.xml';
 # Profile IDs
 our $profile_ID_sle_stig = 'xccdf_org.ssgproject.content_profile_stig';
 our $profile_ID_sle_cis = 'xccdf_org.ssgproject.content_profile_cis';
+our $profile_ID_sle_pci_dss4 = 'xccdf_org.ssgproject.content_profile_pci-dss-4';
 our $profile_ID_sle_pci_dss = 'xccdf_org.ssgproject.content_profile_pci-dss';
 our $profile_ID_sle_hipaa = 'xccdf_org.ssgproject.content_profile_hipaa';
 our $profile_ID_sle_anssi_bp28_high = 'xccdf_org.ssgproject.content_profile_anssi_bp28_high';
