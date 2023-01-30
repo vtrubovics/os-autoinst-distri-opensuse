@@ -193,7 +193,6 @@ sub oscap_evaluate {
         record_info("Returned $ret", "oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr");
         # Note: the system cannot be fully remediated in this test and some rules are verified failing
         my $data = script_output "cat $f_stdout";
-        record_info('Data', "$data");
         # For a new installed OS the first time remediate can permit fail
         if ($remediated == 0) {
             record_info('non remediated', 'before remediation more rules fails are expected');
@@ -223,7 +222,7 @@ sub oscap_evaluate {
                     "Pattern $f_pregex count in file $f_stdout is $pass_count, expected $n_passed_rules. Matched rules:\n" . join "\n",
                     @$passed_rules_ref
                 );
-                die "Test failed";
+                $self->result('fail');
             }
             else {
                 record_info(
@@ -239,7 +238,7 @@ sub oscap_evaluate {
                     "Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules. Matched rules: \n" . join "\n",
                     @$failed_rules_ref
                 );
-                die "Test failed";
+                $self->result('fail');
             }
             else {
                 record_info(
@@ -252,7 +251,7 @@ sub oscap_evaluate {
     }
     else {
         record_info("errno=$ret", "# oscap xccdf eval --profile \"$profile_ID\" returns: $ret");
-        die "Test failed";
+        $self->result('fail');
     }
 
     # Upload logs & ouputs for reference
