@@ -219,7 +219,7 @@ sub oscap_evaluate {
                 record_info(
                     "Failed check of passed rules count",
                     "Pattern $f_pregex count in file $f_stdout is $pass_count, expected $n_passed_rules. Matched rules:\n" . join "\n",
-                    @$passed_rules_ref
+                    @$passed_rules_ref, result => 'fail'
                 );
                 $self->result('fail');
             }
@@ -235,7 +235,7 @@ sub oscap_evaluate {
                 record_info(
                     "Failed check of failed rules count",
                     "Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules. Matched rules: \n" . join "\n",
-                    @$failed_rules_ref
+                    @$failed_rules_ref, result => 'fail'
                 );
                 $self->result('fail');
             }
@@ -249,7 +249,7 @@ sub oscap_evaluate {
         }
     }
     else {
-        record_info("errno=$ret", "# oscap xccdf eval --profile \"$profile_ID\" returns: $ret");
+        record_info("errno=$ret", "# oscap xccdf eval --profile \"$profile_ID\" returns: $ret", result => 'fail');
         $self->result('fail');
     }
 
