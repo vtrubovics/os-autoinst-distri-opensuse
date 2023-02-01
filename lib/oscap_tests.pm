@@ -28,6 +28,7 @@ our @EXPORT = qw(
   set_ds_file
   upload_logs_reports
   pattern_count_in_file
+  rules_count_in_file
   oscap_security_guide_setup
   oscap_remediate
   oscap_evaluate
@@ -117,6 +118,39 @@ sub pattern_count_in_file {
     $_[3] = \@rules;
     return $count;
 }
+
+sub rules_count_in_file {
+
+    #Find count of rules names matched name and status patterns
+    my $self = $_[0];
+    my $data = $_[1];
+    my $pattern = $_[2];
+    my $l_rules = $_[3];
+    my @rules;
+    my $count = 0;
+
+    my @lines = split /\n|\r/, $data;
+    my @a_rules = split /,/, $l_rules;
+
+        for my $i (0 .. $#lines){
+            for my $j (0 .. $#a_rules){
+                if($lines[$i] =~ /$a_rules[$j]/ and $lines[$i + 4] =~ /$pattern/){
+                $count ++;
+                push(@rules, $lines[$i]);
+                }
+            }
+        }
+    #Returning by reference array of matched rules
+    $_[4] = \@rules;
+    #Return -2 if found not correct count of rules
+    if ($count == $#a_rules + 1) {
+        return $count;
+        }
+    else {
+        return -2;
+        }
+}
+
 =comment
     OSCAP exit codes from https://github.com/OpenSCAP/openscap/blob/maint-1.3/utils/oscap-tool.h
     // standard oscap CLI exit statuses
@@ -209,9 +243,27 @@ sub oscap_evaluate {
             );
         }
         else {
-            record_info('remediated', 'after remediation less rules are failing');
             #Verify remediated rules
-            validate_script_output "cat $f_stdout", sub { $eval_match }, timeout => 300;
+            record_info('remediated', 'after remediation less rules are failing');
+            
+            #Verify failed rules 
+            my $ret_rcount = rules_count_in_file (1, $data, $f_pregex, $eval_match, $failed_rules_ref);
+            if ($ret_rcount == -2) {
+                record_info(
+                    "Failed check of failed rules",
+                    "Pattern $f_pregex count in file $f_stdout is" . $#$failed_rules_ref + 1 . ", expected $n_failed_rules. Matched rules:\n" . join "\n",
+                    @$failed_rules_ref . "\nExpected rules:\n" . join ",",
+                    $eval_match, result => 'fail'
+                );
+                $self->result('fail');
+            }
+            else {
+                record_info(
+                    "Passed check of failed rules",
+                    "Pattern $f_pregex count in file $f_stdout is $ret_rcount. Matched rules:\n" . join "\n",
+                    @$failed_rules_ref
+                );
+            }
 
             #Verify number of passed and failed rules
             my $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref);
