@@ -132,23 +132,23 @@ sub rules_count_in_file {
     my @lines = split /\n|\r/, $data;
     my @a_rules = split /,/, $l_rules;
 
-        for my $i (0 .. $#lines){
-            for my $j (0 .. $#a_rules){
-                if($lines[$i] =~ /$a_rules[$j]/ and $lines[$i + 4] =~ /$pattern/){
-                $count ++;
+    for my $i (0 .. $#lines) {
+        for my $j (0 .. $#a_rules) {
+            if ($lines[$i] =~ /$a_rules[$j]/ and $lines[$i + 4] =~ /$pattern/) {
+                $count++;
                 push(@rules, $lines[$i]);
-                }
             }
         }
+    }
     #Returning by reference array of matched rules
     $_[4] = \@rules;
     #Return -2 if found not correct count of rules
     if ($count == $#a_rules + 1) {
         return $count;
-        }
+    }
     else {
         return -2;
-        }
+    }
 }
 
 =comment
@@ -245,9 +245,9 @@ sub oscap_evaluate {
         else {
             #Verify remediated rules
             record_info('remediated', 'after remediation less rules are failing');
-            
-            #Verify failed rules 
-            my $ret_rcount = rules_count_in_file (1, $data, $f_pregex, $eval_match, $failed_rules_ref);
+
+            #Verify failed rules
+            my $ret_rcount = rules_count_in_file(1, $data, $f_pregex, $eval_match, $failed_rules_ref);
             if ($ret_rcount == -2) {
                 record_info(
                     "Failed check of failed rules",
