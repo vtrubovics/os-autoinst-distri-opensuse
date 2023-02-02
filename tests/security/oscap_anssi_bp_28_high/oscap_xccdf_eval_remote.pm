@@ -19,7 +19,7 @@ sub run {
     # Get ds file and profile ID
     my $f_ssg_ds = is_sle ? $oscap_tests::f_ssg_sle_ds : $oscap_tests::f_ssg_tw_ds;
     my $profile_ID =
-      is_sle ? $oscap_tests::profile_ID_sle_anssi_bp_28_high : $oscap_tests::profile_ID_tw;
+      is_sle ? $oscap_tests::profile_ID_sle_anssi_bp28_high : $oscap_tests::profile_ID_tw;
 
     $self->oscap_evaluate_remote($f_ssg_ds, $profile_ID);
 }
