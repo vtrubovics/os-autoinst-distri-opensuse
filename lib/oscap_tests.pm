@@ -48,14 +48,20 @@ our $f_ssg_sle_ds = '/usr/share/xml/scap/ssg/content/ssg-sle12-ds.xml';
 our $f_ssg_tw_ds = '/usr/share/xml/scap/ssg/content/ssg-opensuse-ds.xml';
 
 # Profile IDs
+# Priority High:
 our $profile_ID_sle_stig = 'xccdf_org.ssgproject.content_profile_stig';
 our $profile_ID_sle_cis = 'xccdf_org.ssgproject.content_profile_cis';
 our $profile_ID_sle_pci_dss = 'xccdf_org.ssgproject.content_profile_pci-dss';
 our $profile_ID_sle_hipaa = 'xccdf_org.ssgproject.content_profile_hipaa';
 our $profile_ID_sle_anssi_bp28_high = 'xccdf_org.ssgproject.content_profile_anssi_bp28_high';
+# Priority Medium:
 our $profile_ID_sle_anssi_bp28_enhanced = 'xccdf_org.ssgproject.content_profile_anssi_bp28_enhanced';
 our $profile_ID_sle_cis_server_l1 = 'xccdf_org.ssgproject.content_profile_cis_server_l1';
 our $profile_ID_sle_cis_workstation_l2 = 'xccdf_org.ssgproject.content_profile_cis_workstation_l2';
+# Priority Low:
+our $profile_ID_sle_anssi_bp28_intermediary = 'xccdf_org.ssgproject.content_profile_anssi_bp28_intermediary';
+our $profile_ID_sle_anssi_bp28_minimal = 'xccdf_org.ssgproject.content_profile_anssi_bp28_minimal';
+our $profile_ID_sle_cis_workstation_l1 = 'xccdf_org.ssgproject.content_profile_cis_workstation_l1';
 our $profile_ID_tw = 'xccdf_org.ssgproject.content_profile_standard';
 
 # The OS status of remediation: '0', not remediated; '1', remediated
