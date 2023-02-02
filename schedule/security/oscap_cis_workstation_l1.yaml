@@ -1,0 +1,20 @@
+name: oscap_cis_workstation_l1
+description:    >
+    This is for cis_workstation_l1 test
+schedule:
+    - '{{bootloader}}'
+    - boot/boot_to_desktop
+    - security/oscap_cis_workstation_l1/oscap_security_guide_setup
+    - security/oscap_cis_workstation_l1/oscap_xccdf_eval
+    - security/oscap_cis_workstation_l1/oscap_xccdf_eval_remote
+    - security/oscap_cis_workstation_l1/oscap_xccdf_remediate
+    # Do evaluate again after remediate
+    - security/oscap_cis_workstation_l1/oscap_xccdf_eval
+    - security/oscap_cis_workstation_l1/baseline_comparison
+conditional_schedule:
+    bootloader:
+        ARCH:
+            s390x:
+                - installation/bootloader_zkvm
+            ppc64le:
+                - installation/bootloader
