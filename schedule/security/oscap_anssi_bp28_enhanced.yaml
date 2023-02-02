@@ -1,0 +1,20 @@
+name: oscap_anssi_bp28_enhanced
+description:    >
+    This is for anssi_bp28_enhanced test
+schedule:
+    - '{{bootloader}}'
+    - boot/boot_to_desktop
+    - security/oscap_anssi_bp28_enhanced/oscap_security_guide_setup
+    - security/oscap_anssi_bp28_enhanced/oscap_xccdf_eval
+    - security/oscap_anssi_bp28_enhanced/oscap_xccdf_eval_remote
+    - security/oscap_anssi_bp28_enhanced/oscap_xccdf_remediate
+    # Do evaluate again after remediate
+    - security/oscap_anssi_bp28_enhanced/oscap_xccdf_eval
+    - security/oscap_anssi_bp28_enhanced/baseline_comparison
+conditional_schedule:
+    bootloader:
+        ARCH:
+            s390x:
+                - installation/bootloader_zkvm
+            ppc64le:
+                - installation/bootloader
