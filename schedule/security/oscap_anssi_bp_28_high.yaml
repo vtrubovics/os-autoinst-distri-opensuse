@@ -1,16 +1,16 @@
-name: oscap_hipaa
+name: oscap_anssi_bp_28_high
 description:    >
-    This is for hipaa test
+    This is for anssi_bp_28_high test
 schedule:
     - '{{bootloader}}'
     - boot/boot_to_desktop
-    - security/oscap_hipaa/oscap_security_guide_setup
-    - security/oscap_hipaa/oscap_xccdf_eval
-    - security/oscap_hipaa/oscap_xccdf_eval_remote
-    - security/oscap_hipaa/oscap_xccdf_remediate
+    - security/oscap_anssi_bp_28_high/oscap_security_guide_setup
+    - security/oscap_anssi_bp_28_high/oscap_xccdf_eval
+    - security/oscap_anssi_bp_28_high/oscap_xccdf_eval_remote
+    - security/oscap_anssi_bp_28_high/oscap_xccdf_remediate
     # Do evaluate again after remediate
-    - security/oscap_hipaa/oscap_xccdf_eval
-    - security/oscap_hipaa/baseline_comparison
+    - security/oscap_anssi_bp_28_high/oscap_xccdf_eval
+    - security/oscap_anssi_bp_28_high/baseline_comparison
 conditional_schedule:
     bootloader:
         ARCH:
