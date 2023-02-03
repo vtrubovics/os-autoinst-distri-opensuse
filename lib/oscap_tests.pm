@@ -253,13 +253,14 @@ sub oscap_evaluate {
             record_info('remediated', 'after remediation less rules are failing');
 
             #Verify failed rules
-            my $ret_rcount = rules_count_in_file(1, $data, $f_pregex, $eval_match, $failed_rules_ref);
+            my $ret_rcount = rules_count_in_file(1, $data, $f_fregex, $eval_match, $failed_rules_ref);
             my $failed_rules = $#$failed_rules_ref + 1;
             if ($ret_rcount == -2) {
                 record_info(
                     "Failed check of failed rules",
                     "Pattern $f_pregex count in file $f_stdout is $failed_rules, expected $n_failed_rules. Matched rules:\n" . join "\n",
-                    @$failed_rules_ref . "\nExpected rules:\n$eval_match\n",
+                    @$failed_rules_ref . "\nExpected rules:\n" . join "\n",
+                    (split (/,/, $eval_match)),
                     result => 'fail'
                 );
                 $self->result('fail');
