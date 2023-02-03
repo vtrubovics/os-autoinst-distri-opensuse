@@ -24,7 +24,7 @@ sub download_baseline_log {
 }
 
 sub run {
-    my $py_script = 'oscap_stig/baseline_comparison.py';
+    my $py_script = 'oscap_profiles/baseline_comparison.py';
     my $baseline_orig = 'oscap_xccdf_eval-stdout';
     my $baseline_remediated = 'oscap_xccdf_remediate-stdout';
     my $baseline_comparison = 'baseline_comparison_result';
