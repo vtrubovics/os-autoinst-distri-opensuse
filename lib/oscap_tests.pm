@@ -258,7 +258,7 @@ sub oscap_evaluate {
             if ($ret_rcount == -2) {
                 record_info(
                     "Failed check of failed rules",
-                    "Pattern $f_pregex count in file $f_stdout is $failed_rules, expected $n_failed_rules. Matched rules:\n" . (join "\n",
+                    "Pattern $f_fregex count in file $f_stdout is $failed_rules, expected $n_failed_rules. Matched rules:\n" . (join "\n",
                     @$failed_rules_ref) . "\nExpected rules:\n" . (join "\n",
                     @$eval_match),
                     result => 'fail'
