@@ -136,7 +136,7 @@ sub rules_count_in_file {
     my $count = 0;
 
     my @lines = split /\n|\r/, $data;
-    my @a_rules = split /,/, $l_rules;
+    my @a_rules = @$l_rules;
 
     for my $i (0 .. $#lines) {
         for my $j (0 .. $#a_rules) {
@@ -258,9 +258,9 @@ sub oscap_evaluate {
             if ($ret_rcount == -2) {
                 record_info(
                     "Failed check of failed rules",
-                    "Pattern $f_pregex count in file $f_stdout is $failed_rules, expected $n_failed_rules. Matched rules:\n" . join "\n",
-                    @$failed_rules_ref . "\nExpected rules:\n" . (join "\n",
-                    (split (/,/, $eval_match))),
+                    "Pattern $f_pregex count in file $f_stdout is $failed_rules, expected $n_failed_rules. Matched rules:\n" . (join "\n",
+                    @$failed_rules_ref) . "\nExpected rules:\n" . (join "\n",
+                    @$eval_match),
                     result => 'fail'
                 );
                 $self->result('fail');
@@ -269,8 +269,8 @@ sub oscap_evaluate {
                 record_info(
                     "Passed check of failed rules",
                     "Check of $ret_rcount failed rules:\n" . (join "\n",
-                    (split (/,/, $eval_match))). "\n in file $f_stdout. \nMatched rules:\n" . join "\n",
-                    @$failed_rules_ref
+                    @$eval_match) . "\n in file $f_stdout. \nMatched rules:\n" . (join "\n",
+                    @$failed_rules_ref)
                 );
             }
 
