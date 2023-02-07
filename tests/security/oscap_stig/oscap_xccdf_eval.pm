@@ -23,11 +23,11 @@ sub run {
     my $n_passed_rules = 210;
     my $n_failed_rules = 5;
     my @eval_match = (
-    'content_rule_is_fips_mode_enabled',
-    'content_rule_partition_for_var_log_audit',
-    'content_rule_smartcard_pam_enabled',
-    'content_rule_grub2_password',
-    'content_rule_no_files_unowned_by_user');
+        'content_rule_is_fips_mode_enabled',
+        'content_rule_partition_for_var_log_audit',
+        'content_rule_smartcard_pam_enabled',
+        'content_rule_grub2_password',
+        'content_rule_no_files_unowned_by_user');
 
     if (is_s390x) {
         $n_passed_rules = 209;
@@ -36,11 +36,11 @@ sub run {
     # Exclusion for ARM platform
     if (is_aarch64 or is_arm) {
         @eval_match = (
-        'content_rule_is_fips_mode_enabled',
-        'content_rule_partition_for_var_log_audit',
-        'content_rule_smartcard_pam_enabled',
-        'content_rule_grub2_uefi_password',
-        'content_rule_no_files_unowned_by_user');
+            'content_rule_is_fips_mode_enabled',
+            'content_rule_partition_for_var_log_audit',
+            'content_rule_smartcard_pam_enabled',
+            'content_rule_grub2_uefi_password',
+            'content_rule_no_files_unowned_by_user');
     }
 
     $self->oscap_evaluate($f_ssg_ds, $profile_ID, $n_passed_rules, $n_failed_rules, \@eval_match);
