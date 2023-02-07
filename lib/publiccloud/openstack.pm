@@ -38,8 +38,7 @@ sub find_img {
 
 sub create_keypair {
     my ($self, $prefix) = @_;
-
-    return $self->ssh_key if ($self->ssh_key);
+    return $self->ssh_key if ($self->ssh_key and $self->ssh_key_name);
 
     for my $i (0 .. 9) {
         my $key_name = $prefix . "_" . $i;

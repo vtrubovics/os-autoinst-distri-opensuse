@@ -111,6 +111,7 @@ LTP_KNOWN_ISSUES | string | | Used to specify a url for a json file with well kn
 LTP_REPO | string | | The repo which will be added and is used to install LTP package.
 LTP_RUN_NG_BRANCH | string | master | Define the branch of the LTP_RUN_NG_REPO.
 LTP_RUN_NG_REPO | string | https://github.com/metan-ucw/runltp-ng.git | Define the runltp-ng repo to be used. Default in publiccloud/run_ltp.pm is the upstream master branch from https://github.com/metan-ucw/runltp-ng.git.
+LTP_PC_RUNLTP_ENV | string | empty | Contains eventual internal environment new parameters for `runltp-ng`, defined with the `--env` option, initialized in a column-separated string format: "PAR1=xxx:PAR2=yyy:...". By default it is empty, undefined.
 LVM | boolean | false | Use lvm for partitioning.
 LVM_THIN_LV | boolean | false | Use thin provisioning logical volumes for partitioning,
 MACHINE | string | | Define machine name which defines worker specific configuration, including WORKER_CLASS.
@@ -225,6 +226,8 @@ TRENTO_REGISTRY_CHART | string | registry.suse.com/trento/trento-server | Helm c
 TRENTO_REGISTRY_CHART_VERSION | string |  | Optional. Tag for the chart image
 TRENTO_REGISTRY_IMAGE_RUNNER | string |  | Optional. Overwrite the trento-runner image in the helm chart
 TRENTO_REGISTRY_IMAGE_RUNNER_VERSION | string |  | Optional. Version tag for the trento-runner image
+TRENTO_REGISTRY_IMAGE_WANDA | string |  | Optional. Overwrite the trento-wanda image in the helm chart
+TRENTO_REGISTRY_IMAGE_WANDA_VERSION | string |  | Optional. Version tag for the trento-wand image
 TRENTO_REGISTRY_IMAGE_WEB | string |  | Optional. Overwrite the trento-web image in the helm chart
 TRENTO_REGISTRY_IMAGE_WEB_VERSION | string |  | Optional. Version tag for the trento-web image
 TRENTO_GITLAB_REPO | string | gitlab.suse.de/qa-css/trento | Repository for the deployment scripts
@@ -286,7 +289,7 @@ PUBLIC_CLOUD_FIO_SSD_SIZE | string | "100G" | Set the additional disk size for t
 PUBLIC_CLOUD_FORCE_REGISTRATION | boolean | false | If set, tests/publiccloud/registration.pm will register cloud guest
 PUBLIC_CLOUD_IGNORE_EMPTY_REPO | boolean | false | Ignore empty maintenance update repos
 PUBLIC_CLOUD_IMAGE_ID | string | "" | The image ID we start the instance from
-PUBLIC_CLOUD_IMAGE_URI | string | "" | The URI of the image to be used.
+PUBLIC_CLOUD_IMAGE_URI | string | "" | The URI of the image to be used. Use 'auto' if you want the URI to be calculated.
 PUBLIC_CLOUD_IMAGE_LOCATION | string | "" | The URL where the image gets downloaded from. The name of the image gets extracted from this URL.
 PUBLIC_CLOUD_IMAGE_PROJECT | string | "" | Google Compute Engine image project
 PUBLIC_CLOUD_AZURE_IMAGE_DEFINITION | string | "" | Defines the image definition for uploading Arm64 images to the image gallery.

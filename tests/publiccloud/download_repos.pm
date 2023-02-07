@@ -14,6 +14,8 @@ use testapi;
 use strict;
 use utils;
 use publiccloud::ssh_interactive "select_host_console";
+use publiccloud::utils "is_embargo_update";
+use List::MoreUtils qw(uniq);
 
 # Get the status of the update repos
 # 0 = no repo, 1 = repos already downloaded, 2 = repos downloading
@@ -55,12 +57,21 @@ sub run {
         assert_script_run('touch /tmp/repos.list.txt');
 
         my $ret = 0;
+        my $reject = "'robots.txt,*.ico,*.png,*.gif,*.css,*.js,*.htm*'";
+        my $regex = "'s390x\\/|ppc64le\\/|kernel*debuginfo*.rpm|src\\/'";
+        my $incident;
         for my $maintrepo (@repos) {
-            next if $maintrepo !~ m/^http/;
+            $incident = $1 while $maintrepo =~ /\/Maintenance:\/(\d+)/g;
+            die "We did not detect incident number for URL \"$maintrepo\". We detected \"$incident\"" unless $incident =~ /\d+/;
+            if (is_embargo_update($incident)) {
+                record_info("EMBARGOED", "The repository \"$maintrepo\" belongs to embargoed incident number \"$incident\"");
+                script_run("echo 'The repository \"$maintrepo\" belongs to embargoed incident number \"$incident\"'");
+                next;
+            }
             script_run("echo 'Downloading $maintrepo ...' >> ~/repos/qem_download_status.txt");
             my ($parent) = $maintrepo =~ 'https?://(.*)$';
             my ($domain) = $parent =~ '^([a-zA-Z.]*)';
-            $ret = script_run "wget --no-clobber -r -R 'robots.txt,*.ico,*.png,*.gif,*.css,*.js,*.htm*' --reject-regex='s390x\\/|ppc64le\\/|kernel*debuginfo*.rpm|src\\/' --domains $domain --no-parent $maintrepo/", timeout => 600;
+            $ret = script_run "wget --no-clobber -r --reject $reject --reject-regex=$regex --domains $domain --no-parent $maintrepo/", timeout => 600;
             if ($ret !~ /0|8/) {
                 # softfailure, if repo doesn't exist (anymore). This is required for cloning jobs, because the original test repos could be empty already
                 record_info('Softfail', "Download failed (rc=$ret):\n$maintrepo", result => 'softfail');
@@ -122,4 +133,3 @@ sub test_flags {
 }
 
 1;
-
