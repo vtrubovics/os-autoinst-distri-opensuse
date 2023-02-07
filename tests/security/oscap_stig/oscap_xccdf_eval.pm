@@ -35,7 +35,7 @@ sub run {
     }
     # Exclusion for ARM platform
     if (is_aarch64 or is_arm) {
-        my @eval_match = (
+        @eval_match = (
         'content_rule_is_fips_mode_enabled',
         'content_rule_partition_for_var_log_audit',
         'content_rule_smartcard_pam_enabled',
