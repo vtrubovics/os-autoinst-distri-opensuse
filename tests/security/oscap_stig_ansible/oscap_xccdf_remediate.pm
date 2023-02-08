@@ -14,7 +14,6 @@ use version_utils qw(is_sle);
 
 sub run {
     my ($self) = @_; 
-    my $is_ansible = 1;
     
     # Get ds file and profile ID, etc.
     my $f_ssg_ds = is_sle ? $oscap_tests::f_ssg_sle_ds : $oscap_tests::f_ssg_tw_ds;
