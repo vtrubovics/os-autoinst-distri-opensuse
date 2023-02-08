@@ -87,7 +87,7 @@ our $ansible_playbook_standart = "opensuse-playbook-standard.yml";
 # The OS status of remediation: '0', not remediated; '1', remediated
 our $remediated = 0;
 
-# Is it ansible remediation
+# Is it ansible remediation: '0', bash remediation; '1' ansible remediation
 our $ansible_remediation = 0;
 
 # Upload HTML report by default
@@ -221,7 +221,7 @@ sub oscap_security_guide_setup {
     record_info("oscap version", "\"# oscap -V\" returns:\n $out");
     
     # If required ansible remediation
-    if $ansible_remediation {
+    if ($ansible_remediation == 1) {
         my $pkgs = 'ansible';
 
         unless (is_opensuse) {
@@ -269,7 +269,7 @@ sub oscap_remediate {
 
     # Verify mitigation mode
     # If doing ansible playbook remediation
-    if $ansible_remediation {
+    if ($ansible_remediation == 1) {
         my $path = '/usr/share/scap-security-guide/ansible/';
         my $inventory_file = "inventory.yml";
         my $inventory_file_fpath = $path . $inventory_file;
