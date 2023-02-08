@@ -115,11 +115,15 @@ sub upload_logs_reports {
     else {
         $files = script_output('ls | grep "^ssg-opensuse.*.xml"');
     }
-    foreach my $file (split("\n", $files)) {
-        upload_logs("$file");
+    # Check if list of files returned correctly
+    if (defined $files) {
+        foreach my $file (split("\n", $files)) {
+            upload_logs("$file");
+        }
     }
     upload_logs("$f_stdout") if script_run "! [[ -e $f_stdout ]]";
     upload_logs("$f_stderr") if script_run "! [[ -e $f_stderr ]]";
+    
     if (get_var('UPLOAD_REPORT_HTML')) {
         upload_logs("$f_report", timeout => 600)
           if script_run "! [[ -e $f_report ]]";
@@ -276,6 +280,7 @@ sub oscap_remediate {
         my $playbook_fpath = $path . $profile_ID;
         # Create inventory file
         assert_script_run("echo -e \"all:\\n  hosts:\\n     localhost\\n  vars:\\n     ansible_connection: local\" > $inventory_file_fpath");
+        my $data = script_output "cat $inventory_file_fpath";
         my $ret
           = script_run("ansible-playbook -v -i $inventory_file_fpath $playbook_fpath > $f_stdout 2> $f_stderr", timeout => 600);
         record_info("Return=$ret", "ansible-playbook -v -i $inventory_file_fpath $playbook_fpath\" returns: $ret");
@@ -283,6 +288,9 @@ sub oscap_remediate {
             record_info("returened $ret", 'remediation should be succeeded', result => 'fail');
             $self->result('fail');
         }
+        # Upload only stdout logs
+        upload_logs("$f_stdout") if script_run "! [[ -e $f_stdout ]]";
+        upload_logs("$f_stderr") if script_run "! [[ -e $f_stderr ]]";
     }
     # If doing bash remediation
     else {
@@ -293,14 +301,14 @@ sub oscap_remediate {
             record_info('bsc#1194676', 'remediation should be succeeded', result => 'fail');
             $self->result('fail');
         }
-    }
+        # Upload logs & ouputs for reference
+        upload_logs_reports();
+   }
     if ($remediated == 0) {
         $remediated = 1;
         record_info('remediated', 'setting status remediated');
     }
 
-    # Upload logs & ouputs for reference
-    upload_logs_reports();
 }
 
 sub oscap_evaluate {
