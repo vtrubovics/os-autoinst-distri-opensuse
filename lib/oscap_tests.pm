@@ -98,7 +98,7 @@ sub set_ds_file {
 
     # Set the ds file for separate product, e.g.,
     # for SLE15 the ds file is "ssg-sle15-ds.xml";
-    # for SLE12 the ds file is "ssg-sle12-ds.xml";
+    # for SLE12 the ds file is "ssg-sle12-ds.xml"; 
     # for Tumbleweed the ds file is "ssg-opensuse-ds.xml"
     my $version = get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
     $f_ssg_sle_ds =

@@ -13,7 +13,7 @@ use utils;
 use version_utils qw(is_sle);
 
 sub run {
-    my ($self) = @_;
+    my ($self) = @_; 
     my $is_ansible = 1;
     
     # Get ds file and profile ID, etc.
