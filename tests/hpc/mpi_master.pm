@@ -10,13 +10,15 @@
 
 use Mojo::Base qw(hpcbase hpc::utils), -signatures;
 use testapi;
-use serial_terminal 'select_serial_terminal';
+use serial_terminal qw(select_serial_terminal select_user_serial_terminal);
 use lockapi;
 use utils;
 use registration;
 use version_utils 'is_sle';
 use Utils::Logging 'export_logs';
 use hpc::formatter;
+use isotovideo;
+
 use POSIX 'strftime';
 
 sub run ($self) {
@@ -30,14 +32,18 @@ sub run ($self) {
         bin => '/home/bernhard/bin',
         hpc_lib => '/usr/lib/hpc',
     );
-    script_run("sudo -u $testapi::username mkdir $exports_path{bin}");
-    zypper_call("in $mpi-gnu-hpc $mpi-gnu-hpc-devel python3-devel");
+    my $user_virtio_fixed = isotovideo::get_version() >= 35;
+    my $prompt = $user_virtio_fixed ? $testapi::username . '@' . get_required_var('HOSTNAME') . ':~> ' : undef;
+
+    script_run("sudo -u $testapi::username mkdir -p $exports_path{bin}");
+    zypper_call("in $mpi-gnu-hpc $mpi-gnu-hpc-devel python3-devel imb-gnu-$mpi-hpc");
+
     my $need_restart = $self->setup_scientific_module();
     $self->relogin_root if $need_restart;
     $self->setup_nfs_server(\%exports_path);
 
-    type_string('pkill -u root', lf => 1);
-    select_serial_terminal(0);
+    type_string('pkill -u root', lf => 1) unless $user_virtio_fixed;
+    select_user_serial_terminal($prompt);
     # for <15-SP2 the openmpi2 module is named simply openmpi
     $mpi = 'openmpi' if ($mpi =~ /openmpi2|openmpi3|openmpi4/);
 
@@ -59,8 +65,8 @@ sub run ($self) {
     systemctl 'restart nfs-server';
     # And login as normal user to run the tests
     # NOTE: This behaves weird. Need another solution apparently
-    type_string('pkill -u root');
-    select_serial_terminal(0);
+    type_string('pkill -u root') unless $user_virtio_fixed;
+    select_user_serial_terminal($prompt);
     # load mpi after all the relogins
     assert_script_run "module load gnu $mpi";
     script_run "module av";
@@ -113,6 +119,13 @@ sub run ($self) {
     }
     barrier_wait('MPI_RUN_TEST');
     record_info 'MPI_RUN_TEST', strftime("\%H:\%M:\%S", localtime);
+
+    record_info 'testing IMB', 'Run all IMB-MPI1 components';
+    my $mpi_var_name = get_required_var('MPI');
+    my $imb_version = script_output("rpm -q --queryformat '%{VERSION}' imb-gnu-$mpi_var_name-hpc");
+    # Run IMB-MPI1 without args to run the whole set of testings. Mind the timeout if you do so
+    assert_script_run("mpirun -np 4 /usr/lib/hpc/gnu7/$mpi_var_name/imb/$imb_version/bin/IMB-MPI1 PingPong");
+    barrier_wait('IBM_TEST_DONE');
 }
 
 sub test_flags ($self) {

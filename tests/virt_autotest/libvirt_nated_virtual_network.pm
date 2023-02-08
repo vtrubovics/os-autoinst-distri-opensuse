@@ -11,14 +11,13 @@
 
 use base "virt_feature_test_base";
 use virt_utils;
-use set_config_as_glue;
 use virt_autotest::virtual_network_utils;
 use virt_autotest::utils;
 use strict;
 use warnings;
 use testapi;
 use utils;
-use version_utils 'is_sle';
+use version_utils qw(is_sle is_alp);
 
 sub run_test {
     my ($self) = @_;
@@ -27,7 +26,7 @@ sub run_test {
     my $vnet_nated_cfg_name = "vnet_nated.xml";
     virt_autotest::virtual_network_utils::download_network_cfg($vnet_nated_cfg_name);
 
-    die "The default(NAT BASED NETWORK) virtual network does not exist" if (script_run('virsh net-list --all | grep default') != 0);
+    die "The default(NAT BASED NETWORK) virtual network does not exist" if (script_run('virsh net-list --all | grep default') != 0 && !is_alp);
 
     #Create NAT BASED NETWORK
     assert_script_run("virsh net-create vnet_nated.xml");

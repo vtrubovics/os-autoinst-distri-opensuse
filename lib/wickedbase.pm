@@ -835,9 +835,11 @@ END_OF_CONTENT_$rand
 
 sub run_test_shell_script
 {
-    my ($self, $title, $script_cmd) = @_;
+    my ($self, $title, $script_cmd, %args) = @_;
+    $args{timeout} //= 300;
+
     $self->check_logs(sub {
-            my $output = script_output($script_cmd . '; echo "==COLLECT_EXIT_CODE==$?=="', proceed_on_failure => 1, timeout => 300);
+            my $output = script_output($script_cmd . '; echo "==COLLECT_EXIT_CODE==$?=="', proceed_on_failure => 1, timeout => $args{timeout});
             my $result = $output =~ m/==COLLECT_EXIT_CODE==0==/ ? 'ok' : 'fail';
             $self->record_console_test_result($title, $output, result => $result);
     });
@@ -993,7 +995,7 @@ sub pre_run_hook {
     wait_serial($coninfo, undef, 0, no_regex => 1);
     send_key 'ret';
     if ($self->{name} eq 'before_test' && get_var('VIRTIO_CONSOLE_NUM', 1) > 1) {
-        my $serial_terminal = is_ppc64le ? 'hvc2' : 'hvc1';
+        my $serial_terminal = is_ppc64le ? 'hvc3' : 'hvc2';
         add_serial_console($serial_terminal);
     }
     if ($self->{name} ne 'before_test' && get_var('WICKED_TCPDUMP')) {

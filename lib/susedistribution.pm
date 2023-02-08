@@ -21,6 +21,7 @@ use Utils::Backends;
 use backend::svirt qw(SERIAL_TERMINAL_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT);
 use Cwd;
 use autotest 'query_isotovideo';
+use isotovideo;
 
 =head1 SUSEDISTRIBUTION
 
@@ -58,7 +59,7 @@ sub handle_password_prompt {
     my ($console) = @_;
     $console //= '';
 
-    return if get_var("LIVETEST") || get_var('LIVECD');
+    return if (get_var("LIVETEST") || get_var('LIVECD')) && get_var('FLAVOR') !~ /d-installer/;
     if (is_serial_terminal()) {
         wait_serial(qr/Password:\s*$/i, timeout => 30);
     } else {
@@ -428,7 +429,11 @@ sub init_consoles {
 
     if (is_qemu) {
         $self->add_console('root-virtio-terminal', 'virtio-terminal', {});
-        $self->add_console('user-virtio-terminal', 'virtio-terminal', {});
+
+        $self->add_console('user-virtio-terminal', 'virtio-terminal',
+            isotovideo::get_version() >= 35 ?
+              {socked_path => cwd() . '/virtio_console_user'} : {});
+
         for (my $num = 1; $num < get_var('VIRTIO_CONSOLE_NUM', 1); $num++) {
             $self->add_console('root-virtio-terminal' . $num, 'virtio-terminal', {socked_path => cwd() . '/virtio_console' . $num});
         }

@@ -23,7 +23,7 @@ use Date::Parse qw(str2time);
 use testapi;
 use serial_terminal 'select_serial_terminal';
 use utils qw(zypper_call script_retry systemctl);
-use version_utils qw(is_opensuse is_tumbleweed is_sle is_public_cloud is_leap);
+use version_utils qw(is_opensuse is_tumbleweed is_sle is_public_cloud is_leap is_jeos);
 use Utils::Backends qw(is_hyperv);
 use Utils::Architectures;
 use power_action_utils qw(power_action);
@@ -160,10 +160,9 @@ sub run {
         }
     } else {
         assert_script_run("systemctl start chronyd");
-        assert_script_run("chronyc waitsync", fail_message => "time synchronization failed");
-        assert_script_run("systemctl enable --now chrony-wait.service", fail_message => "error enabling chrony-wait");
+        script_retry("chronyc waitsync 60 1 0 5", timeout => 300, retry => 3, die => 1);
+        systemctl('enable chrony-wait.service');
     }
-
 
     # create dropin directory for further journal.conf updates if it does not exists
     if (script_run "test -d ${\ DROPIN_DIR }") {
@@ -193,6 +192,10 @@ sub run {
         assert_script_run 'journalctl --flush' if (is_sle('15-sp4+') || is_leap('15.4+'));
         # test for installed rsyslog and for imuxsock existance
         # rsyslog must be there by design
+        if (is_sle('=15-sp1') && is_jeos) {
+            zypper_call 'in rsyslog';
+            systemctl 'enable --now rsyslog';
+        }
         assert_script_run 'rpm -q rsyslog';
         assert_script_run 'test -S /run/systemd/journal/syslog';
         upload_logs(${\SYSLOG});

@@ -21,9 +21,24 @@ conditional_schedule:
         UEFI:
             '1':
                 - console/verify_efi_mok
+    udev_dep:
+        VERSION:
+            '15-SP4':
+                - console/systemd_wo_udev
+    maintenance:
+        FLAVOR:
+            'JeOS-for-kvm-and-xen-Updates':
+                - qa_automation/patch_and_reboot
+    wizard:
+        FIRST_BOOT_CONFIG:
+            'wizard':
+                - jeos/firstrun
+            'cloud-init':
+                - installation/first_boot
 schedule:
     - '{{bootloader}}'
-    - jeos/firstrun
+    - '{{wizard}}'
+    # - jeos/image_info
     - jeos/record_machine_id
     - console/force_scheduled_tasks
     - jeos/grub2_gfxmode
@@ -31,16 +46,18 @@ schedule:
     - jeos/build_key
     - console/prjconf_excluded_rpms
     - console/journal_check
+    - console/pam
     - microos/libzypp_config
     - console/suseconnect_scc
-    - jeos/efi_tid
-    - qa_automation/patch_and_reboot
+    - '{{maintenance}}'
     - '{{efi}}'
     - jeos/glibc_locale
     - console/check_network
     - console/system_state
     - console/consoletest_setup
+    - '{{udev_dep}}'
     - locale/keymap_or_locale
+    - console/ping
     - console/apache
     - console/dns_srv
     - console/postgresql_server
@@ -64,13 +81,13 @@ schedule:
     - console/firewall_enabled
     - console/gpt_ptable
     - console/kdump_disabled
-    - console/slp
     - console/sshd_running
     - console/sshd
     - console/ssh_cleanup
     - console/mtab
     - console/mariadb_srv
     - console/rsync
+    - console/openvswitch
     - console/zypper_lifecycle
     - console/orphaned_packages_check
     - console/consoletest_finish
