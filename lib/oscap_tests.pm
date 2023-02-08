@@ -13,10 +13,11 @@ use warnings;
 use testapi;
 use utils;
 use base 'opensusebasetest';
-use version_utils qw(is_sle);
+use version_utils qw(is_sle is_opensuse);
 use bootloader_setup qw(add_grub_cmdline_settings);
 use power_action_utils 'power_action';
 use Utils::Backends 'is_pvm';
+use registration qw(add_suseconnect_product get_addon_fullname is_phub_ready);
 
 our @EXPORT = qw(
   $profile_ID
@@ -25,6 +26,7 @@ our @EXPORT = qw(
   $f_stderr
   $f_report
   $remediated
+  $ansible_remediation
   set_ds_file
   upload_logs_reports
   pattern_count_in_file
@@ -64,8 +66,29 @@ our $profile_ID_sle_anssi_bp28_minimal = 'xccdf_org.ssgproject.content_profile_a
 our $profile_ID_sle_cis_workstation_l1 = 'xccdf_org.ssgproject.content_profile_cis_workstation_l1';
 our $profile_ID_tw = 'xccdf_org.ssgproject.content_profile_standard';
 
+# Ansible playbooks
+our $ansible_playbook_sle_stig = "-playbook-stig.yml";
+our $ansible_playbook_sle_cis = "-playbook-cis.yml";
+our $ansible_playbook_sle_pci_dss = "-playbook-pci-dss.yml";
+# Only sle-15
+our $ansible_playbook_sle_hipaa = "-playbook-hipaa.yml";
+
+our $ansible_playbook_sle_anssi_bp28_high = "-playbook-anssi_bp28_high.yml";
+# Priority Medium:
+our $ansible_playbook_sle_anssi_bp28_enhanced = "-playbook-anssi_bp28_enhanced.yml";
+our $ansible_playbook_sle_cis_server_l1 = "-playbook-cis_server_l1.yml";
+our $ansible_playbook_sle_cis_workstation_l2 = "-playbook-cis_workstation_l2.yml";
+# Priority Low:
+our $ansible_playbook_sle_anssi_bp28_intermediary = "-playbook-anssi_bp28_intermediary.yml";
+our $ansible_playbook_sle_anssi_bp28_minimal = "-playbook-anssi_bp28_minimal.yml";
+our $ansible_playbook_sle_cis_workstation_l1 = "-playbook-cis_workstation_l1.yml";
+our $ansible_playbook_standart = "opensuse-playbook-standard.yml";
+
 # The OS status of remediation: '0', not remediated; '1', remediated
 our $remediated = 0;
+
+# Is it ansible remediation
+our $ansible_remediation = 0;
 
 # Upload HTML report by default
 set_var('UPLOAD_REPORT_HTML', 1);
@@ -196,7 +219,48 @@ sub oscap_security_guide_setup {
     # Check the oscap version information for reference
     $out = script_output("oscap -V");
     record_info("oscap version", "\"# oscap -V\" returns:\n $out");
+    
+    # If required ansible remediation
+    if $ansible_remediation {
+        my $pkgs = 'ansible';
+
+        unless (is_opensuse) {
+            # Package'ansible' require PackageHub is available
+            return unless is_phub_ready();
+            add_suseconnect_product(get_addon_fullname('phub'));
+        }
+        zypper_call "in $pkgs sudo";
+        # Record the pkgs' version for reference
+        my $out = script_output("zypper se -s $pkgs");
+        record_info("$pkgs Pkg_ver", "$pkgs packages' version:\n $out");
+    }
 }
+
+=ansible return codes
+0 = The command ran successfully, without any task failures or internal errors.
+1 = There was a fatal error or exception during execution.
+2 = Can mean any of:
+
+    Task failures were encountered on some or all hosts during a play (partial failure / partial success).
+    The user aborted the playbook by hitting Ctrl+C, A during a pause task with prompt.
+    Invalid or unexpected arguments, i.e. ansible-playbook --this-arg-doesnt-exist some_playbook.yml.
+    A syntax or YAML parsing error was encountered during a dynamic include, i.e. include_role or include_task.
+
+3 = This used to mean “Hosts unreachable” per TQM, but that seems to have been redefined to 4. I’m not sure if this means anything different now.
+4 = Can mean any of:
+
+    Some hosts were unreachable during the run (login errors, host unavailable, etc). This will NOT end the run early.
+    All of the hosts within a single batch were unreachable- i.e. if you set serial: 3 at the play level, and three hosts in a batch were unreachable. This WILL end the run early.
+    A synax or parsing error was encountered- either in command arguments, within a playbook, or within a static include (import_role or import_task). This is a fatal error. 
+
+5 = Error with the options provided to the command
+6 = Command line args are not UTF-8 encoded
+8 = A condition called RUN_FAILED_BREAK_PLAY occurred within Task Queue Manager.
+99 = Ansible received a keyboard interrupt (SIGINT) while running the playbook- i.e. the user hits Ctrl+c during the playbook run.
+143 = Ansible received a kill signal (SIGKILL) during the playbook run- i.e. an outside process kills the ansible-playbook command.
+250 = Unexpected exception- often due to a bug in a module, jinja templating errors, etc.
+255 = Unknown error, per TQM.
+=cut
 
 sub oscap_remediate {
     my ($self, $f_ssg_ds, $profile_ID) = @_;
@@ -204,11 +268,31 @@ sub oscap_remediate {
     select_console 'root-console';
 
     # Verify mitigation mode
-    my $ret
-      = script_run("oscap xccdf eval --profile $profile_ID --remediate --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr", timeout => 600);
-    record_info("Return=$ret", "# oscap xccdf eval --profile $profile_ID --remediate\" returns: $ret");
-    if ($ret != 0 and $ret != 2) {
-        record_info('bsc#1194676', 'remediation should be succeeded', result => 'fail');
+    # If doing ansible playbook remediation
+    if $ansible_remediation {
+        my $path = '/usr/share/scap-security-guide/ansible/';
+        my $inventory_file = "inventory.yml";
+        my $inventory_file_fpath = $path . $inventory_file;
+        my $playbook_fpath = $path . $profile_ID;
+        # Create inventory file
+        assert_script_run("echo -e \"all:\\n  hosts:\\n     localhost\\n  vars:\\n     ansible_connection: local\" > $inventory_file_fpath");
+        my $ret
+          = script_run("ansible-playbook -v -i $inventory_file_fpath $playbook_fpath > $f_stdout 2> $f_stderr", timeout => 600);
+        record_info("Return=$ret", "ansible-playbook -v -i $inventory_file_fpath $playbook_fpath\" returns: $ret");
+        if ($ret != 0 and $ret != 2 and $ret != 4) {
+            record_info("returened $ret", 'remediation should be succeeded', result => 'fail');
+            $self->result('fail');
+        }
+    }
+    # If doing bash remediation
+    else {
+        my $ret
+          = script_run("oscap xccdf eval --profile $profile_ID --remediate --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr", timeout => 600);
+        record_info("Return=$ret", "# oscap xccdf eval --profile $profile_ID --remediate\" returns: $ret");
+        if ($ret != 0 and $ret != 2) {
+            record_info('bsc#1194676', 'remediation should be succeeded', result => 'fail');
+            $self->result('fail');
+        }
     }
     if ($remediated == 0) {
         $remediated = 1;
@@ -345,4 +429,6 @@ sub oscap_evaluate_remote {
     # Upload logs & ouputs for reference
     upload_logs_reports();
 }
+
+
 1;
