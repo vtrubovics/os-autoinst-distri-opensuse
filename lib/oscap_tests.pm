@@ -92,7 +92,7 @@ our $remediated = 0;
 our $ansible_remediation = 0;
 
 # Get sle version "sle12" or "sle15"
-our $sle_version = "sle" . get_required_var'VERSION' =~ s/[0-9]+.*//r;
+our $sle_version = 'sle' . get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
 
 # Upload HTML report by default
 set_var('UPLOAD_REPORT_HTML', 1);
