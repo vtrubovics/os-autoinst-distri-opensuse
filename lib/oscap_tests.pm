@@ -27,6 +27,7 @@ our @EXPORT = qw(
   $f_report
   $remediated
   $ansible_remediation
+  $sle_version
   set_ds_file
   upload_logs_reports
   pattern_count_in_file
@@ -89,6 +90,9 @@ our $remediated = 0;
 
 # Is it ansible remediation: '0', bash remediation; '1' ansible remediation
 our $ansible_remediation = 0;
+
+# Get sle version "sle12" or "sle15"
+our $sle_version = "sle" . get_required_var'VERSION' =~ s/[0-9]+.*//r;
 
 # Upload HTML report by default
 set_var('UPLOAD_REPORT_HTML', 1);
@@ -274,16 +278,11 @@ sub oscap_remediate {
     # Verify mitigation mode
     # If doing ansible playbook remediation
     if ($ansible_remediation == 1) {
-        my $path = '/usr/share/scap-security-guide/ansible/';
-        my $inventory_file = "inventory.yml";
-        my $inventory_file_fpath = $path . $inventory_file;
-        my $playbook_fpath = $path . $profile_ID;
-        # Create inventory file
-        assert_script_run("echo -e \"all:\\n  hosts:\\n     localhost\\n  vars:\\n     ansible_connection: local\" > $inventory_file_fpath");
-        my $data = script_output "cat $inventory_file_fpath";
+        my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $profile_ID;
+
         my $ret
-          = script_run("ansible-playbook -v -i $inventory_file_fpath $playbook_fpath > $f_stdout 2> $f_stderr", timeout => 600);
-        record_info("Return=$ret", "ansible-playbook -v -i $inventory_file_fpath $playbook_fpath\" returns: $ret");
+          = script_run("ansible-playbook -v -i \"localhost,\" -c local $playbook_fpath > $f_stdout 2> $f_stderr", timeout => 600);
+        record_info("Return=$ret", "ansible-playbook -v -i \"localhost,\" $playbook_fpath\" returns: $ret");
         if ($ret != 0 and $ret != 2 and $ret != 4) {
             record_info("returened $ret", 'remediation should be succeeded', result => 'fail');
             $self->result('fail');
@@ -308,7 +307,6 @@ sub oscap_remediate {
         $remediated = 1;
         record_info('remediated', 'setting status remediated');
     }
-
 }
 
 sub oscap_evaluate {

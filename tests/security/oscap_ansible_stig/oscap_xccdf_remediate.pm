@@ -17,8 +17,7 @@ sub run {
     
     # Get ds file and profile ID, etc.
     my $f_ssg_ds = is_sle ? $oscap_tests::f_ssg_sle_ds : $oscap_tests::f_ssg_tw_ds;
-    my $version = "sle" . get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
-    my $profile_ID = is_sle ? $version . $oscap_tests::ansible_playbook_sle_stig : $oscap_tests::ansible_playbook_standart;
+    my $profile_ID = is_sle ? $oscap_tests::$sle_version . $oscap_tests::ansible_playbook_sle_stig : $oscap_tests::ansible_playbook_standart;
     
     $oscap_tests::ansible_remediation = 1;
     $self->oscap_remediate($f_ssg_ds, $profile_ID);
