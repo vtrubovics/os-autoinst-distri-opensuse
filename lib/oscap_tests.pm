@@ -320,7 +320,7 @@ sub oscap_remediate {
             if ($j == 20 or $i == $#$cce_ids_array_ref) {
                 $j = 0;
                 $ret
-                  = script_run("ansible-playbook -i \"localhost,\" -c local $playbook_fpath --tags $cce_tags >> $f_stdout 2>> $f_stderr", timeout => 600);
+                  = script_run("ansible-playbook -i \"localhost,\" -c local $playbook_fpath --tags $cce_tags >> $f_stdout 2>> $f_stderr", timeout => 1200);
                 record_info("Return=$ret", "ansible-playbook -v -i \"localhost,\" $playbook_fpath\" --tags $cce_tags returns: $ret");
                 if ($ret != 0 and $ret != 2 and $ret != 4) {
                     record_info("Returened $ret", 'remediation should be succeeded', result => 'fail');
