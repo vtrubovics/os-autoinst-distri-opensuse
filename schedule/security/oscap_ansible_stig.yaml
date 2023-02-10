@@ -5,15 +5,11 @@ schedule:
     - '{{bootloader}}'
     - boot/boot_to_desktop
     - security/oscap_ansible_stig/oscap_security_guide_setup
-    # - security/oscap_ansible_stig/oscap_xccdf_eval
+    - security/oscap_ansible_stig/oscap_xccdf_eval
     # - security/oscap_ansible_stig/oscap_xccdf_eval_remote
     - security/oscap_ansible_stig/oscap_xccdf_remediate
     # Do evaluate again after remediate
     - security/oscap_ansible_stig/oscap_xccdf_eval
-    - security/oscap_ansible_stig/oscap_xccdf_remediate
-    # Do evaluate again after remediate
-    - security/oscap_ansible_stig/oscap_xccdf_eval
-    - security/oscap_ansible_stig/baseline_comparison
 conditional_schedule:
     bootloader:
         ARCH:
