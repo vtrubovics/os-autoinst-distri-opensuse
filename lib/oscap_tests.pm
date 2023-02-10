@@ -317,7 +317,7 @@ sub oscap_remediate {
         for my $i (0 .. $#$cce_ids_array_ref) {
             $j ++;
             $cce_tags .= @$cce_ids_array_ref[$i] . ",";
-            if ($j == 20 or $i == $#$cce_ids_array_ref) {
+            if ($j == 10 or $i == $#$cce_ids_array_ref) {
                 $j = 0;
                 $ret
                   = script_run("ansible-playbook -i \"localhost,\" -c local $playbook_fpath --tags $cce_tags >> $f_stdout 2>> $f_stderr", timeout => 1200);
