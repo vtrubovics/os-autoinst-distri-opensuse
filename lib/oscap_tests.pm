@@ -316,7 +316,7 @@ sub oscap_remediate {
         # Executing ansible playbook with max 20 rules max using CCE tags
         for my $i (0 .. $#$cce_ids_array_ref) {
             $j ++;
-            $cce_tags .= @$cce_ids_array_ref[$i];
+            $cce_tags .= @$cce_ids_array_ref[$i] . ",";
             if ($j == 20 or $i == $#$cce_ids_array_ref) {
                 $j = 0;
                 $ret
