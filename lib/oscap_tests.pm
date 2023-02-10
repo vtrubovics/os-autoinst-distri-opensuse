@@ -310,7 +310,7 @@ sub oscap_remediate {
         my $j = 0;
         my $ret;
         my $cce_tags;
-        
+        my $out;
         # Geting array of unique CCE IDs from the ansible playbook
         cce_ids_in_file (1, $playbook_content, $pattern, $cce_ids_array_ref );
         # Executing ansible playbook with max 20 rules max using CCE tags
@@ -319,9 +319,13 @@ sub oscap_remediate {
             $cce_tags .= @$cce_ids_array_ref[$i] . ",";
             if ($j == 10 or $i == $#$cce_ids_array_ref) {
                 $j = 0;
+                $out = script_output("date");
+                record_info("Start time", "ansible-playbook execution started:\n $out");                
                 $ret
                   = script_run("ansible-playbook -i \"localhost,\" -c local $playbook_fpath --tags $cce_tags >> $f_stdout 2>> $f_stderr", timeout => 1200);
                 record_info("Return=$ret", "ansible-playbook -v -i \"localhost,\" $playbook_fpath\" --tags $cce_tags returns: $ret");
+                $out = script_output("date");
+                record_info("End time", "ansible-playbook execution ended:\n $out");                
                 if ($ret != 0 and $ret != 2 and $ret != 4) {
                     record_info("Returened $ret", 'remediation should be succeeded', result => 'fail');
                     $self->result('fail');
