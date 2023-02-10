@@ -18,6 +18,7 @@ use bootloader_setup qw(add_grub_cmdline_settings);
 use power_action_utils 'power_action';
 use Utils::Backends 'is_pvm';
 use registration qw(add_suseconnect_product get_addon_fullname is_phub_ready);
+use List::MoreUtils qw(uniq);
 
 our @EXPORT = qw(
   $profile_ID
@@ -32,6 +33,7 @@ our @EXPORT = qw(
   upload_logs_reports
   pattern_count_in_file
   rules_count_in_file
+  cce_ids_in_file
   oscap_security_guide_setup
   oscap_remediate
   oscap_evaluate
@@ -188,6 +190,29 @@ sub rules_count_in_file {
     }
 }
 
+sub cce_ids_in_file {
+
+    #Find all unique CCE IDs by provided pattern
+    my $self = $_[0];
+    my $data = $_[1];
+    my $pattern = $_[2];
+    my @cces;
+    my $cce;
+
+    my @lines = split /\n|\r/, $data;
+    for my $i (0 .. $#lines){
+        if($lines[$i] =~ /($pattern)/){
+            $cce = $1;
+            push(@cces, $cce);
+        }
+    }
+    # Saving only unique CCE IDs
+    my @unique_cces = uniq @cces;
+    # Returning by reference array of CCE IDs
+    $_[3] = \@unique_cces;
+    return $#unique_cces + 1;
+}
+
 =comment
     OSCAP exit codes from https://github.com/OpenSCAP/openscap/blob/maint-1.3/utils/oscap-tool.h
     // standard oscap CLI exit statuses
@@ -279,14 +304,32 @@ sub oscap_remediate {
     # If doing ansible playbook remediation
     if ($ansible_remediation == 1) {
         my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $profile_ID;
-
-        my $ret
-          = script_run("ansible-playbook -v -i \"localhost,\" -c local $playbook_fpath > $f_stdout 2> $f_stderr", timeout => 600);
-        record_info("Return=$ret", "ansible-playbook -v -i \"localhost,\" $playbook_fpath\" returns: $ret");
-        if ($ret != 0 and $ret != 2 and $ret != 4) {
-            record_info("returened $ret", 'remediation should be succeeded', result => 'fail');
-            $self->result('fail');
-        }
+        my $playbook_content = script_output "cat $playbook_fpath";
+        my $pattern ="CCE-\\d+-\\d";
+        my $cce_ids_array_ref;
+        my $j = 0;
+        my $ret;
+        my $cce_tags;
+        
+        # Geting array of unique CCE IDs from the ansible playbook
+        cce_ids_in_file (1, $playbook_content, $pattern, $cce_ids_array_ref );
+        # Executing ansible playbook with max 20 rules max using CCE tags
+        for my $i (0 .. $#$cce_ids_array_ref) {
+            $j ++;
+            $cce_tags .= @$cce_ids_array_ref[$i];
+            if ($j == 20 or $i == $#$cce_ids_array_ref) {
+                $j = 0;
+                $ret
+                  = script_run("ansible-playbook -v -i \"localhost,\" -c local $playbook_fpath --tags $cce_tags > $f_stdout 2> $f_stderr", timeout => 600);
+                record_info("Return=$ret", "ansible-playbook -v -i \"localhost,\" $playbook_fpath\" --tags $cce_tags returns: $ret");
+                if ($ret != 0 and $ret != 2 and $ret != 4) {
+                    record_info("Returened $ret", 'remediation should be succeeded', result => 'fail');
+                    $self->result('fail');
+                    }
+                undef $cce_tags;
+                }
+            }
+        
         # Upload only stdout logs
         upload_logs("$f_stdout") if script_run "! [[ -e $f_stdout ]]";
         upload_logs("$f_stderr") if script_run "! [[ -e $f_stderr ]]";
