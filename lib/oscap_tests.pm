@@ -19,6 +19,7 @@ use power_action_utils 'power_action';
 use Utils::Backends 'is_pvm';
 use registration qw(add_suseconnect_product get_addon_fullname is_phub_ready);
 use List::MoreUtils qw(uniq);
+use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 
 our @EXPORT = qw(
   $profile_ID
@@ -310,7 +311,13 @@ sub oscap_remediate {
         my $j = 0;
         my $ret;
         my $cce_tags;
-        my $out;
+        my $out1;
+        my $out2;
+        my $start_time;
+        my $end_time;
+        my $execution_times = "execution_times.txt";
+        my $execution_time;
+        my $line;
         # Geting array of unique CCE IDs from the ansible playbook
         cce_ids_in_file (1, $playbook_content, $pattern, $cce_ids_array_ref );
         # Executing ansible playbook with max 20 rules max using CCE tags
@@ -319,13 +326,17 @@ sub oscap_remediate {
             $cce_tags .= @$cce_ids_array_ref[$i] . ",";
             if ($j == 10 or $i == $#$cce_ids_array_ref) {
                 $j = 0;
-                $out = script_output("date");
-                record_info("Start time", "ansible-playbook execution started:\n $out");                
+                $out1 = script_output("date");
+                $start_time = clock_gettime(CLOCK_MONOTONIC);
                 $ret
                   = script_run("ansible-playbook -i \"localhost,\" -c local $playbook_fpath --tags $cce_tags >> $f_stdout 2>> $f_stderr", timeout => 1200);
                 record_info("Return=$ret", "ansible-playbook -v -i \"localhost,\" $playbook_fpath\" --tags $cce_tags returns: $ret");
-                $out = script_output("date");
-                record_info("End time", "ansible-playbook execution ended:\n $out");                
+                $out2 = script_output("date");
+                $end_time = clock_gettime(CLOCK_MONOTONIC);
+                $execution_time = $end_time - $start_time;
+                $line = "playbook tag $cce_tags execution start: $out1 execution end: $out2 execution time: $execution_time";
+                script_run("echo $line >> $execution_times");
+                record_info("Time info", "$line");
                 if ($ret != 0 and $ret != 2 and $ret != 4) {
                     record_info("Returened $ret", 'remediation should be succeeded', result => 'fail');
                     $self->result('fail');
@@ -337,6 +348,7 @@ sub oscap_remediate {
         # Upload only stdout logs
         upload_logs("$f_stdout") if script_run "! [[ -e $f_stdout ]]";
         upload_logs("$f_stderr") if script_run "! [[ -e $f_stderr ]]";
+        upload_logs("$execution_times") if script_run "! [[ -e $execution_times ]]";
     }
     # If doing bash remediation
     else {
