@@ -1,7 +1,7 @@
 # Copyright 2022 SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-# Summary: Test 'anssi_bp_28_high' hardening in the 'scap-security-guide': ansible mitigation mode
+# Summary: Test 'anssi_bp28_high' hardening in the 'scap-security-guide': ansible mitigation mode
 # Maintainer: QE Security <none@suse.de>
 # Tags: poo#93886, poo#104943
 
@@ -17,7 +17,7 @@ sub run {
 
     # Get ds file and profile ID, etc.
     my $f_ssg_ds = is_sle ? $oscap_tests::f_ssg_sle_ds : $oscap_tests::f_ssg_tw_ds;
-    my $profile_ID = is_sle ? $oscap_tests::sle_version . $oscap_tests::ansible_playbook_sle_anssi_bp_28_high : $oscap_tests::ansible_playbook_standart;
+    my $profile_ID = is_sle ? $oscap_tests::sle_version . $oscap_tests::ansible_playbook_sle_anssi_bp28_high : $oscap_tests::ansible_playbook_standart;
     
     $oscap_tests::ansible_remediation = 1;
     $self->oscap_remediate($f_ssg_ds, $profile_ID);
