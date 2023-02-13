@@ -13,6 +13,8 @@ use utils;
 
 sub run {
     my ($self) = @_;
+    $oscap_tests::ansible_remediation = 1;
+
     select_console 'root-console';
 
     $self->oscap_security_guide_setup();
