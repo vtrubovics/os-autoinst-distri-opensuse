@@ -324,7 +324,7 @@ sub oscap_remediate {
         for my $i (0 .. $#$cce_ids_array_ref) {
             $j ++;
             $cce_tags .= @$cce_ids_array_ref[$i] . ",";
-            if ($j == 3 or $i == $#$cce_ids_array_ref) {
+            if ($j == 5 or $i == $#$cce_ids_array_ref) {
                 $j = 0;
                 $out1 = script_output("date");
                 $start_time = clock_gettime(CLOCK_MONOTONIC);
