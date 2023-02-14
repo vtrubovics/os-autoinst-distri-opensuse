@@ -150,7 +150,7 @@ sub pattern_count_in_file {
     for my $i (0 .. $#lines) {
         if ($lines[$i] =~ /$pattern/) {
             $count++;
-            $lines[$i] .= "," . $lines[$i - 2];
+            $lines[$i - 4] .= "," . $lines[$i - 2];
             push(@rules, $lines[$i - 4]);
         }
     }
