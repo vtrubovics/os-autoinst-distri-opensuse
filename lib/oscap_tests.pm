@@ -263,7 +263,7 @@ sub oscap_security_guide_setup {
             # Package'ansible' require PackageHub is available
             return unless is_phub_ready();
             add_suseconnect_product(get_addon_fullname('phub'));
-            add_suseconnect_product(get_addon_fullname('pcm'), (is_sle('<15') ? '12' : undef);
+            add_suseconnect_product(get_addon_fullname('pcm'), (is_sle('<15') ? '12' : undef));
             # if (is_sle('>15')) {
                 # my $major_version = '$(echo ${VERSION_ID}|cut -c1-2)';
                 # my $arch = get_var('ARCH');
