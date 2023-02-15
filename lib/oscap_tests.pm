@@ -263,7 +263,8 @@ sub oscap_security_guide_setup {
             # Package'ansible' require PackageHub is available
             return unless is_phub_ready();
             add_suseconnect_product(get_addon_fullname('phub'));
-            add_suseconnect_product('sle-module-public-cloud');# if (is_sle('<15'));
+            # add_suseconnect_product('sle-module-public-cloud') if (is_sle('<15'));
+            script_run("suseconnect -p sle-module-public-cloud/12/x86_64") if (is_sle('<15'));
         }
         zypper_call "in $pkgs sudo";
         # Record the pkgs' version for reference
