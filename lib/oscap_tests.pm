@@ -307,7 +307,7 @@ sub oscap_remediate {
     # If doing ansible playbook remediation
     if ($ansible_remediation == 1) {
         my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $profile_ID;
-        my $playbook_content = script_output ("cat $playbook_fpath", 120);
+        # my $playbook_content = script_output ("cat $playbook_fpath", 120);
         my $pattern ="CCE-\\d+-\\d";
         my $cce_ids_array_ref;
         my $j = 0;
@@ -321,6 +321,9 @@ sub oscap_remediate {
         my $execution_time;
         my $line;
         # Geting array of unique CCE IDs from the ansible playbook
+        open(my $fh,'<', $playbook_fpath);
+        read $fh, $playbook_content, -s $fh;
+        close($fh);
         cce_ids_in_file (1, $playbook_content, $pattern, $cce_ids_array_ref );
         # Executing ansible playbook with max 20 rules max using CCE tags
         for my $i (0 .. $#$cce_ids_array_ref) {
