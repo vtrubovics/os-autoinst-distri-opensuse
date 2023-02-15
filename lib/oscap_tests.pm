@@ -308,6 +308,7 @@ sub oscap_remediate {
     if ($ansible_remediation == 1) {
         my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $profile_ID;
         # my $playbook_content = script_output ("cat $playbook_fpath", 120);
+        my $playbook_content;
         my $pattern ="CCE-\\d+-\\d";
         my $cce_ids_array_ref;
         my $j = 0;
@@ -325,7 +326,7 @@ sub oscap_remediate {
         # Geting array of unique CCE IDs from the ansible playbook
         my $fh = IO::File->new();
         if ($fh->open("< $playbook_fpath")) {
-            read $fh, my $playbook_content, -s $fh;
+            read $fh, $playbook_content, -s $fh;
             $fh->close;
         }
         cce_ids_in_file (1, $playbook_content, $pattern, $cce_ids_array_ref );
