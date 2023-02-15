@@ -125,7 +125,7 @@ sub upload_logs_reports {
     # Check if list of files returned correctly
     if (defined $files) {
         foreach my $file (split("\n", $files)) {
-            upload_logs("$file");
+            upload_logs("$file") if script_run "! [[ -e $file ]]";
         }
     }
     upload_logs("$f_stdout") if script_run "! [[ -e $f_stdout ]]";
