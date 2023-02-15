@@ -320,10 +320,14 @@ sub oscap_remediate {
         my $execution_times = "execution_times.txt";
         my $execution_time;
         my $line;
+        
+        use IO::File;
         # Geting array of unique CCE IDs from the ansible playbook
-        open(my $fh,'<', $playbook_fpath);
-        read $fh, my $playbook_content, -s $fh;
-        close($fh);
+        my $fh = IO::File->new();
+        if ($fh->open("< $playbook_fpath")) {
+            read $fh, my $playbook_content, -s $fh;
+            $fh->close;
+        }
         cce_ids_in_file (1, $playbook_content, $pattern, $cce_ids_array_ref );
         # Executing ansible playbook with max 20 rules max using CCE tags
         for my $i (0 .. $#$cce_ids_array_ref) {
