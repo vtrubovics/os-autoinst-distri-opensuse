@@ -307,7 +307,8 @@ sub oscap_remediate {
     # If doing ansible playbook remediation
     if ($ansible_remediation == 1) {
         my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $profile_ID;
-        my $playbook_content = script_output ("cat $playbook_fpath", 120);
+#        my $playbook_content = script_output ("cat $playbook_fpath", 120);
+        my $playbook_content = script_output ("grep -e CCE $playbook_fpath", 120);
         # my $playbook_content;
         my $pattern ="CCE-\\d+-\\d";
         my $cce_ids_array_ref;
