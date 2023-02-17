@@ -265,6 +265,10 @@ sub oscap_security_guide_setup {
             add_suseconnect_product(get_addon_fullname('phub'));
             add_suseconnect_product(get_addon_fullname('pcm'), (is_sle('<15') ? '12' : undef)) if is_sle('<15');
         }
+        # Need to update SLES 12 to fix issues with STIG playbook
+        if (is_sle('<15')) {
+            zypper_call("up", timeout => 1800);
+        }
         zypper_call "in $pkgs sudo";
         # Record the pkgs' version for reference
         my $out = script_output("zypper se -s $pkgs");
@@ -307,9 +311,7 @@ sub oscap_remediate {
     # If doing ansible playbook remediation
     if ($ansible_remediation == 1) {
         my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $profile_ID;
-#        my $playbook_content = script_output ("cat $playbook_fpath", 120);
         my $playbook_content = script_output ("grep -e CCE $playbook_fpath", 120);
-        # my $playbook_content;
         my $pattern ="CCE-\\d+-\\d";
         my $cce_ids_array_ref;
         my $j = 0;
@@ -323,13 +325,6 @@ sub oscap_remediate {
         my $execution_time;
         my $line;
         
-        # use IO::File;
-        # # Geting array of unique CCE IDs from the ansible playbook
-        # my $fh = IO::File->new();
-        # if ($fh->open("< $playbook_fpath")) {
-            # read $fh, $playbook_content, -s $fh;
-            # $fh->close;
-        # }
         cce_ids_in_file (1, $playbook_content, $pattern, $cce_ids_array_ref );
         # Executing ansible playbook with max 20 rules max using CCE tags
         for my $i (0 .. $#$cce_ids_array_ref) {
@@ -341,7 +336,7 @@ sub oscap_remediate {
                 $start_time = clock_gettime(CLOCK_MONOTONIC);
                 $ret
                   = script_run("ansible-playbook -i \"localhost,\" -c local $playbook_fpath --tags $cce_tags >> $f_stdout 2>> $f_stderr", timeout => 1200);
-                record_info("Return=$ret", "ansible-playbook -v -i \"localhost,\" $playbook_fpath\" --tags $cce_tags returns: $ret");
+                record_info("Return=$ret", "ansible-playbook -i \"localhost,\" -c local $playbook_fpath --tags $cce_tags returns: $ret");
                 $out2 = script_output("date");
                 $end_time = clock_gettime(CLOCK_MONOTONIC);
                 $execution_time = $end_time - $start_time;
