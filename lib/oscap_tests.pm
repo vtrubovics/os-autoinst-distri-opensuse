@@ -266,7 +266,8 @@ sub oscap_security_guide_setup {
             add_suseconnect_product(get_addon_fullname('pcm'), (is_sle('<15') ? '12' : undef)) if is_sle('<15');
         }
         # Need to update SLES 12 to fix issues with STIG playbook
-        if (is_sle('<15')) {
+        my $major_version = '$(echo ${VERSION_ID}|cut -c1-2)';
+        if (is_sle and $major_version == 12) {
             zypper_call("up", timeout => 1800);
         }
         zypper_call "in $pkgs sudo";
