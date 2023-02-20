@@ -263,15 +263,12 @@ sub oscap_security_guide_setup {
             # Package'ansible' require PackageHub is available
             return unless is_phub_ready();
             add_suseconnect_product(get_addon_fullname('phub'));
+            # On SLES 12 ansible packages require depencies located in sle-module-public-cloud
             add_suseconnect_product(get_addon_fullname('pcm'), (is_sle('<15') ? '12' : undef)) if is_sle('<15');
         }
-        # Need to update SLES 12 to fix issues with STIG playbook
-        record_info("Updaiting", "Updaiting SLES");
+        # Need to update SLES to fix issues with STIG playbook
+        record_info("Update", "Updaiting SLES");
         zypper_call("up", timeout => 1800);
-        # my $major_version = '$(echo ${VERSION_ID}|cut -c1-2)';
-        # if (is_sle and $major_version == 12) {
-            # zypper_call("up", timeout => 1800);
-        # }
         zypper_call "in $pkgs sudo";
         # Record the pkgs' version for reference
         my $out = script_output("zypper se -s $pkgs");
