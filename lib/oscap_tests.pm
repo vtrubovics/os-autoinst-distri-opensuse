@@ -24,6 +24,8 @@ use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 our @EXPORT = qw(
   $profile_ID
   $f_ssg_sle_ds
+  $ssg_sle_ds
+  $ssg_tw_ds
   $f_stdout
   $f_stderr
   $f_report
@@ -31,6 +33,7 @@ our @EXPORT = qw(
   $ansible_remediation
   $sle_version
   set_ds_file
+  set_ds_file_name
   upload_logs_reports
   pattern_count_in_file
   rules_count_in_file
@@ -50,8 +53,10 @@ our $f_pregex = '\\bpass\\b';
 our $f_fregex = '\\bfail\\b';
 
 # Set default value for 'scap-security-guide' ds file
-our $f_ssg_sle_ds = '/usr/share/xml/scap/ssg/content/ssg-sle12-ds.xml';
+our $f_ssg_sle_ds = '/usr/share/xml/scap/ssg/content/ssg-sle15-ds.xml';
 our $f_ssg_tw_ds = '/usr/share/xml/scap/ssg/content/ssg-opensuse-ds.xml';
+our $ssg_sle_ds = 'ssg-sle15-ds.xml';
+our $ssg_tw_ds = 'ssg-opensuse-ds.xml';
 
 # Profile IDs
 # Priority High:
@@ -110,6 +115,47 @@ sub set_ds_file {
     my $version = get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
     $f_ssg_sle_ds =
       '/usr/share/xml/scap/ssg/content/ssg-sle' . "$version" . '-ds.xml';
+}
+sub set_ds_file_name {
+
+    # Set the ds file for separate product, e.g.,
+    # for SLE15 the ds file is "ssg-sle15-ds.xml";
+    # for SLE12 the ds file is "ssg-sle12-ds.xml"; 
+    # for Tumbleweed the ds file is "ssg-opensuse-ds.xml"
+    my $version = get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
+    $ssg_sle_ds =
+      'ssg-sle' . "$version" . '-ds.xml';
+}
+
+# Replace original ds file whith downloaded from repository
+sub replace_ds_file {
+    my $self = $_[0];
+    my $ds_file_name = $_[1];
+    
+    my $TEST_DS = get_var("TEST_DS", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/$ds_file_name");
+    assert_script_run("wget --quiet --no-check-certificate $TEST_DS");
+    assert_script_run("chmod 777 $ds_file_name");
+
+    assert_script_run("rm $f_ssg_sle_ds");
+    assert_script_run("cp $ds_file_name $f_ssg_sle_ds");
+    record_info("Copied ds file", "Copied file $ds_file_name to $f_ssg_sle_ds");
+}
+
+# Replace original ansible file whith downloaded from repository
+sub replace_ansible_file {
+    my $self = $_[0];
+    my $ansible_file_name = $_[1];
+    my $ansible_file_path = $_[2];
+    
+    my $TEST_ANSIBLE = get_var("TEST_ANSIBLE", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/$ansible_file_name");
+    my $full_ansible_file_path = $ansible_file_path . $ansible_file_name;
+    assert_script_run("wget --quiet --no-check-certificate $TEST_ANSIBLE");
+    assert_script_run("chmod 777 $ansible_file_name");
+    # Remove original ansible file
+    assert_script_run("rm $full_ansible_file_path");
+    # Copy downloaded file to correct location
+    assert_script_run("cp $ansible_file_name $full_ansible_file_path");
+    record_info("Copied ansible file", "Copied file $ansible_file_name to $full_ansible_file_path");
 }
 
 sub upload_logs_reports {
@@ -255,6 +301,11 @@ sub oscap_security_guide_setup {
     $out = script_output("oscap -V");
     record_info("oscap version", "\"# oscap -V\" returns:\n $out");
     
+    # Replace original ds file whith downloaded from repository
+    set_ds_file_name();
+    my $ds_file_name = is_sle ? $ssg_sle_ds : $ssg_tw_ds;
+    replace_ds_file(1, $ds_file_name);
+    
     # If required ansible remediation
     if ($ansible_remediation == 1) {
         my $pkgs = 'ansible';
@@ -325,6 +376,9 @@ sub oscap_remediate {
         my $execution_time;
         my $line;
         
+        # Replace ansible file with located on https://gitlab.suse.de/seccert-public/compliance-as-code-compiled
+        replace_ansible_file (1, $profile_ID, '/usr/share/scap-security-guide/ansible/');
+        # Get array of CCE IDs
         cce_ids_in_file (1, $playbook_content, $pattern, $cce_ids_array_ref );
         # Executing ansible playbook with max 20 rules max using CCE tags
         for my $i (0 .. $#$cce_ids_array_ref) {
