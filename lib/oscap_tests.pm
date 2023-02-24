@@ -135,8 +135,9 @@ sub replace_ds_file {
     my $TEST_DS = get_var("TEST_DS", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/$ds_file_name");
     assert_script_run("wget --quiet --no-check-certificate $TEST_DS");
     assert_script_run("chmod 777 $ds_file_name");
-
+    # Remove original ds file
     assert_script_run("rm $f_ssg_sle_ds");
+    # Copy downloaded file to correct location
     assert_script_run("cp $ds_file_name $f_ssg_sle_ds");
     record_info("Copied ds file", "Copied file $ds_file_name to $f_ssg_sle_ds");
 }
