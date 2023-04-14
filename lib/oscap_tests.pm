@@ -13,22 +13,31 @@ use warnings;
 use testapi;
 use utils;
 use base 'opensusebasetest';
-use version_utils qw(is_sle);
+use version_utils qw(is_sle is_opensuse);
 use bootloader_setup qw(add_grub_cmdline_settings);
 use power_action_utils 'power_action';
 use Utils::Backends 'is_pvm';
+use registration qw(add_suseconnect_product get_addon_fullname is_phub_ready);
+use List::MoreUtils qw(uniq);
+use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 
 our @EXPORT = qw(
   $profile_ID
   $f_ssg_sle_ds
+  $ssg_sle_ds
+  $ssg_tw_ds
   $f_stdout
   $f_stderr
   $f_report
   $remediated
+  $ansible_remediation
+  $sle_version
   set_ds_file
+  set_ds_file_name
   upload_logs_reports
   pattern_count_in_file
   rules_count_in_file
+  cce_ids_in_file
   oscap_security_guide_setup
   oscap_remediate
   oscap_evaluate
@@ -44,8 +53,10 @@ our $f_pregex = '\\bpass\\b';
 our $f_fregex = '\\bfail\\b';
 
 # Set default value for 'scap-security-guide' ds file
-our $f_ssg_sle_ds = '/usr/share/xml/scap/ssg/content/ssg-sle12-ds.xml';
+our $f_ssg_sle_ds = '/usr/share/xml/scap/ssg/content/ssg-sle15-ds.xml';
 our $f_ssg_tw_ds = '/usr/share/xml/scap/ssg/content/ssg-opensuse-ds.xml';
+our $ssg_sle_ds = 'ssg-sle15-ds.xml';
+our $ssg_tw_ds = 'ssg-opensuse-ds.xml';
 
 # Profile IDs
 # Priority High:
@@ -64,8 +75,32 @@ our $profile_ID_sle_anssi_bp28_minimal = 'xccdf_org.ssgproject.content_profile_a
 our $profile_ID_sle_cis_workstation_l1 = 'xccdf_org.ssgproject.content_profile_cis_workstation_l1';
 our $profile_ID_tw = 'xccdf_org.ssgproject.content_profile_standard';
 
+# Ansible playbooks
+our $ansible_playbook_sle_stig = "-playbook-stig.yml";
+our $ansible_playbook_sle_cis = "-playbook-cis.yml";
+our $ansible_playbook_sle_pci_dss = "-playbook-pci-dss.yml";
+# Only sle-15
+our $ansible_playbook_sle_hipaa = "-playbook-hipaa.yml";
+
+our $ansible_playbook_sle_anssi_bp28_high = "-playbook-anssi_bp28_high.yml";
+# Priority Medium:
+our $ansible_playbook_sle_anssi_bp28_enhanced = "-playbook-anssi_bp28_enhanced.yml";
+our $ansible_playbook_sle_cis_server_l1 = "-playbook-cis_server_l1.yml";
+our $ansible_playbook_sle_cis_workstation_l2 = "-playbook-cis_workstation_l2.yml";
+# Priority Low:
+our $ansible_playbook_sle_anssi_bp28_intermediary = "-playbook-anssi_bp28_intermediary.yml";
+our $ansible_playbook_sle_anssi_bp28_minimal = "-playbook-anssi_bp28_minimal.yml";
+our $ansible_playbook_sle_cis_workstation_l1 = "-playbook-cis_workstation_l1.yml";
+our $ansible_playbook_standart = "opensuse-playbook-standard.yml";
+
 # The OS status of remediation: '0', not remediated; '1', remediated
 our $remediated = 0;
+
+# Is it ansible remediation: '0', bash remediation; '1' ansible remediation
+our $ansible_remediation = 0;
+
+# Get sle version "sle12" or "sle15"
+our $sle_version = 'sle' . get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
 
 # Upload HTML report by default
 set_var('UPLOAD_REPORT_HTML', 1);
@@ -75,11 +110,53 @@ sub set_ds_file {
 
     # Set the ds file for separate product, e.g.,
     # for SLE15 the ds file is "ssg-sle15-ds.xml";
-    # for SLE12 the ds file is "ssg-sle12-ds.xml";
+    # for SLE12 the ds file is "ssg-sle12-ds.xml"; 
     # for Tumbleweed the ds file is "ssg-opensuse-ds.xml"
     my $version = get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
     $f_ssg_sle_ds =
       '/usr/share/xml/scap/ssg/content/ssg-sle' . "$version" . '-ds.xml';
+}
+sub set_ds_file_name {
+
+    # Set the ds file for separate product, e.g.,
+    # for SLE15 the ds file is "ssg-sle15-ds.xml";
+    # for SLE12 the ds file is "ssg-sle12-ds.xml"; 
+    # for Tumbleweed the ds file is "ssg-opensuse-ds.xml"
+    my $version = get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
+    $ssg_sle_ds =
+      'ssg-sle' . "$version" . '-ds.xml';
+}
+
+# Replace original ds file whith downloaded from repository
+sub replace_ds_file {
+    my $self = $_[0];
+    my $ds_file_name = $_[1];
+    
+    my $TEST_DS = get_var("TEST_DS", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/$ds_file_name");
+    assert_script_run("wget --quiet --no-check-certificate $TEST_DS");
+    assert_script_run("chmod 777 $ds_file_name");
+    # Remove original ds file
+    assert_script_run("rm $f_ssg_sle_ds");
+    # Copy downloaded file to correct location
+    assert_script_run("cp $ds_file_name $f_ssg_sle_ds");
+    record_info("Copied ds file", "Copied file $ds_file_name to $f_ssg_sle_ds");
+}
+
+# Replace original ansible file whith downloaded from repository
+sub replace_ansible_file {
+    my $self = $_[0];
+    my $ansible_file_name = $_[1];
+    my $ansible_file_path = $_[2];
+    
+    my $TEST_ANSIBLE = get_var("TEST_ANSIBLE", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/$ansible_file_name");
+    my $full_ansible_file_path = $ansible_file_path . $ansible_file_name;
+    assert_script_run("wget --quiet --no-check-certificate $TEST_ANSIBLE");
+    assert_script_run("chmod 777 $ansible_file_name");
+    # Remove original ansible file
+    assert_script_run("rm $full_ansible_file_path");
+    # Copy downloaded file to correct location
+    assert_script_run("cp $ansible_file_name $full_ansible_file_path");
+    record_info("Copied ansible file", "Copied file $ansible_file_name to $full_ansible_file_path");
 }
 
 sub upload_logs_reports {
@@ -92,11 +169,15 @@ sub upload_logs_reports {
     else {
         $files = script_output('ls | grep "^ssg-opensuse.*.xml"');
     }
-    foreach my $file (split("\n", $files)) {
-        upload_logs("$file");
+    # Check if list of files returned correctly
+    if (defined $files) {
+        foreach my $file (split("\n", $files)) {
+            upload_logs("$file") if script_run "! [[ -e $file ]]";
+        }
     }
     upload_logs("$f_stdout") if script_run "! [[ -e $f_stdout ]]";
     upload_logs("$f_stderr") if script_run "! [[ -e $f_stderr ]]";
+    
     if (get_var('UPLOAD_REPORT_HTML')) {
         upload_logs("$f_report", timeout => 600)
           if script_run "! [[ -e $f_report ]]";
@@ -116,7 +197,7 @@ sub pattern_count_in_file {
     for my $i (0 .. $#lines) {
         if ($lines[$i] =~ /$pattern/) {
             $count++;
-            # Add to the array rule name
+            $lines[$i - 4] .= "," . $lines[$i - 2];
             push(@rules, $lines[$i - 4]) if ($i >= 4);
         }
     }
@@ -161,6 +242,29 @@ sub rules_count_in_file {
     }
 }
 
+sub cce_ids_in_file {
+
+    #Find all unique CCE IDs by provided pattern
+    my $self = $_[0];
+    my $data = $_[1];
+    my $pattern = $_[2];
+    my @cces;
+    my $cce;
+
+    my @lines = split /\n|\r/, $data;
+    for my $i (0 .. $#lines){
+        if($lines[$i] =~ /($pattern)/){
+            $cce = $1;
+            push(@cces, $cce);
+        }
+    }
+    # Saving only unique CCE IDs
+    my @unique_cces = uniq @cces;
+    # Returning by reference array of CCE IDs
+    $_[3] = \@unique_cces;
+    return $#unique_cces + 1;
+}
+
 =comment
     OSCAP exit codes from https://github.com/OpenSCAP/openscap/blob/maint-1.3/utils/oscap-tool.h
     // standard oscap CLI exit statuses
@@ -200,7 +304,58 @@ sub oscap_security_guide_setup {
     # Check the oscap version information for reference
     $out = script_output("oscap -V");
     record_info("oscap version", "\"# oscap -V\" returns:\n $out");
+    
+    # Replace original ds file whith downloaded from repository
+    set_ds_file_name();
+    my $ds_file_name = is_sle ? $ssg_sle_ds : $ssg_tw_ds;
+    replace_ds_file(1, $ds_file_name);
+    
+    # If required ansible remediation
+    if ($ansible_remediation == 1) {
+        my $pkgs = 'ansible';
+
+        unless (is_opensuse) {
+            # Package'ansible' require PackageHub is available
+            return unless is_phub_ready();
+            add_suseconnect_product(get_addon_fullname('phub'));
+            # On SLES 12 ansible packages require depencies located in sle-module-public-cloud
+            add_suseconnect_product(get_addon_fullname('pcm'), (is_sle('<15') ? '12' : undef)) if is_sle('<15');
+        }
+        # Need to update SLES to fix issues with STIG playbook
+        record_info("Update", "Updaiting SLES");
+        zypper_call("up", timeout => 1800);
+        zypper_call "in $pkgs sudo";
+        # Record the pkgs' version for reference
+        my $out = script_output("zypper se -s $pkgs");
+        record_info("$pkgs Pkg_ver", "$pkgs packages' version:\n $out");
+    }
 }
+
+=ansible return codes
+0 = The command ran successfully, without any task failures or internal errors.
+1 = There was a fatal error or exception during execution.
+2 = Can mean any of:
+
+    Task failures were encountered on some or all hosts during a play (partial failure / partial success).
+    The user aborted the playbook by hitting Ctrl+C, A during a pause task with prompt.
+    Invalid or unexpected arguments, i.e. ansible-playbook --this-arg-doesnt-exist some_playbook.yml.
+    A syntax or YAML parsing error was encountered during a dynamic include, i.e. include_role or include_task.
+
+3 = This used to mean “Hosts unreachable” per TQM, but that seems to have been redefined to 4. I’m not sure if this means anything different now.
+4 = Can mean any of:
+
+    Some hosts were unreachable during the run (login errors, host unavailable, etc). This will NOT end the run early.
+    All of the hosts within a single batch were unreachable- i.e. if you set serial: 3 at the play level, and three hosts in a batch were unreachable. This WILL end the run early.
+    A synax or parsing error was encountered- either in command arguments, within a playbook, or within a static include (import_role or import_task). This is a fatal error. 
+
+5 = Error with the options provided to the command
+6 = Command line args are not UTF-8 encoded
+8 = A condition called RUN_FAILED_BREAK_PLAY occurred within Task Queue Manager.
+99 = Ansible received a keyboard interrupt (SIGINT) while running the playbook- i.e. the user hits Ctrl+c during the playbook run.
+143 = Ansible received a kill signal (SIGKILL) during the playbook run- i.e. an outside process kills the ansible-playbook command.
+250 = Unexpected exception- often due to a bug in a module, jinja templating errors, etc.
+255 = Unknown error, per TQM.
+=cut
 
 sub oscap_remediate {
     my ($self, $f_ssg_ds, $profile_ID) = @_;
@@ -208,19 +363,73 @@ sub oscap_remediate {
     select_console 'root-console';
 
     # Verify mitigation mode
-    my $ret
-      = script_run("oscap xccdf eval --profile $profile_ID --remediate --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr", timeout => 600);
-    record_info("Return=$ret", "# oscap xccdf eval --profile $profile_ID --remediate\" returns: $ret");
-    if ($ret != 0 and $ret != 2) {
-        record_info('bsc#1194676', 'remediation should be succeeded', result => 'fail');
+    # If doing ansible playbook remediation
+    if ($ansible_remediation == 1) {
+        my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $profile_ID;
+        my $playbook_content = script_output ("grep -e CCE $playbook_fpath", 120);
+        my $pattern ="CCE-\\d+-\\d";
+        my $cce_ids_array_ref;
+        my $j = 0;
+        my $ret;
+        my $cce_tags;
+        my $out1;
+        my $out2;
+        my $start_time;
+        my $end_time;
+        my $execution_times = "execution_times.txt";
+        my $execution_time;
+        my $line;
+        
+        # Replace ansible file with located on https://gitlab.suse.de/seccert-public/compliance-as-code-compiled
+        replace_ansible_file (1, $profile_ID, '/usr/share/scap-security-guide/ansible/');
+        # Get array of CCE IDs
+        cce_ids_in_file (1, $playbook_content, $pattern, $cce_ids_array_ref );
+        # Executing ansible playbook with max 20 rules max using CCE tags
+        for my $i (0 .. $#$cce_ids_array_ref) {
+            $j ++;
+            $cce_tags .= @$cce_ids_array_ref[$i] . ",";
+            if ($j == 3 or $i == $#$cce_ids_array_ref) {
+                $j = 0;
+                $out1 = script_output("date");
+                $start_time = clock_gettime(CLOCK_MONOTONIC);
+                $ret
+                  = script_run("ansible-playbook -i \"localhost,\" -c local $playbook_fpath --tags $cce_tags >> $f_stdout 2>> $f_stderr", timeout => 1200);
+                record_info("Return=$ret", "ansible-playbook -i \"localhost,\" -c local $playbook_fpath --tags $cce_tags returns: $ret");
+                $out2 = script_output("date");
+                $end_time = clock_gettime(CLOCK_MONOTONIC);
+                $execution_time = $end_time - $start_time;
+                $line = "playbook tag $cce_tags execution start: $out1 execution end: $out2 execution time: $execution_time";
+                script_run("echo $line >> $execution_times");
+                record_info("Time info", "$line");
+                if ($ret != 0 and $ret != 2 and $ret != 4) {
+                    record_info("Returened $ret", 'remediation should be succeeded', result => 'fail');
+                    $self->result('fail');
+                    }
+                undef $cce_tags;
+                }
+            }
+        
+        # Upload only stdout logs
+        upload_logs("$f_stdout") if script_run "! [[ -e $f_stdout ]]";
+        upload_logs("$f_stderr") if script_run "! [[ -e $f_stderr ]]";
+        upload_logs("$execution_times") if script_run "! [[ -e $execution_times ]]";
     }
+    # If doing bash remediation
+    else {
+        my $ret
+          = script_run("oscap xccdf eval --profile $profile_ID --remediate --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr", timeout => 600);
+        record_info("Return=$ret", "# oscap xccdf eval --profile $profile_ID --remediate\" returns: $ret");
+        if ($ret != 0 and $ret != 2) {
+            record_info('bsc#1194676', 'remediation should be succeeded', result => 'fail');
+            $self->result('fail');
+        }
+        # Upload logs & ouputs for reference
+        upload_logs_reports();
+   }
     if ($remediated == 0) {
         $remediated = 1;
         record_info('remediated', 'setting status remediated');
     }
-
-    # Upload logs & ouputs for reference
-    upload_logs_reports();
 }
 
 sub oscap_evaluate {
