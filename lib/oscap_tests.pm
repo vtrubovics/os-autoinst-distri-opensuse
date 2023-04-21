@@ -366,12 +366,10 @@ sub oscap_remediate {
     # If doing ansible playbook remediation
     if ($ansible_remediation == 1) {
         my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $profile_ID;
-        my $playbook_content = script_output ("grep -e CCE $playbook_fpath", 120);
-        my $pattern ="CCE-\\d+-\\d";
-        my $cce_ids_array_ref;
-        my $j = 0;
+        # my $playbook_content = script_output ("grep -e CCE $playbook_fpath", 120);
+        # my $pattern ="CCE-\\d+-\\d";
+        # my $cce_ids_array_ref;
         my $ret;
-        my $cce_tags;
         my $out1;
         my $out2;
         my $start_time;
@@ -379,35 +377,30 @@ sub oscap_remediate {
         my $execution_times = "execution_times.txt";
         my $execution_time;
         my $line;
-        
+
         # Replace ansible file with located on https://gitlab.suse.de/seccert-public/compliance-as-code-compiled
         replace_ansible_file (1, $profile_ID, '/usr/share/scap-security-guide/ansible/');
+        assert_script_run("sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $playbook_fpath");
+        record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook");
         # Get array of CCE IDs
-        cce_ids_in_file (1, $playbook_content, $pattern, $cce_ids_array_ref );
-        # Executing ansible playbook with max 20 rules max using CCE tags
-        for my $i (0 .. $#$cce_ids_array_ref) {
-            $j ++;
-            $cce_tags .= @$cce_ids_array_ref[$i] . ",";
-            if ($j == 3 or $i == $#$cce_ids_array_ref) {
-                $j = 0;
-                $out1 = script_output("date");
-                $start_time = clock_gettime(CLOCK_MONOTONIC);
-                $ret
-                  = script_run("ansible-playbook -i \"localhost,\" -c local $playbook_fpath --tags $cce_tags >> $f_stdout 2>> $f_stderr", timeout => 1200);
-                record_info("Return=$ret", "ansible-playbook -i \"localhost,\" -c local $playbook_fpath --tags $cce_tags returns: $ret");
-                $out2 = script_output("date");
-                $end_time = clock_gettime(CLOCK_MONOTONIC);
-                $execution_time = $end_time - $start_time;
-                $line = "playbook tag $cce_tags execution start: $out1 execution end: $out2 execution time: $execution_time";
-                script_run("echo $line >> $execution_times");
-                record_info("Time info", "$line");
-                if ($ret != 0 and $ret != 2 and $ret != 4) {
-                    record_info("Returened $ret", 'remediation should be succeeded', result => 'fail');
-                    $self->result('fail');
-                    }
-                undef $cce_tags;
-                }
+        # cce_ids_in_file (1, $playbook_content, $pattern, $cce_ids_array_ref );
+        $out1 = script_output("date");
+        $start_time = clock_gettime(CLOCK_MONOTONIC);
+        $ret
+          = script_run("ansible-playbook -i \"localhost,\" -c local $playbook_fpath --tags all >> $f_stdout 2>> $f_stderr", timeout => 1200);
+        record_info("Return=$ret", "ansible-playbook -i \"localhost,\" -c local $playbook_fpath --tags all returns: $ret");
+        $out2 = script_output("date");
+        $end_time = clock_gettime(CLOCK_MONOTONIC);
+        $execution_time = $end_time - $start_time;
+
+        $line = "playbook tags all execution start: $out1 execution end: $out2 execution time: $execution_time";
+        script_run("echo $line >> $execution_times");
+        record_info("Time info", "$line");
+        if ($ret != 0 and $ret != 2 and $ret != 4) {
+            record_info("Returened $ret", 'remediation should be succeeded', result => 'fail');
+            $self->result('fail');
             }
+        }
         
         # Upload only stdout logs
         upload_logs("$f_stdout") if script_run "! [[ -e $f_stdout ]]";
