@@ -399,9 +399,8 @@ sub oscap_remediate {
         if ($ret != 0 and $ret != 2 and $ret != 4) {
             record_info("Returened $ret", 'remediation should be succeeded', result => 'fail');
             $self->result('fail');
-            }
         }
-        
+
         # Upload only stdout logs
         upload_logs("$f_stdout") if script_run "! [[ -e $f_stdout ]]";
         upload_logs("$f_stderr") if script_run "! [[ -e $f_stderr ]]";
