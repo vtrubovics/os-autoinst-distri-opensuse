@@ -387,8 +387,8 @@ sub oscap_remediate {
         $out1 = script_output("date");
         $start_time = clock_gettime(CLOCK_MONOTONIC);
         $ret
-          = script_run("ansible-playbook -i \"localhost,\" -c local $playbook_fpath --tags all --skip-tags \"package_pam_apparmor_installed, dir_system_commands_root_owned\" >> $f_stdout 2>> $f_stderr", timeout => 1200);
-        record_info("Return=$ret", "ansible-playbook -i \"localhost,\" -c local $playbook_fpath --tags all --skip-tags \"package_pam_apparmor_installed, dir_system_commands_root_owned\" returns: $ret");
+          = script_run("ansible-playbook -i \"localhost,\" -c local $playbook_fpath --skip-tags \"package_pam_apparmor_installed, dir_system_commands_root_owned\" >> $f_stdout 2>> $f_stderr", timeout => 1200);
+        record_info("Return=$ret", "ansible-playbook -i \"localhost,\" -c local $playbook_fpath --skip-tags \"package_pam_apparmor_installed, dir_system_commands_root_owned\" returns: $ret");
         $out2 = script_output("date");
         $end_time = clock_gettime(CLOCK_MONOTONIC);
         $execution_time = $end_time - $start_time;
