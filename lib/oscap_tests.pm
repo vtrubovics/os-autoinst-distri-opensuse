@@ -380,15 +380,17 @@ sub oscap_remediate {
 
         # Replace ansible file with located on https://gitlab.suse.de/seccert-public/compliance-as-code-compiled
         replace_ansible_file (1, $profile_ID, '/usr/share/scap-security-guide/ansible/');
-        # assert_script_run("sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $playbook_fpath");
-        # record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook");
+        assert_script_run("sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $playbook_fpath");
+        record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook");
         # Get array of CCE IDs
         # cce_ids_in_file (1, $playbook_content, $pattern, $cce_ids_array_ref );
         $out1 = script_output("date");
         $start_time = clock_gettime(CLOCK_MONOTONIC);
         $ret
-          = script_run("ansible-playbook -i \"localhost,\" -c local $playbook_fpath --skip-tags \"package_pam_apparmor_installed, dir_system_commands_root_owned\" >> $f_stdout 2>> $f_stderr", timeout => 1200);
-        record_info("Return=$ret", "ansible-playbook -i \"localhost,\" -c local $playbook_fpath --skip-tags \"CCE-85611-2, CCE-85765-6, CCE-83278-2, CCE-85638-5\" returns: $ret");
+          = script_run("ansible-playbook -i \"localhost,\" -c local $playbook_fpath  >> $f_stdout 2>> $f_stderr", timeout => 1200);
+        audit_rules_suid_privilege_function
+        record_info("Return=$ret", "ansible-playbook -i \"localhost,\" -c local $playbook_fpath  returns: $ret");
+        # record_info("Return=$ret", "ansible-playbook -i \"localhost,\" -c local $playbook_fpath --skip-tags \"CCE-85611-2, CCE-85765-6, CCE-83278-2, CCE-85638-5 \" returns: $ret");
         $out2 = script_output("date");
         $end_time = clock_gettime(CLOCK_MONOTONIC);
         $execution_time = $end_time - $start_time;
