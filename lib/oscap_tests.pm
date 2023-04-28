@@ -388,7 +388,6 @@ sub oscap_remediate {
         $start_time = clock_gettime(CLOCK_MONOTONIC);
         $ret
           = script_run("ansible-playbook -i \"localhost,\" -c local $playbook_fpath  >> $f_stdout 2>> $f_stderr", timeout => 1200);
-        audit_rules_suid_privilege_function
         record_info("Return=$ret", "ansible-playbook -i \"localhost,\" -c local $playbook_fpath  returns: $ret");
         # record_info("Return=$ret", "ansible-playbook -i \"localhost,\" -c local $playbook_fpath --skip-tags \"CCE-85611-2, CCE-85765-6, CCE-83278-2, CCE-85638-5 \" returns: $ret");
         $out2 = script_output("date");
