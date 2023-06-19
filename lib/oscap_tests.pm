@@ -167,6 +167,7 @@ sub get_ansible_exclusions {
     my $profile_ID = $_[3];
     my $TEST_ANSIBLE = get_var("TEST_ANSIBLE", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/$ansible_exclusions_file_name");
     my $full_ansible_file_path = $ansible_file_path . $ansible_exclusions_file_name;
+    my @strings;
     
     assert_script_run("wget --quiet --no-check-certificate $TEST_ANSIBLE");
     assert_script_run("chmod 777 $ansible_exclusions_file_name");
@@ -181,7 +182,7 @@ sub get_ansible_exclusions {
     my $found = 0;
     for my $i (0 .. $#lines) {
         last if ($lines[$i] =~ /$profile_ID/) {
-            my @strings = split /\s/, $lines[$i];
+            @strings = split /\s/, $lines[$i];
             my $exclusions = $strings[1];
             $found = 1;
             record_info("Found exclusions", "Found exclusions $exclusions for profile $profile_ID");
