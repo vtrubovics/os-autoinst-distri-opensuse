@@ -179,10 +179,12 @@ sub get_ansible_exclusions {
     my $data = script_output "cat $full_ansible_file_path";
     my @lines = split /\n|\r/, $data;
     my $found = 0;
+    my @strings;
+    my $exclusions;
     for my $i (0 .. $#lines) {
         if ($lines[$i] =~ /$profile_ID/) {
-            my @strings = split /\s/, $lines[$i];
-            my $exclusions = $strings[1];
+            @strings = split /\s/, $lines[$i];
+            $exclusions = $strings[1];
             $found = 1;
             record_info("Found exclusions", "Found exclusions $exclusions for profile $profile_ID");
             last;
