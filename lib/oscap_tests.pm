@@ -416,9 +416,10 @@ sub oscap_remediate {
         my $line;
         my $ansible_exclusions_file_name = "ansible_exclusions.txt";
         my $exclusions;
+        my $ret_get_exclusions = 0;
 
         # Get rule exclusions for ansible playbook
-        my $ret_get_exclusions
+        $ret_get_exclusions
           = get_ansible_exclusions (1, $ansible_exclusions_file_name, $playbook_fpath, $profile_ID, $exclusions);
         
         # Replace ansible file with located on https://gitlab.suse.de/seccert-public/compliance-as-code-compiled
