@@ -434,7 +434,7 @@ sub oscap_remediate {
         $script_cmd = "ansible-playbook -i \"localhost,\" -c local $playbook_fpath";
         
         # If found exclusions for current profile will add tem to command line
-        if $ret_get_exclusions {
+        if ($ret_get_exclusions != 0) {
             $script_cmd .= " --skip-tags " . $exclusions;
         }
         $script_cmd .= "  >> $f_stdout 2>> $f_stderr";
