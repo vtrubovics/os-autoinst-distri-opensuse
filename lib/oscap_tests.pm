@@ -159,6 +159,40 @@ sub replace_ansible_file {
     record_info("Copied ansible file", "Copied file $ansible_file_name to $full_ansible_file_path");
 }
 
+# Download and pharse ansible exclusions file from repository
+sub get_ansible_exclusions {
+    my $self = $_[0];
+    my $ansible_exclusions_file_name = $_[1];
+    my $ansible_file_path = $_[2];
+    my $profile_ID = $_[3];
+    my $TEST_ANSIBLE = get_var("TEST_ANSIBLE", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/$ansible_exclusions_file_name");
+    my $full_ansible_file_path = $ansible_file_path . $ansible_exclusions_file_name;
+    
+    assert_script_run("wget --quiet --no-check-certificate $TEST_ANSIBLE");
+    assert_script_run("chmod 777 $ansible_exclusions_file_name");
+    # Remove original exlusion file if exists
+    assert_script_run("rm $full_ansible_file_path") if script_run "! [[ -e $full_ansible_file_path ]]";
+    # Copy downloaded file to correct location
+    assert_script_run("cp $ansible_exclusions_file_name $full_ansible_file_path");
+    record_info("Copied ansible exclusions file", "Copied file $ansible_exclusions_file_name to $full_ansible_file_path");
+    
+    my $data = script_output "cat $full_ansible_file_path";
+    my @lines = split /\n|\r/, $data;
+    my $found = 0;
+    for my $i (0 .. $#lines) {
+        last if ($lines[$i] =~ /$profile_ID/) {
+            my @strings = split /\s/, $lines[$i];
+            my $exclusions = $strings[1];
+            $found = 1;
+            record_info("Found exclusions", "Found exclusions $exclusions for profile $profile_ID");
+        }
+    }
+
+    #Returning by reference exclusions string
+    $_[4] = $exclusions;
+    return $found;
+}
+
 sub upload_logs_reports {
 
     # Upload logs & ouputs for reference
@@ -377,7 +411,13 @@ sub oscap_remediate {
         my $execution_times = "execution_times.txt";
         my $execution_time;
         my $line;
+        my $ansible_exclusions_file_name = "ansible_exclusions.txt";
+        my $exclusions;
 
+        # Get rule exclusions for ansible playbook
+        my $ret_get_exclusions
+          = get_ansible_exclusions (1, $ansible_exclusions_file_name, $playbook_fpath, $profile_ID, $exclusions);
+        
         # Replace ansible file with located on https://gitlab.suse.de/seccert-public/compliance-as-code-compiled
         replace_ansible_file (1, $profile_ID, '/usr/share/scap-security-guide/ansible/');
         assert_script_run("sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $playbook_fpath");
@@ -386,9 +426,17 @@ sub oscap_remediate {
         # cce_ids_in_file (1, $playbook_content, $pattern, $cce_ids_array_ref );
         $out1 = script_output("date");
         $start_time = clock_gettime(CLOCK_MONOTONIC);
+        my $script_cmd = "ansible-playbook -i \"localhost,\" -c local $playbook_fpath";
+        
+        # If found exclusions for current profile will add tem to command line
+        if $ret_get_exclusions {
+            $script_cmd .= " --skip-tags " . $exclusions;
+        }
+        $script_cmd .= "  >> $f_stdout 2>> $f_stderr";
+        
         $ret
-          = script_run("ansible-playbook -i \"localhost,\" -c local $playbook_fpath  >> $f_stdout 2>> $f_stderr", timeout => 1200);
-        record_info("Return=$ret", "ansible-playbook -i \"localhost,\" -c local $playbook_fpath  returns: $ret");
+          = script_run($script_cmd, timeout => 1200);
+        record_info("Return=$ret", "$script_cmd  returned: $ret");
         # record_info("Return=$ret", "ansible-playbook -i \"localhost,\" -c local $playbook_fpath --skip-tags \"CCE-85611-2, CCE-85765-6, CCE-83278-2, CCE-85638-5 \" returns: $ret");
         $out2 = script_output("date");
         $end_time = clock_gettime(CLOCK_MONOTONIC);
