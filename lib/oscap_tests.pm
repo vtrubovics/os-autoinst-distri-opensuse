@@ -417,6 +417,7 @@ sub oscap_remediate {
         my $ansible_exclusions_file_name = "ansible_exclusions.txt";
         my $exclusions;
         my $ret_get_exclusions = 0;
+        my $script_cmd;
 
         # Get rule exclusions for ansible playbook
         $ret_get_exclusions
@@ -430,7 +431,7 @@ sub oscap_remediate {
         # cce_ids_in_file (1, $playbook_content, $pattern, $cce_ids_array_ref );
         $out1 = script_output("date");
         $start_time = clock_gettime(CLOCK_MONOTONIC);
-        my $script_cmd = "ansible-playbook -i \"localhost,\" -c local $playbook_fpath";
+        $script_cmd = "ansible-playbook -i \"localhost,\" -c local $playbook_fpath";
         
         # If found exclusions for current profile will add tem to command line
         if $ret_get_exclusions {
