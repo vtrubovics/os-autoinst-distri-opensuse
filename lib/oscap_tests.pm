@@ -166,15 +166,9 @@ sub get_ansible_exclusions {
     my $ansible_file_path = $_[2];
     my $profile_ID = $_[3];
     my $TEST_ANSIBLE = get_var("TEST_ANSIBLE", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/$ansible_exclusions_file_name");
-    my $full_ansible_file_path = $ansible_file_path . $ansible_exclusions_file_name;
     
     assert_script_run("wget --quiet --no-check-certificate $TEST_ANSIBLE");
     assert_script_run("chmod 777 $ansible_exclusions_file_name");
-    # # Remove original exlusion file if exists
-    # assert_script_run("rm $full_ansible_file_path") if script_run "! [[ -e $full_ansible_file_path ]]";
-    # # Copy downloaded file to correct location
-    # assert_script_run("cp $ansible_exclusions_file_name $full_ansible_file_path");
-    # record_info("Copied ansible exclusions file", "Copied file $ansible_exclusions_file_name to $full_ansible_file_path");
     record_info("Downloaded ansible exclusions file", "Downloaded file $ansible_exclusions_file_name");
     
     my $data = script_output "cat $ansible_exclusions_file_name";
@@ -192,8 +186,11 @@ sub get_ansible_exclusions {
             last;
         }
     }
+    # If exclusion are not found for playbook - ignore_errors: true are added to all tasks in playbook
     if ($found == 0){
         record_info("Did not found exclusions", "Did not found exclusions for profile $profile_ID");
+        assert_script_run("sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $ansible_file_path");
+        record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook");
         }
     #Returning by reference exclusions string
     $_[4] = $exclusions;
@@ -406,7 +403,6 @@ sub oscap_remediate {
     # Verify mitigation mode
     # If doing ansible playbook remediation
     if ($ansible_remediation == 1) {
-        my $playbook_path = '/usr/share/scap-security-guide/ansible/';
         my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $profile_ID;
         # my $playbook_content = script_output ("grep -e CCE $playbook_fpath", 120);
         # my $pattern ="CCE-\\d+-\\d";
@@ -426,12 +422,10 @@ sub oscap_remediate {
 
         # Get rule exclusions for ansible playbook
         $ret_get_exclusions
-          = get_ansible_exclusions (1, $ansible_exclusions_file_name, $playbook_path, $profile_ID, $exclusions);
+          = get_ansible_exclusions (1, $ansible_exclusions_file_name, $playbook_fpath, $profile_ID, $exclusions);
         
         # Replace ansible file with located on https://gitlab.suse.de/seccert-public/compliance-as-code-compiled
         replace_ansible_file (1, $profile_ID, '/usr/share/scap-security-guide/ansible/');
-        assert_script_run("sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $playbook_fpath");
-        record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook");
         # Get array of CCE IDs
         # cce_ids_in_file (1, $playbook_content, $pattern, $cce_ids_array_ref );
         $out1 = script_output("date");
