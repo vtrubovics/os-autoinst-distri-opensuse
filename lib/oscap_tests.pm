@@ -170,17 +170,19 @@ sub get_ansible_exclusions {
     
     assert_script_run("wget --quiet --no-check-certificate $TEST_ANSIBLE");
     assert_script_run("chmod 777 $ansible_exclusions_file_name");
-    # Remove original exlusion file if exists
-    assert_script_run("rm $full_ansible_file_path") if script_run "! [[ -e $full_ansible_file_path ]]";
-    # Copy downloaded file to correct location
-    assert_script_run("cp $ansible_exclusions_file_name $full_ansible_file_path");
-    record_info("Copied ansible exclusions file", "Copied file $ansible_exclusions_file_name to $full_ansible_file_path");
+    # # Remove original exlusion file if exists
+    # assert_script_run("rm $full_ansible_file_path") if script_run "! [[ -e $full_ansible_file_path ]]";
+    # # Copy downloaded file to correct location
+    # assert_script_run("cp $ansible_exclusions_file_name $full_ansible_file_path");
+    # record_info("Copied ansible exclusions file", "Copied file $ansible_exclusions_file_name to $full_ansible_file_path");
+    record_info("Downloaded ansible exclusions file", "Downloaded file $ansible_exclusions_file_name");
     
-    my $data = script_output "cat $full_ansible_file_path";
+    my $data = script_output "cat $ansible_exclusions_file_name";
     my @lines = split /\n|\r/, $data;
     my $found = 0;
     my @strings;
     my $exclusions;
+    record_info("Looking for exclusions", "Looking for exclusions for profile $profile_ID");
     for my $i (0 .. $#lines) {
         if ($lines[$i] =~ /$profile_ID/) {
             @strings = split /\s+/, $lines[$i];
@@ -190,7 +192,9 @@ sub get_ansible_exclusions {
             last;
         }
     }
-
+    if ($found == 0){
+        record_info("Did not found exclusions", "Did not found exclusions for profile $profile_ID");
+        }
     #Returning by reference exclusions string
     $_[4] = $exclusions;
     return $found;
