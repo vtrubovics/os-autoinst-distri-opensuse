@@ -183,7 +183,7 @@ sub get_ansible_exclusions {
     my $exclusions;
     for my $i (0 .. $#lines) {
         if ($lines[$i] =~ /$profile_ID/) {
-            @strings = split /\s/, $lines[$i];
+            @strings = split /\s+/, $lines[$i];
             $exclusions = $strings[1];
             $found = 1;
             record_info("Found exclusions", "Found exclusions $exclusions for profile $profile_ID");
@@ -402,6 +402,7 @@ sub oscap_remediate {
     # Verify mitigation mode
     # If doing ansible playbook remediation
     if ($ansible_remediation == 1) {
+        my $playbook_path = '/usr/share/scap-security-guide/ansible/';
         my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $profile_ID;
         # my $playbook_content = script_output ("grep -e CCE $playbook_fpath", 120);
         # my $pattern ="CCE-\\d+-\\d";
@@ -421,7 +422,7 @@ sub oscap_remediate {
 
         # Get rule exclusions for ansible playbook
         $ret_get_exclusions
-          = get_ansible_exclusions (1, $ansible_exclusions_file_name, $playbook_fpath, $profile_ID, $exclusions);
+          = get_ansible_exclusions (1, $ansible_exclusions_file_name, $playbook_path, $profile_ID, $exclusions);
         
         # Replace ansible file with located on https://gitlab.suse.de/seccert-public/compliance-as-code-compiled
         replace_ansible_file (1, $profile_ID, '/usr/share/scap-security-guide/ansible/');
