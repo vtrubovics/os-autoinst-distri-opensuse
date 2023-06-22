@@ -42,6 +42,7 @@ our @EXPORT = qw(
   oscap_remediate
   oscap_evaluate
   oscap_evaluate_remote
+  bash_expected_rules
 );
 
 # The file names of scap logs and reports
@@ -51,6 +52,8 @@ our $f_vlevel = 'ERROR';
 our $f_report = 'report.html';
 our $f_pregex = '\\bpass\\b';
 our $f_fregex = '\\bfail\\b';
+our $bash_miss_rem_pattern = "FIX FOR THIS RULE.+IS MISSING\!";
+our $bash_rem_pattern = "Remediating rule";
 
 # Set default value for 'scap-security-guide' ds file
 our $f_ssg_sle_ds = '/usr/share/xml/scap/ssg/content/ssg-sle15-ds.xml';
@@ -92,6 +95,25 @@ our $ansible_playbook_sle_anssi_bp28_intermediary = "-playbook-anssi_bp28_interm
 our $ansible_playbook_sle_anssi_bp28_minimal = "-playbook-anssi_bp28_minimal.yml";
 our $ansible_playbook_sle_cis_workstation_l1 = "-playbook-cis_workstation_l1.yml";
 our $ansible_playbook_standart = "opensuse-playbook-standard.yml";
+
+# BASH scripts
+our $bash_script_stig = "-script-stig.sh";
+our $bash_script_cis = "-script-cis.sh";
+our $bash_script_pci_dss = "-script-pci-dss.sh";
+our $bash_script_pci_dss_4 = "-script-pci-dss-4.sh";
+# Only sle-15
+our $bash_script_hipaa = "-script-hipaa.sh";
+
+our $bash_script_anssi_bp28_high = "-script-anssi_bp28_high.sh";
+# Priority Medium:
+our $bash_script_anssi_bp28_enhanced = "-script-anssi_bp28_enhanced.sh";
+our $bash_script_cis_server_l1 = "-script-cis_server_l1.sh";
+our $bash_script_cis_workstation_l2 = "-script-cis_workstation_l2.sh";
+# Priority Low:
+our $bash_script_anssi_bp28_intermediary = "-script-anssi_bp28_intermediary.sh";
+our $bash_script_anssi_bp28_minimal = "-script-anssi_bp28_minimal.sh";
+our $bash_script_cis_workstation_l1 = "-script-cis_workstation_l1.sh";
+our $bash_script_standart = "opensuse-script-standard.sh";
 
 # The OS status of remediation: '0', not remediated; '1', remediated
 our $remediated = 0;
@@ -196,7 +218,49 @@ sub get_ansible_exclusions {
     $_[4] = $exclusions;
     return $found;
 }
+# Download and pharse bash remediation file from repository and returns expected results
+sub get_bash_expected_results {
+    my $self = $_[0];
+    my $pattern = $_[1];
+    my $rem_pattern = $_[2];
+    my $bash_rem_script = $_[3];
+    my @rules;
+    my $count = 0;
+    my @rem_rules;
+    my $rem_count = 0;
+    my @strings;
+    my $data;
+    my $TEST_BASH = get_var("TEST_BASH", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/$bash_rem_script");
 
+    assert_script_run("wget --quiet --no-check-certificate $TEST_BASH");
+    assert_script_run("chmod 777 $bash_rem_script");
+    record_info("Downloaded bash remediation file", "Downloaded file $bash_rem_script");
+    $data = script_output "cat $bash_rem_script";
+
+    my @lines = split /\n|\r/, $data;
+
+    for my $i (0 .. $#lines) {
+        if ($lines[$i] =~ /$pattern/) {
+            @strings = split /\'|\./, $lines[$i];
+            $count++;
+            push(@rules, $strings[3]);
+        }
+        if ($lines[$i] =~ /$rem_pattern/) {
+            @strings = split /\'|\./, $lines[$i];
+            $rem_count++;
+            push(@rem_rules, $strings[3]);
+        }
+    }
+    # Returning by reference expected data
+    record_info("Count of expected failed rules", "Count of expected failed rules $count");
+
+    $_[4] = \@rules;
+    $_[5] = $count;
+    $_[6] = \@rem_rules;
+    $_[7] = $rem_count;
+
+    return $count;
+}
 sub upload_logs_reports {
 
     # Upload logs & ouputs for reference
