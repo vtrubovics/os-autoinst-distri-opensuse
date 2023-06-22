@@ -43,6 +43,8 @@ our @EXPORT = qw(
   oscap_evaluate
   oscap_evaluate_remote
   bash_expected_rules
+  bash_miss_rem_pattern
+  bash_rem_pattern
 );
 
 # The file names of scap logs and reports
