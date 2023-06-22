@@ -240,19 +240,19 @@ sub get_bash_expected_results {
     my $pattern = $_[1];
     my $rem_pattern = $_[2];
     my $bash_rem_script = $_[3];
-    my @rules;
+    my @rules = '';
     my $count = 0;
-    my @rem_rules;
+    my @rem_rules = '';
     my $rem_count = 0;
-    my @strings;
-    my $data;
+    my @strings = '';
+    my $data = '';
     my $TEST_BASH = get_var("TEST_BASH", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/$bash_rem_script");
 
     assert_script_run("rm $bash_rem_script") if script_run "! [[ -e $bash_rem_script ]]";
-    assert_script_run("wget --quiet --no-check-certificate $TEST_BASH");
+    assert_script_run("wget --no-check-certificate $TEST_BASH");
     assert_script_run("chmod 777 $bash_rem_script");
     record_info("Downloaded bash remediation file", "Downloaded file $bash_rem_script");
-    $data = script_output "cat $bash_rem_script";
+    $data = script_output "cat $bash_rem_script" if script_run "! [[ -e $bash_rem_script ]]";
 
     my @lines = split /\n|\r/, $data;
 
