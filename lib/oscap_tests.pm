@@ -68,8 +68,8 @@ our $f_vlevel = 'ERROR';
 our $f_report = 'report.html';
 our $f_pregex = '\\bpass\\b';
 our $f_fregex = '\\bfail\\b';
-our $bash_miss_rem_pattern = "FIX FOR THIS RULE.+IS MISSING\!";
-our $bash_rem_pattern = "Remediating rule";
+our $bash_miss_rem_pattern = 'FIX FOR THIS RULE.+IS MISSING\!';
+our $bash_rem_pattern = 'Remediating rule';
 
 # Set default value for 'scap-security-guide' ds file
 our $f_ssg_sle_ds = '/usr/share/xml/scap/ssg/content/ssg-sle15-ds.xml';
