@@ -45,6 +45,20 @@ our @EXPORT = qw(
   bash_expected_rules
   bash_miss_rem_pattern
   bash_rem_pattern
+  bash_script_stig
+  bash_script_stig
+  bash_script_cis
+  bash_script_pci_dss
+  bash_script_pci_dss_4
+  bash_script_hipaa
+  bash_script_anssi_bp28_high
+  bash_script_anssi_bp28_enhanced
+  bash_script_cis_server_l1
+  bash_script_cis_workstation_l2
+  bash_script_anssi_bp28_intermediary
+  bash_script_anssi_bp28_minimal
+  bash_script_cis_workstation_l1
+  bash_script_standart
 );
 
 # The file names of scap logs and reports
