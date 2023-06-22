@@ -24,26 +24,18 @@ sub run {
     my $b_miss_rem_pattern = $oscap_tests::bash_miss_rem_pattern;
     my $b_rem_pattern = $oscap_tests::bash_rem_pattern;
 
-    my $n_passed_rules = 97;
-    my $n_failed_rules = 5;
+    my $n_passed_rules; # Number of expected rules to pass
+    my $n_failed_rules; # Number of expected rules to fail
+    my @eval_match ='';
+    my $expected_to_fail_rules; # List of expected rules to fail
+    my $expected_to_pass_rules; # List of expected rules to pass
 
-    if (is_s390x) {
-        $n_passed_rules = 97;
-        $n_failed_rules = 5;
-    }
-    my @eval_match =
-      'content_rule_is_fips_mode_enabled',
-      'content_rule_partition_for_var_log_audit',
-      'content_rule_smartcard_pam_enabled',
-      'content_rule_grub2_password',
-      'content_rule_no_files_unowned_by_user';
-    my $expected_to_fail_rules;
-    my $expected_to_fail_rules_count;
-    my $expected_to_pass_rules;
-    my $expected_to_pass_rules_count;
-
-    $self->get_bash_expected_results ($b_miss_rem_pattern, $b_rem_pattern, $bash_script, $expected_to_fail_rules, $expected_to_fail_rules_count, $expected_to_pass_rules, $expected_to_pass_rules_count);
-    
+    # if (is_s390x) {
+        # $n_passed_rules = 97;
+        # $n_failed_rules = 5;
+    # }
+    # Getting expected data from bash remediation script
+    $self->get_bash_expected_results ($b_miss_rem_pattern, $b_rem_pattern, $bash_script, $expected_to_fail_rules, $n_failed_rules, $expected_to_pass_rules, $n_passed_rules);
     @eval_match = @$expected_to_fail_rules;
 
     $self->oscap_evaluate($f_ssg_ds, $profile_ID, $n_passed_rules, $n_failed_rules, \@eval_match);
