@@ -429,7 +429,15 @@ sub oscap_security_guide_setup {
     set_ds_file_name();
     my $ds_file_name = is_sle ? $ssg_sle_ds : $ssg_tw_ds;
     replace_ds_file(1, $ds_file_name);
-    
+
+    unless (is_opensuse) {
+        # Some Packages require PackageHub repo is available
+        return unless is_phub_ready();
+        add_suseconnect_product(get_addon_fullname('phub'));
+        # On SLES 12 ansible packages require depencies located in sle-module-public-cloud
+        add_suseconnect_product(get_addon_fullname('pcm'), (is_sle('<15') ? '12' : undef)) if is_sle('<15');
+    }
+
     # If required ansible remediation
     if ($ansible_remediation == 1) {
         my $pkgs = 'ansible';
