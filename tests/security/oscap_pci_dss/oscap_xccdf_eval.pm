@@ -45,7 +45,7 @@ sub run {
 
     $self->get_bash_expected_results ($b_miss_rem_pattern, $b_rem_pattern, $bash_script, $expected_to_fail_rules, $expected_to_fail_rules_count, $expected_to_pass_rules, $expected_to_pass_rules_count);
     
-    @eval_match = $@expected_to_fail_rules;
+    @eval_match = @$expected_to_fail_rules;
     
     $self->oscap_evaluate($f_ssg_ds, $profile_ID, $expected_to_pass_rules_count, $expected_to_fail_rules_count, \@eval_match);
     # $self->oscap_evaluate($f_ssg_ds, $profile_ID, $n_passed_rules, $n_failed_rules, \@eval_match);
