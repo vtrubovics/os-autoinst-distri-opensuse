@@ -68,7 +68,7 @@ our $f_vlevel = 'ERROR';
 our $f_report = 'report.html';
 our $f_pregex = '\\bpass\\b';
 our $f_fregex = '\\bfail\\b';
-our $bash_miss_rem_pattern = 'FIX FOR THIS RULE.+IS MISSING\!';
+our $bash_miss_rem_pattern = 'FIX FOR THIS RULE.+IS MISSING';
 our $bash_rem_pattern = 'Remediating rule';
 
 # Set default value for 'scap-security-guide' ds file
@@ -248,6 +248,7 @@ sub get_bash_expected_results {
     my $data;
     my $TEST_BASH = get_var("TEST_BASH", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/$bash_rem_script");
 
+    assert_script_run("rm $bash_rem_script") if script_run "! [[ -e $bash_rem_script ]]";
     assert_script_run("wget --quiet --no-check-certificate $TEST_BASH");
     assert_script_run("chmod 777 $bash_rem_script");
     record_info("Downloaded bash remediation file", "Downloaded file $bash_rem_script");
