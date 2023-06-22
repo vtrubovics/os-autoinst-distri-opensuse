@@ -21,8 +21,8 @@ sub run {
     my $f_ssg_ds = is_sle ? $oscap_tests::f_ssg_sle_ds : $oscap_tests::f_ssg_tw_ds;
     my $profile_ID = is_sle ? $oscap_tests::profile_ID_sle_pci_dss : $oscap_tests::profile_ID_tw;
     my $bash_script = is_sle ? $oscap_tests::sle_version . $oscap_tests::bash_script_pci_dss : $oscap_tests::bash_script_standart;
-    my $b_miss_rem_pattern = $oscap_tests::$bash_miss_rem_pattern;
-    my $b_rem_pattern = $oscap_tests::$bash_rem_pattern;
+    my $b_miss_rem_pattern = $oscap_tests::bash_miss_rem_pattern;
+    my $b_rem_pattern = $oscap_tests::bash_rem_pattern;
 
     my $n_passed_rules = 97;
     my $n_failed_rules = 5;
