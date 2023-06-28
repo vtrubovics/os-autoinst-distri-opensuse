@@ -608,7 +608,7 @@ sub oscap_evaluate {
         else {
             #Verify remediated rules
             record_info('remediated', 'after remediation less rules are failing');
-            if (!$ansible_remediation){
+            if ($ansible_remediation == 0){
                 # Get bash script name
                 my $bash_script_name = profile_id_to_bash_script(1, $profile_ID);
                 my $miss_rem_rules_ref; # List of rules missing remediation
@@ -663,7 +663,7 @@ sub oscap_evaluate {
                     @$failed_rules_ref, result => 'fail'
                 );
                    
-                    if (!$ansible_remediation){
+                    if ($ansible_remediation == 0){
                     # Compare lits of rules: list of rules not having remediation to list of rules failed evaluation
                     # Convert list to correct format
                         my @strings;
