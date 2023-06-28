@@ -20,6 +20,7 @@ use Utils::Backends 'is_pvm';
 use registration qw(add_suseconnect_product get_addon_fullname is_phub_ready);
 use List::MoreUtils qw(uniq);
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
+use List::Compare;
 
 our @EXPORT = qw(
   $profile_ID
@@ -59,6 +60,8 @@ our @EXPORT = qw(
   bash_script_anssi_bp28_minimal
   bash_script_cis_workstation_l1
   bash_script_standart
+  get_bash_expected_results
+  profile_id_to_bash_script
 );
 
 # The file names of scap logs and reports
@@ -234,6 +237,20 @@ sub get_ansible_exclusions {
     $_[4] = $exclusions;
     return $found;
 }
+# Convert Profile ID to bash remediation script name
+sub profile_id_to_bash_script {
+    my $self = $_[0];
+    my $profile_id = $_[1];
+
+    my @lines = split /_profile_/, $profile_id;
+    my $os = is_sle ? $sle_version : "opensuse";
+    my $profile = is_sle ? $lines[1] : "standard";
+
+    my $bash_name = $os . "-script-" . $profile . ".sh";
+    print "\nBash script NAME:\n" . $bash_name;
+
+    return $bash_name;
+}
 # Download and pharse bash remediation file from repository and returns expected results
 sub get_bash_expected_results {
     my $self = $_[0];
@@ -241,9 +258,7 @@ sub get_bash_expected_results {
     my $rem_pattern = $_[2];
     my $bash_rem_script = $_[3];
     my @rules = '';
-    my $count = 0;
     my @rem_rules = '';
-    my $rem_count = 0;
     my @strings = '';
     my $data = '';
     my $TEST_BASH = get_var("TEST_BASH", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/$bash_rem_script");
@@ -259,12 +274,10 @@ sub get_bash_expected_results {
     for my $i (0 .. $#lines) {
         if ($lines[$i] =~ /$pattern/) {
             @strings = split /\'|\./, $lines[$i];
-            $count++;
             push(@rules, $strings[3]);
         }
         if ($lines[$i] =~ /$rem_pattern/) {
             @strings = split /\'|\./, $lines[$i];
-            $rem_count++;
             push(@rem_rules, $strings[3]);
         }
     }
@@ -273,9 +286,7 @@ sub get_bash_expected_results {
     record_info("List of expected failed rules", "List of expected failed rules:\n" . join "\n", @rules);
 
     $_[4] = \@rules;
-    $_[5] = $count;
-    $_[6] = \@rem_rules;
-    $_[7] = $rem_count;
+    $_[5] = \@rem_rules;
 
     return $count;
 }
@@ -599,7 +610,14 @@ sub oscap_evaluate {
         else {
             #Verify remediated rules
             record_info('remediated', 'after remediation less rules are failing');
-
+            if (!$ansible_remediation){
+                # Get bash script name
+                my $bash_script_name = profile_id_to_bash_script(1, $profile_ID);
+                my $miss_rem_rules_ref; # List of rules missing remediation
+                my $rem_rules_ref; # List of rules having remediation
+                # Get lists of of rules from the bash script returened to $miss_rem_rules_ref, $rem_rules_ref
+                get_bash_expected_results ($bash_miss_rem_pattern, $bash_rem_pattern, $bash_script_name, $miss_rem_rules_ref, $rem_rules_ref);
+            }
             #Verify failed rules
             my $ret_rcount = rules_count_in_file(1, $data, $f_fregex, $eval_match, $failed_rules_ref);
             my $failed_rules = $#$failed_rules_ref + 1;
@@ -646,6 +664,31 @@ sub oscap_evaluate {
                     "Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules. Matched rules: \n" . join "\n",
                     @$failed_rules_ref, result => 'fail'
                 );
+                   
+                    if (!$ansible_remediation){
+                    # Compare lits of rules: list of rules not having remediation to list of rules failed evaluation
+                    # Convert list to correct format
+                        my @strings;
+                        my @rules;
+                        for my $i (0 .. $#$failed_rules_ref) {
+                            @strings = split /\.|\,/, $$failed_rules_ref[$i];
+                            push(@rules, $strings[2]);
+                        }
+                        my $lc = List::Compare->new('-u', \@$miss_rem_rules_ref, \@rules);
+                        # my @intersection = $lc->get_intersection;
+                        # Get list of failed rules which do not have remediation 
+                        my @Ronly = $lc->get_Ronly;
+                        record_info(
+                            "List of rules which do not have remediation",
+                            "List of rules which do not have remediation: \n" . join "\n",
+                            @$miss_rem_rules_ref
+                        );
+                       record_info(
+                            "List of failed rules which do not have remediation",
+                            "List of failed rules which do not have remediation: \n" . join "\n",
+                            @Ronly
+                        );
+                    }
                 $self->result('fail');
             }
             else {
