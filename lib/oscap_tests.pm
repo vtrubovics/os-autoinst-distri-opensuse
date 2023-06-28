@@ -282,13 +282,11 @@ sub get_bash_expected_results {
         }
     }
     # Returning by reference expected data
-    record_info("Count of expected failed rules", "Count of expected failed rules $count");
     record_info("List of expected failed rules", "List of expected failed rules:\n" . join "\n", @rules);
 
     $_[4] = \@rules;
     $_[5] = \@rem_rules;
 
-    return $count;
 }
 sub upload_logs_reports {
 
