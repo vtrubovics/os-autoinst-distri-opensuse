@@ -612,8 +612,9 @@ sub oscap_evaluate {
             if ($ansible_remediation == 0){
                 # Get bash script name
                 my $bash_script_name = profile_id_to_bash_script(1, $profile_ID);
+                record_info("Got bash script name", "bash script name: $bash_script_name");
                 # Get lists of of rules from the bash script returened to $miss_rem_rules_ref, $rem_rules_ref
-                get_bash_expected_results ($bash_miss_rem_pattern, $bash_rem_pattern, $bash_script_name, $miss_rem_rules_ref, $rem_rules_ref);
+                get_bash_expected_results (1, $bash_miss_rem_pattern, $bash_rem_pattern, $bash_script_name, $miss_rem_rules_ref, $rem_rules_ref);
             }
             #Verify failed rules
             my $ret_rcount = rules_count_in_file(1, $data, $f_fregex, $eval_match, $failed_rules_ref);
