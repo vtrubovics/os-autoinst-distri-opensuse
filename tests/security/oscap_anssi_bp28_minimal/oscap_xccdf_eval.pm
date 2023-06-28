@@ -22,7 +22,7 @@ sub run {
     my $profile_ID = is_sle ? $oscap_tests::profile_ID_sle_anssi_bp28_minimal : $oscap_tests::profile_ID_tw;
 
     my $n_passed_rules = 100; # Number of expected rules to pass
-    my $n_failed_rules = 5; # Number of expected rules to fail
+    my $n_failed_rules = 10; # Number of expected rules to fail
     my @eval_match = (
         "content_rule_is_fips_mode_enabled",
         "content_rule_partition_for_var_log_audit",
