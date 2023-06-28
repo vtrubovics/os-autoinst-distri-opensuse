@@ -607,12 +607,12 @@ sub oscap_evaluate {
         }
         else {
             #Verify remediated rules
+            my $miss_rem_rules_ref; # List of rules missing remediation
+            my $rem_rules_ref; # List of rules having remediation
             record_info('remediated', 'after remediation less rules are failing');
             if ($ansible_remediation == 0){
                 # Get bash script name
                 my $bash_script_name = profile_id_to_bash_script(1, $profile_ID);
-                my $miss_rem_rules_ref; # List of rules missing remediation
-                my $rem_rules_ref; # List of rules having remediation
                 # Get lists of of rules from the bash script returened to $miss_rem_rules_ref, $rem_rules_ref
                 get_bash_expected_results ($bash_miss_rem_pattern, $bash_rem_pattern, $bash_script_name, $miss_rem_rules_ref, $rem_rules_ref);
             }
