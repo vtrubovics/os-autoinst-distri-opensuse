@@ -263,7 +263,6 @@ sub get_bash_expected_results {
     my $data = '';
     my $TEST_BASH = get_var("TEST_BASH", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/$bash_rem_script");
 
-    assert_script_run("rm $bash_rem_script") if script_run "! [[ -e $bash_rem_script ]]";
     assert_script_run("wget --no-check-certificate $TEST_BASH");
     assert_script_run("chmod 777 $bash_rem_script");
     record_info("Downloaded bash remediation file", "Downloaded file $bash_rem_script");
