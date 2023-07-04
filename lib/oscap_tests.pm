@@ -321,22 +321,26 @@ sub pattern_count_in_file {
     my $pattern = $_[2];
     my @rules;
     my @rules_cce;
+    my @rules_ids;
     my $count = 0;
-
+    my @nlines;
     my @lines = split /\n|\r/, $data;
     for my $i (0 .. $#lines) {
         if ($lines[$i] =~ /$pattern/) {
             $count++;
             $lines[$i - 2] =~ s/\s+//g; # remove whitespace from cce_id
             $lines[$i - 4] =~ s/\s+//g; # remove whitespace from rule id
-            $lines[$i - 4] .= ", " . $lines[$i - 2];
-            push(@rules_cce, $lines[$i - 2]);
-            push(@rules, $lines[$i - 4]) if ($i >= 4);
+            @nlines = split /\./, $lines[$i - 4];
+            push(@rules_ids, $nlines[2]); # push rule id to list
+            $nlines[2] .= ", " . $lines[$i - 2]; # add cce id
+            push(@rules_cce, $lines[$i - 2]);# push rule cce id to list
+            push(@rules, $nlines[2]) if ($i >= 4); # push rule id and rule cce id to list
         }
     }
     #Returning by reference array of matched rules
     $_[3] = \@rules;
     $_[4] = \@rules_cce;
+    $_[5] = \@rules_ids;
     return $count;
 }
 
@@ -583,6 +587,9 @@ sub oscap_evaluate {
     my $failed_rules_ref;
     my $passed_cce_rules_ref;
     my $failed_cce_rules_ref;
+    my $failed_id_rules_ref;
+    my $lc;
+    my @Ronly;
 
     # Verify detection mode
     my $ret = script_run("oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr", timeout => 600);
@@ -610,9 +617,13 @@ sub oscap_evaluate {
             #Verify remediated rules
             record_info('remediated', 'after remediation less rules are failing');
             #Verify failed rules
-            my $ret_rcount = rules_count_in_file(1, $data, $f_fregex, $eval_match, $failed_rules_ref, $failed_cce_rules_ref);
-            my $failed_rules = $#$failed_rules_ref + 1;
-            if ($ret_rcount == -2) {
+            my $fail_count = pattern_count_in_file(1, $data, $f_fregex, $failed_rules_ref, $failed_cce_rules_ref, $failed_id_rules_ref);
+            my $failed_rules = $#$failed_id_rules_ref + 1;
+            
+            $lc = List::Compare->new('-u', \@$failed_id_rules_ref, \@$eval_match);
+            my @intersection = $lc->get_intersection;
+            # Get list of failed rules which do not have remediation 
+            if  ($#intersection != $#$eval_match){
                 record_info(
                     "Failed check of failed rules",
                     "Pattern $f_fregex count in file $f_stdout is $failed_rules, expected $n_failed_rules. Matched rules:\n" . (join "\n",
@@ -620,12 +631,12 @@ sub oscap_evaluate {
                         @$eval_match),
                     result => 'fail'
                 );
-                $self->result('fail');
+                 $self->result('fail');
             }
             else {
                 record_info(
                     "Passed check of failed rules",
-                    "Check of $ret_rcount failed rules:\n" . (join "\n",
+                    "Passed check of $fail_count failed rules:\n" . (join "\n",
                         @$eval_match) . "\n in file $f_stdout. \nMatched rules:\n" . (join "\n",
                         @$failed_rules_ref)
                 );
@@ -680,10 +691,10 @@ sub oscap_evaluate {
                     @strings = split /\.|\,/, $$failed_rules_ref[$i];
                     push(@rules, $strings[2]);
                 }
-                my $lc = List::Compare->new('-u', \@$miss_rem_rules_ref, \@rules);
+                $lc = List::Compare->new('-u', \@$miss_rem_rules_ref, \@rules);
                 # my @intersection = $lc->get_intersection;
                 # Get list of failed rules which do not have remediation 
-                my @Ronly = $lc->get_Ronly;
+                @Ronly = $lc->get_Ronly;
                 record_info(
                     "List of rules which do not have remediation",
                     "List of rules which do not have remediation: \n" . join "\n",
@@ -701,9 +712,9 @@ sub oscap_evaluate {
                 $a_exclusions =~ s/\"//g; # remove " from cce_id
                 my @excluded_cce = split /\,/, $a_exclusions; # Split to array CCE IDs
                 
-                my $lc = List::Compare->new('-u',  \@excluded_cce, \@$failed_cce_rules_ref);
+                $lc = List::Compare->new('-u',  \@excluded_cce, \@$failed_cce_rules_ref);
                 # Get list of failed rules which do not have remediation 
-                my @Ronly = $lc->get_Ronly;
+                @Ronly = $lc->get_Ronly;
                 record_info(
                     "List excluded ansible rules",
                     "List excluded ansible rules:\n" . join "\n",
