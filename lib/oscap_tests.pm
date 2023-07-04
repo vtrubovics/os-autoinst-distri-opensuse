@@ -73,6 +73,7 @@ our $f_pregex = '\\bpass\\b';
 our $f_fregex = '\\bfail\\b';
 our $bash_miss_rem_pattern = 'FIX FOR THIS RULE.+IS MISSING';
 our $bash_rem_pattern = 'Remediating rule';
+our $ansible_exclusions;
 
 # Set default value for 'scap-security-guide' ds file
 our $f_ssg_sle_ds = '/usr/share/xml/scap/ssg/content/ssg-sle15-ds.xml';
@@ -319,19 +320,23 @@ sub pattern_count_in_file {
     my $data = $_[1];
     my $pattern = $_[2];
     my @rules;
+    my @rules_cce;
     my $count = 0;
 
     my @lines = split /\n|\r/, $data;
     for my $i (0 .. $#lines) {
         if ($lines[$i] =~ /$pattern/) {
             $count++;
-            $lines[$i - 4] .= "," . $lines[$i - 2];
+            $lines[$i - 2] =~ s/\s+//g; # remove whitespace from cce_id
+            $lines[$i - 4] =~ s/\s+//g; # remove whitespace from rule id
+            $lines[$i - 4] .= ", " . $lines[$i - 2];
+            push(@rules_cce, $lines[$i - 2]);
             push(@rules, $lines[$i - 4]) if ($i >= 4);
         }
     }
-
     #Returning by reference array of matched rules
     $_[3] = \@rules;
+    $_[4] = \@rules_cce;
     return $count;
 }
 
@@ -506,33 +511,29 @@ sub oscap_remediate {
         # my $pattern ="CCE-\\d+-\\d";
         # my $cce_ids_array_ref;
         my $ret;
-        my $out1;
-        my $out2;
         my $start_time;
         my $end_time;
         my $execution_times = "execution_times.txt";
         my $execution_time;
         my $line;
         my $ansible_exclusions_file_name = "ansible_exclusions.txt";
-        my $exclusions;
         my $ret_get_exclusions = 0;
         my $script_cmd;
 
         # Get rule exclusions for ansible playbook
         $ret_get_exclusions
-          = get_ansible_exclusions (1, $ansible_exclusions_file_name, $playbook_fpath, $profile_ID, $exclusions);
+          = get_ansible_exclusions (1, $ansible_exclusions_file_name, $playbook_fpath, $profile_ID, $ansible_exclusions);
         
         # Replace ansible file with located on https://gitlab.suse.de/seccert-public/compliance-as-code-compiled
         replace_ansible_file (1, $profile_ID, '/usr/share/scap-security-guide/ansible/');
         # Get array of CCE IDs
         # cce_ids_in_file (1, $playbook_content, $pattern, $cce_ids_array_ref );
-        $out1 = script_output("date");
         $start_time = clock_gettime(CLOCK_MONOTONIC);
         $script_cmd = "ansible-playbook -i \"localhost,\" -c local $playbook_fpath";
         
         # If found exclusions for current profile will add tem to command line
         if ($ret_get_exclusions != 0) {
-            $script_cmd .= " --skip-tags " . $exclusions;
+            $script_cmd .= " --skip-tags " . $ansible_exclusions;
         }
         $script_cmd .= "  >> $f_stdout 2>> $f_stderr";
         
@@ -540,11 +541,10 @@ sub oscap_remediate {
           = script_run($script_cmd, timeout => 1200);
         record_info("Return=$ret", "$script_cmd  returned: $ret");
         # record_info("Return=$ret", "ansible-playbook -i \"localhost,\" -c local $playbook_fpath --skip-tags \"CCE-85611-2, CCE-85765-6, CCE-83278-2, CCE-85638-5 \" returns: $ret");
-        $out2 = script_output("date");
         $end_time = clock_gettime(CLOCK_MONOTONIC);
         $execution_time = $end_time - $start_time;
 
-        $line = "playbook tags all execution start: $out1 execution end: $out2 execution time: $execution_time";
+        $line = "playbook execution time: $execution_time";
         script_run("echo $line >> $execution_times");
         record_info("Time info", "$line");
         if ($ret != 0 and $ret != 2 and $ret != 4) {
@@ -581,6 +581,8 @@ sub oscap_evaluate {
 
     my $passed_rules_ref;
     my $failed_rules_ref;
+    my $passed_cce_rules_ref;
+    my $failed_cce_rules_ref;
 
     # Verify detection mode
     my $ret = script_run("oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr", timeout => 600);
@@ -591,13 +593,13 @@ sub oscap_evaluate {
         # For a new installed OS the first time remediate can permit fail
         if ($remediated == 0) {
             record_info('non remediated', 'before remediation more rules fails are expected');
-            my $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref);
+            my $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref, $passed_cce_rules_ref);
             record_info(
                 "Passed rules count=$pass_count",
                 "Pattern $f_pregex count in file $f_stdout is $pass_count. Matched rules:\n " . join "\n",
                 @$passed_rules_ref
             );
-            my $fail_count = pattern_count_in_file(1, $data, $f_fregex, $failed_rules_ref);
+            my $fail_count = pattern_count_in_file(1, $data, $f_fregex, $failed_rules_ref, $failed_cce_rules_ref);
             record_info(
                 "Failed rules count=$fail_count",
                 "Pattern $f_fregex count in file $f_stdout is $fail_count. Matched rules:\n" . join "\n",
@@ -606,11 +608,9 @@ sub oscap_evaluate {
         }
         else {
             #Verify remediated rules
-            my $miss_rem_rules_ref; # List of rules missing remediation
-            my $rem_rules_ref; # List of rules having remediation
             record_info('remediated', 'after remediation less rules are failing');
             #Verify failed rules
-            my $ret_rcount = rules_count_in_file(1, $data, $f_fregex, $eval_match, $failed_rules_ref);
+            my $ret_rcount = rules_count_in_file(1, $data, $f_fregex, $eval_match, $failed_rules_ref, $failed_cce_rules_ref);
             my $failed_rules = $#$failed_rules_ref + 1;
             if ($ret_rcount == -2) {
                 record_info(
@@ -632,7 +632,7 @@ sub oscap_evaluate {
             }
 
             #Verify number of passed and failed rules
-            my $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref);
+            my $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref, $passed_cce_rules_ref);
             if ($pass_count != $n_passed_rules) {
                 record_info(
                     "Failed check of passed rules count",
@@ -648,7 +648,7 @@ sub oscap_evaluate {
                     @$passed_rules_ref
                 );
             }
-            my $fail_count = pattern_count_in_file(1, $data, $f_fregex, $failed_rules_ref);
+            my $fail_count = pattern_count_in_file(1, $data, $f_fregex, $failed_rules_ref, $failed_cce_rules_ref);
             if ($fail_count != $n_failed_rules) {
                 record_info(
                     "Failed check of failed rules count",
@@ -666,6 +666,8 @@ sub oscap_evaluate {
             }
             if ($ansible_remediation == 0){
                 # Compare lits of rules: list of rules not having remediation to list of rules failed evaluation
+                my $miss_rem_rules_ref; # List of rules missing remediation
+                my $rem_rules_ref; # List of rules having remediation
                 # Get bash script name
                 my $bash_script_name = profile_id_to_bash_script(1, $profile_ID);
                 record_info("Got bash script name", "bash script name: $bash_script_name");
@@ -690,6 +692,26 @@ sub oscap_evaluate {
                record_info(
                     "List of failed rules which do not have remediation",
                     "List of failed rules which do not have remediation: \n" . join "\n",
+                    @Ronly
+                );
+            }
+            else {
+                # Print differnce between exluded and failed ansible rules
+                my $a_exclusions = $ansible_exclusions;
+                $a_exclusions =~ s/\"//g; # remove " from cce_id
+                my @excluded_cce = split /\,/, $a_exclusions; # Split to array CCE IDs
+                
+                my $lc = List::Compare->new('-u',  \@excluded_cce, \@$failed_cce_rules_ref);
+                # Get list of failed rules which do not have remediation 
+                my @Ronly = $lc->get_Ronly;
+                record_info(
+                    "List excluded ansible rules",
+                    "List excluded ansible rules:\n" . join "\n",
+                    @excluded_cce
+                );
+                record_info(
+                    "List of failed ansible rules except exluded",
+                    "List of failed ansible rules except exluded: \n" . join "\n",
                     @Ronly
                 );
             }
