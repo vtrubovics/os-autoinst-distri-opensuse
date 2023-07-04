@@ -710,8 +710,8 @@ sub oscap_evaluate {
                     @excluded_cce
                 );
                 record_info(
-                    "List of failed ansible rules except exluded",
-                    "List of failed ansible rules except exluded: \n" . join "\n",
+                    "List of failed ansible rules except excluded",
+                    "List of failed ansible rules except excluded: \n" . join "\n",
                     @Ronly
                 );
             }
