@@ -609,13 +609,6 @@ sub oscap_evaluate {
             my $miss_rem_rules_ref; # List of rules missing remediation
             my $rem_rules_ref; # List of rules having remediation
             record_info('remediated', 'after remediation less rules are failing');
-            if ($ansible_remediation == 0){
-                # Get bash script name
-                my $bash_script_name = profile_id_to_bash_script(1, $profile_ID);
-                record_info("Got bash script name", "bash script name: $bash_script_name");
-                # Get lists of of rules from the bash script returened to $miss_rem_rules_ref, $rem_rules_ref
-                get_bash_expected_results (1, $bash_miss_rem_pattern, $bash_rem_pattern, $bash_script_name, $miss_rem_rules_ref, $rem_rules_ref);
-            }
             #Verify failed rules
             my $ret_rcount = rules_count_in_file(1, $data, $f_fregex, $eval_match, $failed_rules_ref);
             my $failed_rules = $#$failed_rules_ref + 1;
@@ -662,31 +655,6 @@ sub oscap_evaluate {
                     "Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules. Matched rules: \n" . join "\n",
                     @$failed_rules_ref, result => 'fail'
                 );
-                   
-                    if ($ansible_remediation == 0){
-                    # Compare lits of rules: list of rules not having remediation to list of rules failed evaluation
-                    # Convert list to correct format
-                        my @strings;
-                        my @rules;
-                        for my $i (0 .. $#$failed_rules_ref) {
-                            @strings = split /\.|\,/, $$failed_rules_ref[$i];
-                            push(@rules, $strings[2]);
-                        }
-                        my $lc = List::Compare->new('-u', \@$miss_rem_rules_ref, \@rules);
-                        # my @intersection = $lc->get_intersection;
-                        # Get list of failed rules which do not have remediation 
-                        my @Ronly = $lc->get_Ronly;
-                        record_info(
-                            "List of rules which do not have remediation",
-                            "List of rules which do not have remediation: \n" . join "\n",
-                            @$miss_rem_rules_ref
-                        );
-                       record_info(
-                            "List of failed rules which do not have remediation",
-                            "List of failed rules which do not have remediation: \n" . join "\n",
-                            @Ronly
-                        );
-                    }
                 $self->result('fail');
             }
             else {
@@ -694,6 +662,35 @@ sub oscap_evaluate {
                     "Passed check of failed rules count",
                     "Pattern $f_fregex count in file $f_stdout is $fail_count. Matched rules: \n" . join "\n",
                     @$failed_rules_ref
+                );
+            }
+            if ($ansible_remediation == 0){
+                # Compare lits of rules: list of rules not having remediation to list of rules failed evaluation
+                # Get bash script name
+                my $bash_script_name = profile_id_to_bash_script(1, $profile_ID);
+                record_info("Got bash script name", "bash script name: $bash_script_name");
+                # Get lists of of rules from the bash script returened to $miss_rem_rules_ref, $rem_rules_ref
+                get_bash_expected_results (1, $bash_miss_rem_pattern, $bash_rem_pattern, $bash_script_name, $miss_rem_rules_ref, $rem_rules_ref);
+                # Convert list to correct format
+                my @strings;
+                my @rules;
+                for my $i (0 .. $#$failed_rules_ref) {
+                    @strings = split /\.|\,/, $$failed_rules_ref[$i];
+                    push(@rules, $strings[2]);
+                }
+                my $lc = List::Compare->new('-u', \@$miss_rem_rules_ref, \@rules);
+                # my @intersection = $lc->get_intersection;
+                # Get list of failed rules which do not have remediation 
+                my @Ronly = $lc->get_Ronly;
+                record_info(
+                    "List of rules which do not have remediation",
+                    "List of rules which do not have remediation: \n" . join "\n",
+                    @$miss_rem_rules_ref
+                );
+               record_info(
+                    "List of failed rules which do not have remediation",
+                    "List of failed rules which do not have remediation: \n" . join "\n",
+                    @Ronly
                 );
             }
         }
