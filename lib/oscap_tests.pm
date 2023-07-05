@@ -590,6 +590,8 @@ sub oscap_evaluate {
     my $failed_id_rules_ref;
     my $lc;
     my @Ronly;
+    my $fail_count;
+    my $pass_count;
 
     # Verify detection mode
     my $ret = script_run("oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr", timeout => 600);
@@ -600,13 +602,13 @@ sub oscap_evaluate {
         # For a new installed OS the first time remediate can permit fail
         if ($remediated == 0) {
             record_info('non remediated', 'before remediation more rules fails are expected');
-            my $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref, $passed_cce_rules_ref);
+            $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref, $passed_cce_rules_ref);
             record_info(
                 "Passed rules count=$pass_count",
                 "Pattern $f_pregex count in file $f_stdout is $pass_count. Matched rules:\n " . join "\n",
                 @$passed_rules_ref
             );
-            my $fail_count = pattern_count_in_file(1, $data, $f_fregex, $failed_rules_ref, $failed_cce_rules_ref);
+            $fail_count = pattern_count_in_file(1, $data, $f_fregex, $failed_rules_ref, $failed_cce_rules_ref);
             record_info(
                 "Failed rules count=$fail_count",
                 "Pattern $f_fregex count in file $f_stdout is $fail_count. Matched rules:\n" . join "\n",
@@ -617,7 +619,7 @@ sub oscap_evaluate {
             #Verify remediated rules
             record_info('remediated', 'after remediation less rules are failing');
             #Verify failed rules
-            my $fail_count = pattern_count_in_file(1, $data, $f_fregex, $failed_rules_ref, $failed_cce_rules_ref, $failed_id_rules_ref);
+            $fail_count = pattern_count_in_file(1, $data, $f_fregex, $failed_rules_ref, $failed_cce_rules_ref, $failed_id_rules_ref);
             my $failed_rules = $#$failed_id_rules_ref + 1;
             
             $lc = List::Compare->new('-u', \@$failed_id_rules_ref, \@$eval_match);
@@ -646,7 +648,7 @@ sub oscap_evaluate {
             }
 
             #Verify number of passed and failed rules
-            my $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref, $passed_cce_rules_ref);
+            $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref, $passed_cce_rules_ref);
             if ($pass_count != $n_passed_rules) {
                 record_info(
                     "Failed check of passed rules count",
@@ -662,7 +664,7 @@ sub oscap_evaluate {
                     @$passed_rules_ref
                 );
             }
-            my $fail_count = pattern_count_in_file(1, $data, $f_fregex, $failed_rules_ref, $failed_cce_rules_ref);
+            $fail_count = pattern_count_in_file(1, $data, $f_fregex, $failed_rules_ref, $failed_cce_rules_ref);
             if ($fail_count != $n_failed_rules) {
                 record_info(
                     "Failed check of failed rules count",
