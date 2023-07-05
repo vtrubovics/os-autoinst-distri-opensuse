@@ -639,11 +639,17 @@ sub oscap_evaluate {
             }
             else {
                 record_info(
-                    "Passed check of failed rules $intersection_count, $n_failed_rules",
+                    "Passed check of failed rules",
                     "Passed check of $fail_count expected failed rules:\n" . (join "\n",
                         @$eval_match) . "\n in file $f_stdout. \n\nMatched $failed_rules rules in file:\n" . (join "\n",
-                        @$failed_id_rules_ref . " \n\n Intersection:\n" . (join "\n",
-                        @intersection),
+                        @$failed_id_rules_ref)
+                );
+                record_info(
+                    "check of failed rules",
+                    "Pattern $f_fregex count in file $f_stdout is $failed_rules, expected $n_failed_rules. Matched rules:\n" . (join "\n",
+                        @$failed_rules_ref) . "\n\nExpected rules to fail:\n" . (join "\n",
+                        @$eval_match) . "\n\nSame number $intersection_count rules in expected and failed results:\n" . (join "\n",
+                        @intersection)
                 );
             }
 
