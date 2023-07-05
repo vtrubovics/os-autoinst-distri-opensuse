@@ -622,13 +622,15 @@ sub oscap_evaluate {
             
             $lc = List::Compare->new('-u', \@$failed_id_rules_ref, \@$eval_match);
             my @intersection = $lc->get_intersection;
+            my $intersection_count = $#intersection + 1;
             # Get list of failed rules which do not have remediation 
-            if  ($#intersection != $#$eval_match){
+            if  ($intersection_count != $n_failed_rules){
                 record_info(
                     "Failed check of failed rules",
                     "Pattern $f_fregex count in file $f_stdout is $failed_rules, expected $n_failed_rules. Matched rules:\n" . (join "\n",
-                        @$failed_rules_ref) . "\nExpected rules:\n" . (join "\n",
-                        @$eval_match),
+                        @$failed_rules_ref) . "\n\nExpected rules to fail:\n" . (join "\n",
+                        @$eval_match) . "\n\nSame number $intersection_count rules in expected and failed results:\n" . (join "\n",
+                        @intersection),
                     result => 'fail'
                 );
                  $self->result('fail');
@@ -636,9 +638,9 @@ sub oscap_evaluate {
             else {
                 record_info(
                     "Passed check of failed rules",
-                    "Passed check of $fail_count failed rules:\n" . (join "\n",
-                        @$eval_match) . "\n in file $f_stdout. \nMatched rules:\n" . (join "\n",
-                        @$failed_rules_ref)
+                    "Passed check of $fail_count expected failed rules:\n" . (join "\n",
+                        @$eval_match) . "\n in file $f_stdout. \n\nMatched $failed_rules rules in file:\n" . (join "\n",
+                        @$failed_id_rules_ref)
                 );
             }
 
