@@ -641,7 +641,7 @@ sub oscap_evaluate {
                     "Passed check of $fail_count expected failed rules:\n" . (join "\n",
                         @$eval_match) . "\n in file $f_stdout. \n\nMatched $failed_rules rules in file:\n" . (join "\n",
                         @$failed_id_rules_ref . " \n\n Intersection:\n" . (join "\n",
-                        @intersection)
+                        @intersection),
                 );
             }
 
