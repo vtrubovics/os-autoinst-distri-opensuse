@@ -623,10 +623,10 @@ sub oscap_evaluate {
             my $failed_rules = $#$failed_id_rules_ref + 1;
             
             $lc = List::Compare->new('-u', \@$failed_id_rules_ref, \@$eval_match);
-            my @intersection = $lc->get_intersection;
+            my @intersection = $lc->get_intersection; # list of rules found in both lists
             my $intersection_count = $#intersection + 1;
-            # Get list of failed rules which do not have remediation 
-            if  ($intersection_count != $n_failed_rules){
+            # if count of rules in intesection not equal to expected rules and not equal count of failed rules 
+            if  ($#intersection != $#$eval_match and $#intersection != $#$failed_id_rules_ref){
                 record_info(
                     "Failed check of failed rules",
                     "Pattern $f_fregex count in file $f_stdout is $failed_rules, expected $n_failed_rules. Matched rules:\n" . (join "\n",
