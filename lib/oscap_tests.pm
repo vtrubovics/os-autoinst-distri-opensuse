@@ -625,19 +625,8 @@ sub oscap_evaluate {
             $lc = List::Compare->new('-u', \@$failed_id_rules_ref, \@$eval_match);
             my @intersection = $lc->get_intersection; # list of rules found in both lists
             my $intersection_count = $#intersection + 1;
-            # if count of rules in intesection not equal to expected rules and not equal count of failed rules 
-            if  ($#intersection != $#$eval_match and $#intersection != $#$failed_id_rules_ref){
-                record_info(
-                    "Failed check of failed rules",
-                    "Pattern $f_fregex count in file $f_stdout is $failed_rules, expected $n_failed_rules. Matched rules:\n" . (join "\n",
-                        @$failed_rules_ref) . "\n\nExpected rules to fail:\n" . (join "\n",
-                        @$eval_match) . "\n\nSame number $intersection_count rules in expected and failed results:\n" . (join "\n",
-                        @intersection),
-                    result => 'fail'
-                );
-                 $self->result('fail');
-            }
-            else {
+            # if count of rules in intesection  equal to expected rules and equal count of failed rules 
+            if  ($#intersection == $#$eval_match and $#intersection == $#$failed_id_rules_ref){
                 record_info(
                     "Passed check of failed rules",
                     "Passed check of $fail_count expected failed rules:\n" . (join "\n",
@@ -652,7 +641,18 @@ sub oscap_evaluate {
                         @intersection)
                 );
             }
-
+             else {
+               record_info(
+                    "Failed check of failed rules",
+                    "Pattern $f_fregex count in file $f_stdout is $failed_rules, expected $n_failed_rules. Matched rules:\n" . (join "\n",
+                        @$failed_rules_ref) . "\n\nExpected rules to fail:\n" . (join "\n",
+                        @$eval_match) . "\n\nSame number $intersection_count rules in expected and failed results:\n" . (join "\n",
+                        @intersection),
+                    result => 'fail'
+                );
+                 $self->result('fail');
+            }
+ 
             #Verify number of passed and failed rules
             $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref, $passed_cce_rules_ref);
             if ($pass_count != $n_passed_rules) {
