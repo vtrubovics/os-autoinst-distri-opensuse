@@ -37,7 +37,6 @@ our @EXPORT = qw(
   set_ds_file_name
   upload_logs_reports
   pattern_count_in_file
-  rules_count_in_file
   cce_ids_in_file
   oscap_security_guide_setup
   oscap_remediate
@@ -344,41 +343,6 @@ sub pattern_count_in_file {
     return $count;
 }
 
-sub rules_count_in_file {
-
-    #Find count of rules names matched name and status patterns
-    my $self = $_[0];
-    my $data = $_[1];
-    my $pattern = $_[2];
-    my $l_rules = $_[3];
-    my @rules;
-    my $count = 0;
-
-    my @lines = split /\n|\r/, $data;
-    my @a_rules = @$l_rules;
-
-    for my $i (0 .. $#lines) {
-        for my $j (0 .. $#a_rules) {
-            # Check if not getting outside array
-            if ($#lines >= $i + 4) {
-                if ($lines[$i] =~ /$a_rules[$j]/ and $lines[$i + 4] =~ /$pattern/) {
-                    $count++;
-                    push(@rules, $lines[$i]);
-                }
-            }
-        }
-    }
-    #Returning by reference array of matched rules
-    $_[4] = \@rules;
-    #Return -2 if found not correct count of rules
-    if ($count == $#a_rules + 1) {
-        return $count;
-    }
-    else {
-        return -2;
-    }
-}
-
 sub cce_ids_in_file {
 
     #Find all unique CCE IDs by provided pattern
@@ -646,8 +610,7 @@ sub oscap_evaluate {
                     "Failed check of failed rules",
                     "Pattern $f_fregex count in file $f_stdout is $failed_rules, expected $n_failed_rules. Matched rules:\n" . (join "\n",
                         @$failed_rules_ref) . "\n\nExpected rules to fail:\n" . (join "\n",
-                        @$eval_match) . "\n\nSame number $intersection_count rules in expected and failed results:\n" . (join "\n",
-                        @intersection),
+                        @$eval_match),
                     result => 'fail'
                 );
                  $self->result('fail');
