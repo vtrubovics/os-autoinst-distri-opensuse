@@ -245,9 +245,7 @@ sub profile_id_to_bash_script {
     my @lines = split /_profile_/, $profile_id;
     my $os = is_sle ? $sle_version : "opensuse";
     my $profile = is_sle ? $lines[1] : "standard";
-
     my $bash_name = $os . "-script-" . $profile . ".sh";
-    print "\nBash script NAME:\n" . $bash_name;
 
     return $bash_name;
 }
