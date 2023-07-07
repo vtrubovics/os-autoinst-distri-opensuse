@@ -610,7 +610,7 @@ sub oscap_evaluate {
                     "Pattern $f_fregex count in file $f_stdout is $failed_rules, expected $n_failed_rules. Matched rules:\n" . (join "\n",
                         @$failed_rules_ref) . "\n\nExpected rules to fail:\n" . (join "\n",
                         @$eval_match) . "\n\nRules failed (not in expected list):\n" . (join "\n",
-                        @$lonly),
+                        @lonly),
                     result => 'fail'
                 );
                  $self->result('fail');
