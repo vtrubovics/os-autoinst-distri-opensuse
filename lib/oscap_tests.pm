@@ -586,6 +586,7 @@ sub oscap_evaluate {
             
             $lc = List::Compare->new('-u', \@$failed_id_rules_ref, \@$eval_match);
             my @intersection = $lc->get_intersection; # list of rules found in both lists
+            my @lonly = $lc->get_Lonly; # list of rules found only in left list
             my $intersection_count = $#intersection + 1;
             # if count of rules in intesection  equal to expected rules and equal count of failed rules 
             if  ($#intersection == $#$eval_match and $#intersection == $#$failed_id_rules_ref){
@@ -608,7 +609,8 @@ sub oscap_evaluate {
                     "Failed check of failed rules",
                     "Pattern $f_fregex count in file $f_stdout is $failed_rules, expected $n_failed_rules. Matched rules:\n" . (join "\n",
                         @$failed_rules_ref) . "\n\nExpected rules to fail:\n" . (join "\n",
-                        @$eval_match),
+                        @$eval_match) . "\n\nRules failed (not in expected list):\n" . (join "\n",
+                        @$lonly),
                     result => 'fail'
                 );
                  $self->result('fail');
