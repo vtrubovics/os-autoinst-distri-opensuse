@@ -565,9 +565,9 @@ sub oscap_security_guide_setup {
         # Record the pkgs' version for reference
         my $out = script_output("zypper se -s $pkgs");
         record_info("$pkgs Pkg_ver", "$pkgs packages' version:\n $out");
-        # Get the code for the ComplianceAsCode by cloning its repository
-        get_cac_code ();
     }
+    # Get the code for the ComplianceAsCode by cloning its repository
+    get_cac_code ();
 }
 
 =ansible return codes
