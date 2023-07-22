@@ -398,9 +398,9 @@ sub cce_ids_in_file {
 sub get_rules_lists {
     # Get bash and ansible rules lists from data based on provided patterns 
     my $self = $_[0];
-    my $in_file_path = $_[1] 
+    my $in_file_path = $_[1];
     my $bash_pattern = $_[2];
-    my $ansible_pattern = $_[3];;
+    my $ansible_pattern = $_[3];
     my $data;
     my @bash_rules;
     my @ansible_rules;
