@@ -708,7 +708,7 @@ sub oscap_evaluate {
     
     if ($generated_mising_rules == 0){
         # Generate text file that contains rules that missing implimentation for profile
-        my $mising_rules_full_path = generate_mising_rules (1, profile_ID);
+        my $mising_rules_full_path = generate_mising_rules (1, $profile_ID);
         # Get bash and ansible rules lists from data based on provided 
         get_rules_lists(1, $mising_rules_full_path, $bash_pattern, $ansible_pattern, $missing_bash_rules_ref, $missing_ansible_rules_ref, $missing_bash_rules_fpath, $missing_ansible_rules_fpath);
         $generated_mising_rules = 1;
