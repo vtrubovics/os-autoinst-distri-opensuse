@@ -25,14 +25,18 @@ use List::Compare;
 our @EXPORT = qw(
   $profile_ID
   $f_ssg_sle_ds
+  $f_ssg_sle_xccdf
   $ssg_sle_ds
+  $ssg_sle_xccdf
   $ssg_tw_ds
+  $ssg_tw_xccdf
   $f_stdout
   $f_stderr
   $f_report
   $remediated
   $ansible_remediation
   $sle_version
+  $compliance_as_code_path
   set_ds_file
   set_ds_file_name
   upload_logs_reports
@@ -73,12 +77,18 @@ our $f_fregex = '\\bfail\\b';
 our $bash_miss_rem_pattern = 'FIX FOR THIS RULE.+IS MISSING';
 our $bash_rem_pattern = 'Remediating rule';
 our $ansible_exclusions;
+our $compliance_as_code_path;
 
 # Set default value for 'scap-security-guide' ds file
 our $f_ssg_sle_ds = '/usr/share/xml/scap/ssg/content/ssg-sle15-ds.xml';
 our $f_ssg_tw_ds = '/usr/share/xml/scap/ssg/content/ssg-opensuse-ds.xml';
 our $ssg_sle_ds = 'ssg-sle15-ds.xml';
 our $ssg_tw_ds = 'ssg-opensuse-ds.xml';
+
+our $f_ssg_sle_xccdf = '/usr/share/xml/scap/ssg/content/ssg-sle15-xccdf.xml';
+our $f_ssg_tw_xccdf = '/usr/share/xml/scap/ssg/content/ssg-opensuse-xccdf.xml';
+our $ssg_sle_xccdf = 'ssg-sle15-xccdf.xml';
+our $ssg_tw_xccdf = 'ssg-opensuse-xccdf.xml';
 
 # Profile IDs
 # Priority High:
@@ -140,6 +150,9 @@ our $remediated = 0;
 # Is it ansible remediation: '0', bash remediation; '1' ansible remediation
 our $ansible_remediation = 0;
 
+# Is it generated mising rules: '1', else: '0'
+our $generated_mising_rules = 0;
+
 # Get sle version "sle12" or "sle15"
 our $sle_version = 'sle' . get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
 
@@ -156,6 +169,8 @@ sub set_ds_file {
     my $version = get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
     $f_ssg_sle_ds =
       '/usr/share/xml/scap/ssg/content/ssg-sle' . "$version" . '-ds.xml';
+    $f_ssg_sle_xccdf =
+      '/usr/share/xml/scap/ssg/content/ssg-sle' . "$version" . '-xccdf.xml';
 }
 sub set_ds_file_name {
 
@@ -166,6 +181,8 @@ sub set_ds_file_name {
     my $version = get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
     $ssg_sle_ds =
       'ssg-sle' . "$version" . '-ds.xml';
+    $ssg_sle_xccdf =
+      'ssg-sle' . "$version" . '-xccdf.xml';
 }
 
 # Replace original ds file whith downloaded from repository
@@ -181,6 +198,20 @@ sub replace_ds_file {
     # Copy downloaded file to correct location
     assert_script_run("cp $ds_file_name $f_ssg_sle_ds");
     record_info("Copied ds file", "Copied file $ds_file_name to $f_ssg_sle_ds");
+}
+# Replace original xccdf file whith downloaded from repository
+sub replace_xccdf_file {
+    my $self = $_[0];
+    my $xccdf_file_name = $_[1];
+    
+    my $TEST_xccdf = get_var("TEST_xccdf", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/$xccdf_file_name");
+    assert_script_run("wget --quiet --no-check-certificate $TEST_xccdf");
+    assert_script_run("chmod 777 $xccdf_file_name");
+    # Remove original xccdf file
+    assert_script_run("rm $f_ssg_sle_xccdf");
+    # Copy downloaded file to correct location
+    assert_script_run("cp $xccdf_file_name $f_ssg_sle_xccdf");
+    record_info("Copied xccdf file", "Copied file $xccdf_file_name to $f_ssg_sle_xccdf");
 }
 
 # Replace original ansible file whith downloaded from repository
@@ -364,6 +395,102 @@ sub cce_ids_in_file {
     return $#unique_cces + 1;
 }
 
+sub get_rules_lists {
+    # Get bash and ansible rules lists from data based on provided patterns 
+    my $self = $_[0];
+    my $in_file_path = $_[1] 
+    my $bash_pattern = $_[2];
+    my $ansible_pattern = $_[3];;
+    my $data;
+    my @bash_rules;
+    my @ansible_rules;
+    my $i = 0;
+    my $bash_fix_missing = "bash_fix_missing.txt";
+    my $ansible_fix_missing = "ansible_fix_missing.txt";
+
+    $data = script_output("cat $in_file_path");
+    
+    my @lines = split /\n|\r/, $data;
+
+    for  ($i = 0; $i <= $#lines;) { #(0 .. $#lines)
+        if ($lines[$i] =~ /$bash_pattern/) {
+            $i++;
+            until ($lines[$i] =~ /\*\*\*/) {
+                $lines[$i] =~ s/\s+|\r|\n//g; #remowe unneded symbols
+                push(@bash_rules, $lines[$i]);
+                $i++;
+            }
+        }
+        if ($lines[$i] =~ /$ansible_pattern/) {
+            $i++;
+            until ($lines[$i] =~ /\*\*\*/) {
+                    $lines[$i] =~ s/\s+|\r|\n//g; #remowe unneded symbols
+                    push(@ansible_rules, $lines[$i]);
+                    $i++;
+                }
+            }
+    $i++;
+    }
+    record_info("Got rules from lists", "Got rules from lists from  $in_file_path\nBash pattern:\n$bash_pattern\nAnsible pattern:\n $ansible_pattern");
+    record_info("Bash rules missing fix", "Bash rules missing fix:\n" . join "\n",
+                @bash_rules
+                );
+    record_info("Ansible rules missing fix", "Ansible rules missing fix:\n" . join "\n",
+                @ansible_rules
+                );
+    # Write rules to files for future processing
+    my $bash_f = join "\n",  @bash_rules;
+    my $ansible_f = join "\n",  @ansible_rules;
+    assert_script_run("echo $bash_f >> $bash_fix_missing");
+    assert_script_run("echo $ansible_f >> $ansible_fix_missing");
+    my $output_full_path = script_output("pwd");
+    $output_full_path =~ s/\r|\n//g;
+    my $bash_file_full_path = "$output_full_path/$bash_fix_missing";
+    my $ansible_file_full_path = "$output_full_path/$ansible_fix_missing";
+    record_info("Files paths for missing rules ", "Bash file path:\n$bash_file_full_path\nAnsible file path:\n $ansible_file_full_path");
+   
+    # Returning by reference expected data
+    $_[4] = \@bash_rules;
+    $_[5] = \@ansible_rules;
+    $_[6] = $bash_file_full_path;
+    $_[7] = $ansible_file_full_path;
+}
+
+sub generate_mising_rules {
+    # Generate text file that contains rules that missing implimentation for profile
+    my $self = $_[0];
+    my $profile = $_[1];
+    my $output_file = "missing_rules.txt";
+
+    my $cmd = "python3 $compliance_as_code_path/build-scripts/profile_tool.py stats --missing --skip-stats --profile $profile --benchmark $f_ssg_sle_xccdf --format plain > $output_file";
+    assert_script_run("$cmd");
+    record_info("Generated file $output_file", "generate_mising_rules Input file $f_ssg_sle_xccdf/n Command:\n$cmd");
+    my $output_full_path = script_output("pwd");
+    $output_full_path =~ s/\r|\n//g;
+    $output_full_path .= "/$output_file";
+
+    return $output_full_path;
+}
+
+sub get_cac_code {
+    # Get the code for the ComplianceAsCode by cloning its repository
+    my $cac_dir = "content";
+    my $git_repo = "https://github.com/ComplianceAsCode/content.git";
+    my $git_clone_cmd = 'git clone ' . $git_repo;
+    zypper_call("in git-core python3");
+    assert_script_run("rm -r $cac_dir", quiet => 1) if (-e "$cac_dir");
+    assert_script_run('git config --global http.sslVerify false', quiet => 1);
+    assert_script_run("set -o pipefail ; $git_clone_cmd", quiet => 1);
+    $compliance_as_code_path = script_output("pwd");
+    $compliance_as_code_path =~ s/\r|\n//g;
+    $compliance_as_code_path .= "/$cac_dir";
+    
+    record_info("Cloned ComplianceAsCode", "Cloned repo $git_repo to folder: $compliance_as_code_path");
+    assert_script_run("export PYTHONPATH=$compliance_as_code_path");
+    record_info("export PYTHONPATH", "export PYTHONPATH=$compliance_as_code_path");
+
+    return $compliance_as_code_path;
+}
 =comment
     OSCAP exit codes from https://github.com/OpenSCAP/openscap/blob/maint-1.3/utils/oscap-tool.h
     // standard oscap CLI exit statuses
@@ -404,10 +531,13 @@ sub oscap_security_guide_setup {
     $out = script_output("oscap -V");
     record_info("oscap version", "\"# oscap -V\" returns:\n $out");
     
-    # Replace original ds file whith downloaded from repository
+    # Replace original ds and xccdf files whith downloaded from local repository
     set_ds_file_name();
     my $ds_file_name = is_sle ? $ssg_sle_ds : $ssg_tw_ds;
     replace_ds_file(1, $ds_file_name);
+
+    my $xccdf_file_name = is_sle ? $ssg_sle_xccdf : $ssg_tw_xccdf;
+    replace_xccdf_file(1, $xccdf_file_name);
 
     unless (is_opensuse) {
         # Some Packages require PackageHub repo is available
@@ -435,6 +565,8 @@ sub oscap_security_guide_setup {
         # Record the pkgs' version for reference
         my $out = script_output("zypper se -s $pkgs");
         record_info("$pkgs Pkg_ver", "$pkgs packages' version:\n $out");
+        # Get the code for the ComplianceAsCode by cloning its repository
+        get_cac_code ();
     }
 }
 
@@ -554,7 +686,19 @@ sub oscap_evaluate {
     my @Ronly;
     my $fail_count;
     my $pass_count;
-
+    my $missing_bash_rules_ref;
+    my $missing_ansible_rules_ref;
+    my $missing_bash_rules_fpath;
+    my $missing_ansible_rules_fpath;
+    
+    if ($generated_mising_rules == 0){
+        # Generate text file that contains rules that missing implimentation for profile
+        my $mising_rules_full_path = generate_mising_rules (1, profile_ID);
+        # Get bash and ansible rules lists from data based on provided 
+        get_rules_lists(1, $mising_rules_full_path, "missing a bash fix", "missing a ansible fix", $missing_bash_rules_ref, $missing_ansible_rules_ref, $missing_bash_rules_fpath, $missing_ansible_rules_fpath);
+        $generated_mising_rules = 1;
+    }
+    
     # Verify detection mode
     my $ret = script_run("oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr", timeout => 600);
     if ($ret == 0 || $ret == 2) {
