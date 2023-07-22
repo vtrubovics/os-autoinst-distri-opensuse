@@ -462,11 +462,9 @@ sub generate_mising_rules {
     my $profile = $_[1];
     my $output_file = "missing_rules.txt";
 
-    assert_script_run("export PYTHONPATH=$compliance_as_code_path");
-    assert_script_run("sh $compliance_as_code_path/.pyenv.sh");
-    assert_script_run("env | grep PYTHONPATH");
-    assert_script_run("la $compliance_as_code_path");
-    record_info("export PYTHONPATH", "export PYTHONPATH=$compliance_as_code_path");
+    assert_script_run("source /etc/environment");
+    my $env = script_output("env | grep PYTHONPATH");
+    record_info("export PYTHONPATH", "export $env");
     my $cmd = "python3 $compliance_as_code_path/build-scripts/profile_tool.py stats --missing --skip-stats --profile $profile --benchmark $f_ssg_sle_xccdf --format plain";
     assert_script_run("$cmd");
     record_info("Generated file $output_file", "generate_mising_rules Input file $f_ssg_sle_xccdf/n Command:\n$cmd");
@@ -491,7 +489,8 @@ sub get_cac_code {
     $compliance_as_code_path .= "/$cac_dir";
     
     record_info("Cloned ComplianceAsCode", "Cloned repo $git_repo to folder: $compliance_as_code_path");
-    assert_script_run("export PYTHONPATH=$compliance_as_code_path");
+    assert_script_run("echo PYTHONPATH=$compliance_as_code_path >> /etc/environment");
+    assert_script_run("source /etc/environment");
     record_info("export PYTHONPATH", "export PYTHONPATH=$compliance_as_code_path");
     assert_script_run('pip3 --quiet install --upgrade pip', timeout => 600);
     assert_script_run("pip3 --quiet install jinja2", timeout => 600);
