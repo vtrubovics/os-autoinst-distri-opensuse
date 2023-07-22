@@ -488,6 +488,8 @@ sub get_cac_code {
     record_info("Cloned ComplianceAsCode", "Cloned repo $git_repo to folder: $compliance_as_code_path");
     assert_script_run("export PYTHONPATH=$compliance_as_code_path");
     record_info("export PYTHONPATH", "export PYTHONPATH=$compliance_as_code_path");
+    assert_script_run('pip3 --quiet install --upgrade pip', timeout => 600);
+    assert_script_run("pip3 --quiet install jinja2", timeout => 600);
 
     return $compliance_as_code_path;
 }
