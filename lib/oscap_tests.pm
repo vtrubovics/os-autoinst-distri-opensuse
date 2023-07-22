@@ -598,8 +598,20 @@ sub oscap_security_guide_setup {
 
 sub oscap_remediate {
     my ($self, $f_ssg_ds, $profile_ID) = @_;
+    my $missing_bash_rules_ref;
+    my $missing_ansible_rules_ref;
+    my $missing_bash_rules_fpath;
+    my $missing_ansible_rules_fpath;
 
     select_console 'root-console';
+    
+    if ($generated_mising_rules == 0){
+        # Generate text file that contains rules that missing implimentation for profile
+        my $mising_rules_full_path = generate_mising_rules (1, profile_ID);
+        # Get bash and ansible rules lists from data based on provided 
+        get_rules_lists(1, $mising_rules_full_path, "missing a bash fix", "missing a ansible fix", $missing_bash_rules_ref, $missing_ansible_rules_ref, $missing_bash_rules_fpath, $missing_ansible_rules_fpath);
+        $generated_mising_rules = 1;
+    }
 
     # Verify mitigation mode
     # If doing ansible playbook remediation
