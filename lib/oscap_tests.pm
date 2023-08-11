@@ -463,7 +463,7 @@ sub generate_mising_rules {
     my $output_file = "missing_rules.txt";
 
     assert_script_run("source /etc/environment");
-    assert_script_run('export PYTHONPATH="$compliance_as_code_path"');
+    assert_script_run("export PYTHONPATH=$compliance_as_code_path");
     my $env = script_output("env | grep PYTHONPATH");
     record_info("export PYTHONPATH", "export $env");
     my $cmd = "python3 $compliance_as_code_path/build-scripts/profile_tool.py stats --missing --skip-stats --profile $profile --benchmark $f_ssg_sle_xccdf --format plain";
@@ -490,7 +490,7 @@ sub get_cac_code {
     $compliance_as_code_path .= "/$cac_dir";
     
     record_info("Cloned ComplianceAsCode", "Cloned repo $git_repo to folder: $compliance_as_code_path");
-    assert_script_run('export PYTHONPATH="$compliance_as_code_path"');
+    assert_script_run("export PYTHONPATH=$compliance_as_code_path");
     my $env = script_output("env | grep PYTHONPATH");
     record_info("export PYTHONPATH", "export $env");
     assert_script_run("echo PYTHONPATH=$compliance_as_code_path >> /etc/environment");
