@@ -439,19 +439,18 @@ sub get_rules_lists {
                 @ansible_rules
                 );
     # Write rules to files for future processing
+    # for  ($i = 0; $i <= $#bash_rules;) {
+        # assert_script_run("echo -e $bash_rules[$i]\n >> $bash_fix_missing");
+    # }
+    # for  ($i = 0; $i <= $#ansible_rules;) {
+        # assert_script_run("echo -e $ansible_rules[$i]\n >> $ansible_fix_missing");
+    # }
+
     my $bash_f = join "\n",  @bash_rules;
     my $ansible_f = join "\n",  @ansible_rules;
-
-    open(FH, '>', $bash_fix_missing) or die $!;
-    pint FH $bash_f;
-    close(FH);
-
-    open(FH, '>', $ansible_fix_missing) or die $!;
-    pint FH $ansible_f;
-    close(FH);
     
-    # assert_script_run("echo $bash_f >> $bash_fix_missing");
-    # assert_script_run("echo $ansible_f >> $ansible_fix_missing");
+    assert_script_run("echo -e $bash_f >> $bash_fix_missing");
+    assert_script_run("echo -e $ansible_f >> $ansible_fix_missing");
     my $output_full_path = script_output("pwd");
     $output_full_path =~ s/\r|\n//g;
     my $bash_file_full_path = "$output_full_path/$bash_fix_missing";
