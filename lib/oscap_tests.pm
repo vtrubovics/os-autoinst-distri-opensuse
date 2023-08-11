@@ -449,8 +449,8 @@ sub get_rules_lists {
     my $bash_f = join "\n",  @bash_rules;
     my $ansible_f = join "\n",  @ansible_rules;
     
-    assert_script_run("printf $bash_f > $bash_fix_missing");
-    assert_script_run("printf $ansible_f > $ansible_fix_missing");
+    assert_script_run("printf \"$bash_f\" > \"$bash_fix_missing\"");
+    assert_script_run("printf \"$ansible_f\" > \"$ansible_fix_missing\"");
     
     my $output_full_path = script_output("pwd");
     $output_full_path =~ s/\r|\n//g;
