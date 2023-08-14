@@ -13,6 +13,7 @@ use utils;
 
 sub run {
     my ($self) = @_;
+    $oscap_tests::profile_ID = is_sle ? $oscap_tests::profile_ID_sle_stig : $oscap_tests::profile_ID_tw;
     select_console 'root-console';
 
     $self->oscap_security_guide_setup();

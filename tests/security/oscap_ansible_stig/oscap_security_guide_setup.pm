@@ -14,6 +14,7 @@ use utils;
 sub run {
     my ($self) = @_;
     $oscap_tests::ansible_remediation = 1;
+    $oscap_tests::profile_ID = is_sle ? $oscap_tests::sle_version . $oscap_tests::ansible_playbook_sle_stig : $oscap_tests::ansible_playbook_standart;
     select_console 'root-console';
 
     $self->oscap_security_guide_setup();

@@ -91,6 +91,7 @@ our $ssg_sle_xccdf = 'ssg-sle15-xccdf.xml';
 our $ssg_tw_xccdf = 'ssg-opensuse-xccdf.xml';
 
 # Profile IDs
+our $profile_ID;
 # Priority High:
 our $profile_ID_sle_stig = 'xccdf_org.ssgproject.content_profile_stig';
 our $profile_ID_sle_cis = 'xccdf_org.ssgproject.content_profile_cis';
@@ -234,9 +235,9 @@ sub replace_ansible_file {
 # Download and pharse ansible exclusions file from repository
 sub get_ansible_exclusions {
     my $self = $_[0];
-    my $ansible_exclusions_file_name = $_[1];
-    my $ansible_file_path = $_[2];
-    my $profile_ID = $_[3];
+    my $ansible_exclusions_file_name = "ansible_exclusions.txt";
+    my $ansible_file_path = '/usr/share/scap-security-guide/ansible/' . $profile_ID;
+
     my $TEST_ANSIBLE = get_var("TEST_ANSIBLE", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/$ansible_exclusions_file_name");
     
     assert_script_run("wget --quiet --no-check-certificate $TEST_ANSIBLE");
@@ -265,7 +266,41 @@ sub get_ansible_exclusions {
         record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook");
         }
     #Returning by reference exclusions string
-    $_[4] = $exclusions;
+    $_[1] = $exclusions;
+    return $found;
+}
+# Download and pharse bash exclusions file from repository
+sub get_bash_exclusions {
+    my $self = $_[0];
+    my $bash_exclusions_file_name = "bash_exclusions.txt";
+
+    my $TEST_bash = get_var("TEST_bash", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/$bash_exclusions_file_name");
+    
+    assert_script_run("wget --quiet --no-check-certificate $TEST_bash");
+    assert_script_run("chmod 777 $bash_exclusions_file_name");
+    record_info("Downloaded bash exclusions file", "Downloaded file $bash_exclusions_file_name");
+    
+    my $data = script_output "cat $bash_exclusions_file_name";
+    my @lines = split /\n|\r/, $data;
+    my $found = 0;
+    my @strings;
+    my $exclusions;
+    record_info("Looking for bash exclusions", "Looking for exclusions for profile $profile_ID");
+    for my $i (0 .. $#lines) {
+        if ($lines[$i] =~ /$profile_ID/) {
+            @strings = split /\s+/, $lines[$i];
+            $exclusions = $strings[1];
+            $found = 1;
+            record_info("Found exclusions", "Found exclusions $exclusions for profile $profile_ID");
+            last;
+        }
+    }
+    # If exclusion are not found for playbook - ignore_errors: true are added to all tasks in playbook
+    if ($found == 0){
+        record_info("Did not found exclusions", "Did not found exclusions for profile $profile_ID");
+        }
+    #Returning by reference exclusions string
+    $_[1] = $exclusions;
     return $found;
 }
 # Convert Profile ID to bash remediation script name
@@ -424,11 +459,11 @@ sub get_rules_lists {
         if ($lines[$i] =~ /$ansible_pattern/) {
             $i++;
             until ($lines[$i] =~ /\*\*\*/) {
-                    $lines[$i] =~ s/\s+|\r|\n//g; #remowe unneded symbols
-                    push(@ansible_rules, $lines[$i]);
-                    $i++;
-                }
+                $lines[$i] =~ s/\s+|\r|\n//g; #remowe unneded symbols
+                push(@ansible_rules, $lines[$i]);
+                $i++;
             }
+        }
     $i++;
     }
     record_info("Got rules from lists", "Got rules from lists from  $in_file_path\nBash pattern:\n$bash_pattern\nAnsible pattern:\n $ansible_pattern");
@@ -438,26 +473,68 @@ sub get_rules_lists {
     record_info("Ansible rules missing fix", "Ansible rules missing fix:\n" . join "\n",
                 @ansible_rules
                 );
-    # Write rules to files for future processing
-    # for  ($i = 0; $i <= $#bash_rules;) {
-        # assert_script_run("echo -e $bash_rules[$i]\n >> $bash_fix_missing");
-    # }
-    # for  ($i = 0; $i <= $#ansible_rules;) {
-        # assert_script_run("echo -e $ansible_rules[$i]\n >> $ansible_fix_missing");
-    # }
 
-    my $bash_f = join "\n",  @bash_rules;
-    my $ansible_f = join "\n",  @ansible_rules;
+    #Download ds_unselect_rules.sh script
+    my $ds_unselect_rules_script = "ds_unselect_rules.sh";
+    my $TEST_ds_unselect = get_var("TEST_ds_unselect", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/tests/$ds_unselect_rules_script");
     
-    assert_script_run("printf \"$bash_f\" > \"$bash_fix_missing\"");
-    assert_script_run("printf \"$ansible_f\" > \"$ansible_fix_missing\"");
-    
+    assert_script_run("wget --quiet --no-check-certificate $TEST_ds_unselect");
+    assert_script_run("chmod 777 $ds_unselect_rules_script");
+    record_info("Downloaded ds_unselect_rules.sh script file", "Downloaded file $ds_unselect_rules_script");
+
+   if ($ansible_remediation == 1) {
+        my $ansible_f = join "\n",  @ansible_rules;
+        assert_script_run("printf \"$ansible_f\" > \"$ansible_fix_missing\"");
+        
+        my $ret_get_ansible_exclusions = 0;
+        my $ansible_exclusions;
+
+        # Get rule exclusions for ansible playbook
+        $ret_get_ansible_exclusions
+          = get_ansible_exclusions (1, $ansible_exclusions);
+        # Write exclusions to the file 
+        if ($ret_get_ansible_exclusions == 1) {
+            $ansible_exclusions =~ s/\,/\n/g;
+            assert_script_run("printf \"$ansible_exclusions\" >> \"$ansible_fix_missing\"");
+            record_info("Writing ansible exceptions to file", "Writing ansible exclusions:\n$ansible_exclusions\n\nto file: $ansible_fix_missing");
+        }
+        # Diasble excluded and fix missing rules in ds file
+        my $unselect_cmd = "$ds_unselect_rules_script $f_ssg_sle_ds $ansible_fix_missing";
+        assert_script_run("$unselect_cmd");
+        assert_script_run("rm $f_ssg_sle_ds");
+        assert_script_run("cp /tmp/$ssg_sle_ds $f_ssg_sle_ds");
+        record_info("Diasble excluded and fix missing rules in ds file", "Command $unselect_cmd");
+    }
+    else {
+        my $bash_f = join "\n",  @bash_rules;
+        assert_script_run("printf \"$bash_f\" > \"$bash_fix_missing\"");
+
+        my $ret_get_bash_exclusions = 0;
+        my $bash_exclusions;
+
+        # Get rule exclusions for bash playbook
+        $ret_get_bash_exclusions
+          = get_bash_exclusions (1, $bash_exclusions);
+        # Write exclusions to the file 
+        if ($ret_get_bash_exclusions == 1) {
+            $bash_exclusions =~ s/\,/\n/g;
+            assert_script_run("printf \"$bash_exclusions\" >> \"$bash_fix_missing\"");
+            record_info("Writing bash exceptions to file", "Writing bash exclusions:\n$bash_exclusions\n\nto file: $bash_fix_missing");
+        }
+        # Diasble excluded and fix missing rules in ds file
+        my $unselect_cmd = "$ds_unselect_rules_script $f_ssg_sle_ds $bash_fix_missing";
+        assert_script_run("$unselect_cmd");
+        assert_script_run("rm $f_ssg_sle_ds");
+        assert_script_run("cp /tmp/$ssg_sle_ds $f_ssg_sle_ds");
+        record_info("Diasble excluded and fix missing rules in ds file", "Command $unselect_cmd");
+     }
+
     my $output_full_path = script_output("pwd");
     $output_full_path =~ s/\r|\n//g;
     my $bash_file_full_path = "$output_full_path/$bash_fix_missing";
     my $ansible_file_full_path = "$output_full_path/$ansible_fix_missing";
     record_info("Files paths for missing rules ", "Bash file path:\n$bash_file_full_path\nAnsible file path:\n $ansible_file_full_path");
-   
+
     # Returning by reference expected data
     $_[4] = \@bash_rules;
     $_[5] = \@ansible_rules;
@@ -595,6 +672,23 @@ sub oscap_security_guide_setup {
     }
     # Get the code for the ComplianceAsCode by cloning its repository
     get_cac_code ();
+    
+    my $missing_bash_rules_ref;
+    my $missing_ansible_rules_ref;
+    my $missing_bash_rules_fpath;
+    my $missing_ansible_rules_fpath;
+    my $bash_pattern = "missing a bash fix";
+    my $ansible_pattern = "missing a ansible fix";
+    
+    if ($generated_mising_rules == 0){
+        # Generate text file that contains rules that missing implimentation for profile
+        my $mising_rules_full_path = generate_mising_rules (1, $profile_ID);
+
+        # Get bash and ansible rules lists from data based on provided 
+        get_rules_lists(1, $mising_rules_full_path, $bash_pattern, $ansible_pattern, $missing_bash_rules_ref, $missing_ansible_rules_ref, $missing_bash_rules_fpath, $missing_ansible_rules_fpath);
+        $generated_mising_rules = 1;
+    }
+
 }
 
 =ansible return codes
@@ -625,13 +719,14 @@ sub oscap_security_guide_setup {
 
 sub oscap_remediate {
     my ($self, $f_ssg_ds, $profile_ID) = @_;
+    select_console 'root-console';
+    
     my $missing_bash_rules_ref;
     my $missing_ansible_rules_ref;
     my $missing_bash_rules_fpath;
     my $missing_ansible_rules_fpath;
     my $bash_pattern = "missing a bash fix";
     my $ansible_pattern = "missing a ansible fix";
-    select_console 'root-console';
     
     if ($generated_mising_rules == 0){
         # Generate text file that contains rules that missing implimentation for profile
@@ -644,7 +739,6 @@ sub oscap_remediate {
     # Verify mitigation mode
     # If doing ansible playbook remediation
     if ($ansible_remediation == 1) {
-        my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $profile_ID;
         # my $playbook_content = script_output ("grep -e CCE $playbook_fpath", 120);
         # my $pattern ="CCE-\\d+-\\d";
         # my $cce_ids_array_ref;
@@ -654,13 +748,13 @@ sub oscap_remediate {
         my $execution_times = "execution_times.txt";
         my $execution_time;
         my $line;
-        my $ansible_exclusions_file_name = "ansible_exclusions.txt";
         my $ret_get_exclusions = 0;
+        my $ansible_exclusions;
         my $script_cmd;
 
         # Get rule exclusions for ansible playbook
         $ret_get_exclusions
-          = get_ansible_exclusions (1, $ansible_exclusions_file_name, $playbook_fpath, $profile_ID, $ansible_exclusions);
+          = get_ansible_exclusions (1, $ansible_exclusions);
         
         # Replace ansible file with located on https://gitlab.suse.de/seccert-public/compliance-as-code-compiled
         replace_ansible_file (1, $profile_ID, '/usr/share/scap-security-guide/ansible/');
