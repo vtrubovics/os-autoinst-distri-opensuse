@@ -528,6 +528,8 @@ sub get_rules_lists {
         assert_script_run("cp /tmp/$ssg_sle_ds $f_ssg_sle_ds");
         record_info("Diasble excluded and fix missing rules in ds file", "Command $unselect_cmd");
      }
+    upload_logs("$bash_fix_missing") if script_run "! [[ -e $bash_fix_missing ]]";
+    upload_logs("$f_ssg_sle_ds") if script_run "! [[ -e $f_ssg_sle_ds ]]";
 
     my $output_full_path = script_output("pwd");
     $output_full_path =~ s/\r|\n//g;
