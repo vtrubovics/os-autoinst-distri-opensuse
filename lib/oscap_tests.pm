@@ -742,6 +742,7 @@ sub oscap_remediate {
         # my $playbook_content = script_output ("grep -e CCE $playbook_fpath", 120);
         # my $pattern ="CCE-\\d+-\\d";
         # my $cce_ids_array_ref;
+        my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $profile_ID;
         my $ret;
         my $start_time;
         my $end_time;
