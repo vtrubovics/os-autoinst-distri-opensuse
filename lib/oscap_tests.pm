@@ -499,7 +499,7 @@ sub get_rules_lists {
             record_info("Writing ansible exceptions to file", "Writing ansible exclusions:\n$ansible_exclusions\n\nto file: $ansible_fix_missing");
         }
         # Diasble excluded and fix missing rules in ds file
-        my $unselect_cmd = "$ds_unselect_rules_script $f_ssg_sle_ds $ansible_fix_missing";
+        my $unselect_cmd = "sh ./$ds_unselect_rules_script $f_ssg_sle_ds $ansible_fix_missing";
         assert_script_run("$unselect_cmd");
         assert_script_run("rm $f_ssg_sle_ds");
         assert_script_run("cp /tmp/$ssg_sle_ds $f_ssg_sle_ds");
@@ -522,7 +522,7 @@ sub get_rules_lists {
             record_info("Writing bash exceptions to file", "Writing bash exclusions:\n$bash_exclusions\n\nto file: $bash_fix_missing");
         }
         # Diasble excluded and fix missing rules in ds file
-        my $unselect_cmd = "$ds_unselect_rules_script $f_ssg_sle_ds $bash_fix_missing";
+        my $unselect_cmd = "sh ./$ds_unselect_rules_script $f_ssg_sle_ds $bash_fix_missing";
         assert_script_run("$unselect_cmd");
         assert_script_run("rm $f_ssg_sle_ds");
         assert_script_run("cp /tmp/$ssg_sle_ds $f_ssg_sle_ds");
