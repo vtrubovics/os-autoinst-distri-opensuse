@@ -24,6 +24,7 @@ use List::Compare;
 
 our @EXPORT = qw(
   $profile_ID
+  $ansible_profile_ID
   $f_ssg_sle_ds
   $f_ssg_sle_xccdf
   $ssg_sle_ds
@@ -92,6 +93,7 @@ our $ssg_tw_xccdf = 'ssg-opensuse-xccdf.xml';
 
 # Profile IDs
 our $profile_ID;
+our $ansible_profile_ID;
 # Priority High:
 our $profile_ID_sle_stig = 'xccdf_org.ssgproject.content_profile_stig';
 our $profile_ID_sle_cis = 'xccdf_org.ssgproject.content_profile_cis';
@@ -504,6 +506,18 @@ sub get_rules_lists {
         assert_script_run("rm $f_ssg_sle_ds");
         assert_script_run("cp /tmp/$ssg_sle_ds $f_ssg_sle_ds");
         record_info("Diasble excluded and fix missing rules in ds file", "Command $unselect_cmd");
+        upload_logs("$ansible_fix_missing") if script_run "! [[ -e $ansible_fix_missing ]]";
+        # Replace ansible file with located on https://gitlab.suse.de/seccert-public/compliance-as-code-compiled
+        replace_ansible_file (1, $ansible_profile_ID, '/usr/share/scap-security-guide/ansible/');
+
+        # Generate new playbook without exclusions and fix_missing rules 
+        my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $ansible_profile_ID;
+        my $playbook_gen_cmd = "oscap xccdf generate fix --profile $profile_ID --fix-type ansible $f_ssg_sle_ds > playbook.yml";
+        assert_script_run("$playbook_gen_cmd");
+        record_info("Generated playbook", "Command $playbook_gen_cmd");
+        assert_script_run("rm $playbook_fpath");
+        assert_script_run("cp playbook.yml $playbook_fpath");
+        record_info("Replaced playbook", "Replaced playbook $playbook_fpath with generated playbook.yml");
     }
     else {
         my $bash_f = join "\n",  @bash_rules;
@@ -527,8 +541,8 @@ sub get_rules_lists {
         assert_script_run("rm $f_ssg_sle_ds");
         assert_script_run("cp /tmp/$ssg_sle_ds $f_ssg_sle_ds");
         record_info("Diasble excluded and fix missing rules in ds file", "Command $unselect_cmd");
+        upload_logs("$bash_fix_missing") if script_run "! [[ -e $bash_fix_missing ]]";
      }
-    upload_logs("$bash_fix_missing") if script_run "! [[ -e $bash_fix_missing ]]";
     upload_logs("$f_ssg_sle_ds") if script_run "! [[ -e $f_ssg_sle_ds ]]";
 
     my $output_full_path = script_output("pwd");
@@ -759,8 +773,6 @@ sub oscap_remediate {
         $ret_get_exclusions
           = get_ansible_exclusions (1, $ansible_exclusions);
         
-        # Replace ansible file with located on https://gitlab.suse.de/seccert-public/compliance-as-code-compiled
-        replace_ansible_file (1, $profile_ID, '/usr/share/scap-security-guide/ansible/');
         # Get array of CCE IDs
         # cce_ids_in_file (1, $playbook_content, $pattern, $cce_ids_array_ref );
         $start_time = clock_gettime(CLOCK_MONOTONIC);
