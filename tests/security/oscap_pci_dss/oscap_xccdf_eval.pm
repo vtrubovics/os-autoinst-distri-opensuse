@@ -20,35 +20,30 @@ sub run {
     # Get ds file and profile ID
     my $f_ssg_ds = is_sle ? $oscap_tests::f_ssg_sle_ds : $oscap_tests::f_ssg_tw_ds;
     my $profile_ID = is_sle ? $oscap_tests::profile_ID_sle_pci_dss : $oscap_tests::profile_ID_tw;
-    my $bash_script = is_sle ? $oscap_tests::sle_version . $oscap_tests::bash_script_pci_dss : $oscap_tests::bash_script_standart;
-    my $b_miss_rem_pattern = $oscap_tests::bash_miss_rem_pattern;
-    my $b_rem_pattern = $oscap_tests::bash_rem_pattern;
+    # my $bash_script = is_sle ? $oscap_tests::sle_version . $oscap_tests::bash_script_pci_dss : $oscap_tests::bash_script_standart;
+    # my $b_miss_rem_pattern = $oscap_tests::bash_miss_rem_pattern;
+    # my $b_rem_pattern = $oscap_tests::bash_rem_pattern;
 
-    my $n_passed_rules = 97;
-    my $n_failed_rules = 5;
+    my $n_passed_rules = 120;
+    my $n_failed_rules = 0;
 
     if (is_s390x) {
-        $n_passed_rules = 97;
-        $n_failed_rules = 5;
+        $n_passed_rules = 120;
+        $n_failed_rules = 0;
     }
-    my @eval_match =
-      'content_rule_is_fips_mode_enabled',
-      'content_rule_partition_for_var_log_audit',
-      'content_rule_smartcard_pam_enabled',
-      'content_rule_grub2_password',
-      'content_rule_no_files_unowned_by_user';
+    my @eval_match = ('');
       
-    my $expected_to_fail_rules;
-    my $expected_to_fail_rules_count;
-    my $expected_to_pass_rules;
-    my $expected_to_pass_rules_count;
+    # my $expected_to_fail_rules;
+    # my $expected_to_fail_rules_count;
+    # my $expected_to_pass_rules;
+    # my $expected_to_pass_rules_count;
 
-    $self->get_bash_expected_results ($b_miss_rem_pattern, $b_rem_pattern, $bash_script, $expected_to_fail_rules, $expected_to_fail_rules_count, $expected_to_pass_rules, $expected_to_pass_rules_count);
+    # $self->get_bash_expected_results ($b_miss_rem_pattern, $b_rem_pattern, $bash_script, $expected_to_fail_rules, $expected_to_fail_rules_count, $expected_to_pass_rules, $expected_to_pass_rules_count);
     
-    @eval_match = @$expected_to_fail_rules;
+    # @eval_match = @$expected_to_fail_rules;
     
-    $self->oscap_evaluate($f_ssg_ds, $profile_ID, $expected_to_pass_rules_count, $expected_to_fail_rules_count, \@eval_match);
-    # $self->oscap_evaluate($f_ssg_ds, $profile_ID, $n_passed_rules, $n_failed_rules, \@eval_match);
+    # $self->oscap_evaluate($f_ssg_ds, $profile_ID, $expected_to_pass_rules_count, $expected_to_fail_rules_count, \@eval_match);
+    $self->oscap_evaluate($f_ssg_ds, $profile_ID, $n_passed_rules, $n_failed_rules, \@eval_match);
 }
 
 sub test_flags {

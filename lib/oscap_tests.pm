@@ -323,9 +323,9 @@ sub get_bash_expected_results {
     my $pattern = $_[1];
     my $rem_pattern = $_[2];
     my $bash_rem_script = $_[3];
-    my @rules = '';
-    my @rem_rules = '';
-    my @strings = '';
+    my @rules = ('');
+    my @rem_rules = ('');
+    my @strings = ('');
     my $data = '';
     my $TEST_BASH = get_var("TEST_BASH", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/$bash_rem_script");
 
@@ -384,9 +384,9 @@ sub pattern_count_in_file {
     my $self = $_[0];
     my $data = $_[1];
     my $pattern = $_[2];
-    my @rules;
-    my @rules_cce;
-    my @rules_ids;
+    my @rules = ('');
+    my @rules_cce = ('');
+    my @rules_ids = ('');
     my $count = 0;
     my @nlines;
     my @lines = split /\n|\r/, $data;
@@ -439,8 +439,8 @@ sub modify_ds_ansible_files {
     my $bash_pattern = $_[2];
     my $ansible_pattern = $_[3];
     my $data;
-    my @bash_rules;
-    my @ansible_rules;
+    my @bash_rules = ('');
+    my @ansible_rules = ('');
     my $i = 0;
     my $bash_fix_missing = "bash_fix_missing.txt";
     my $ansible_fix_missing = "ansible_fix_missing.txt";
