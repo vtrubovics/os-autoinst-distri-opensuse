@@ -518,6 +518,7 @@ sub get_rules_lists {
         assert_script_run("rm $playbook_fpath");
         assert_script_run("cp playbook.yml $playbook_fpath");
         record_info("Replaced playbook", "Replaced playbook $playbook_fpath with generated playbook.yml");
+        upload_logs("$playbook_fpath") if script_run "! [[ -e $playbook_fpath ]]";
     }
     else {
         my $bash_f = join "\n",  @bash_rules;
