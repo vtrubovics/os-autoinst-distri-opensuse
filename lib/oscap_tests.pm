@@ -432,8 +432,8 @@ sub cce_ids_in_file {
     return $#unique_cces + 1;
 }
 
-sub get_rules_lists {
-    # Get bash and ansible rules lists from data based on provided patterns 
+sub modify_ds_ansible_files {
+    # Removes bash and ansible excluded and not having fixes rules from DS and playbook files
     my $self = $_[0];
     my $in_file_path = $_[1];
     my $bash_pattern = $_[2];
@@ -702,7 +702,7 @@ sub oscap_security_guide_setup {
         my $mising_rules_full_path = generate_mising_rules (1, $profile_ID);
 
         # Get bash and ansible rules lists from data based on provided 
-        get_rules_lists(1, $mising_rules_full_path, $bash_pattern, $ansible_pattern, $missing_bash_rules_ref, $missing_ansible_rules_ref, $missing_bash_rules_fpath, $missing_ansible_rules_fpath);
+        modify_ds_ansible_files(1, $mising_rules_full_path, $bash_pattern, $ansible_pattern, $missing_bash_rules_ref, $missing_ansible_rules_ref, $missing_bash_rules_fpath, $missing_ansible_rules_fpath);
         $generated_mising_rules = 1;
     }
 
