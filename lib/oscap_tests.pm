@@ -740,21 +740,6 @@ sub oscap_remediate {
     my ($self, $f_ssg_ds, $profile_ID) = @_;
     select_console 'root-console';
     
-    my $missing_bash_rules_ref;
-    my $missing_ansible_rules_ref;
-    my $missing_bash_rules_fpath;
-    my $missing_ansible_rules_fpath;
-    my $bash_pattern = "missing a bash fix";
-    my $ansible_pattern = "missing a ansible fix";
-    
-    if ($generated_mising_rules == 0){
-        # Generate text file that contains rules that missing implimentation for profile
-        my $mising_rules_full_path = generate_mising_rules (1, $profile_ID);
-        # Get bash and ansible rules lists from data based on provided 
-        get_rules_lists(1, $mising_rules_full_path, $bash_pattern, $ansible_pattern, $missing_bash_rules_ref, $missing_ansible_rules_ref, $missing_bash_rules_fpath, $missing_ansible_rules_fpath);
-        $generated_mising_rules = 1;
-    }
-
     # Verify mitigation mode
     # If doing ansible playbook remediation
     if ($ansible_remediation == 1) {
@@ -838,20 +823,6 @@ sub oscap_evaluate {
     my @Ronly;
     my $fail_count;
     my $pass_count;
-    my $missing_bash_rules_ref;
-    my $missing_ansible_rules_ref;
-    my $missing_bash_rules_fpath;
-    my $missing_ansible_rules_fpath;
-    my $bash_pattern = "missing a bash fix";
-    my $ansible_pattern = "missing a ansible fix";
-    
-    if ($generated_mising_rules == 0){
-        # Generate text file that contains rules that missing implimentation for profile
-        my $mising_rules_full_path = generate_mising_rules (1, $profile_ID);
-        # Get bash and ansible rules lists from data based on provided 
-        get_rules_lists(1, $mising_rules_full_path, $bash_pattern, $ansible_pattern, $missing_bash_rules_ref, $missing_ansible_rules_ref, $missing_bash_rules_fpath, $missing_ansible_rules_fpath);
-        $generated_mising_rules = 1;
-    }
     
     # Verify detection mode
     my $ret = script_run("oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr", timeout => 600);
