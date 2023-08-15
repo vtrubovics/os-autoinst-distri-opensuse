@@ -497,8 +497,7 @@ sub get_rules_lists {
         # Write exclusions to the file 
         if ($ret_get_ansible_exclusions == 1) {
             $ansible_exclusions =~ s/\,/\n/g;
-            assert_script_run("printf \"\n\" >> \"$ansible_fix_missing\"");
-            assert_script_run("printf \"$ansible_exclusions\" >> \"$ansible_fix_missing\"");
+            assert_script_run("printf \"\n$ansible_exclusions\" >> \"$ansible_fix_missing\"");
             record_info("Writing ansible exceptions to file", "Writing ansible exclusions:\n$ansible_exclusions\n\nto file: $ansible_fix_missing");
         }
         # Diasble excluded and fix missing rules in ds file
@@ -534,8 +533,7 @@ sub get_rules_lists {
         # Write exclusions to the file 
         if ($ret_get_bash_exclusions == 1) {
             $bash_exclusions =~ s/\,/\n/g;
-            assert_script_run("printf \"\n\" >> \"$bash_fix_missing\"");
-            assert_script_run("printf \"$bash_exclusions\" >> \"$bash_fix_missing\"");
+            assert_script_run("printf \"\n$bash_exclusions\" >> \"$bash_fix_missing\"");
             record_info("Writing bash exceptions to file", "Writing bash exclusions:\n$bash_exclusions\n\nto file: $bash_fix_missing");
         }
         # Diasble excluded and fix missing rules in ds file
