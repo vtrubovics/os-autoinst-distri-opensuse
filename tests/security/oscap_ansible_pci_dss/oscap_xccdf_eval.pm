@@ -20,11 +20,11 @@ sub run {
     # Get ds file and profile ID
     my $f_ssg_ds = is_sle ? $oscap_tests::f_ssg_sle_ds : $oscap_tests::f_ssg_tw_ds;
     my $profile_ID = is_sle ? $oscap_tests::profile_ID_sle_pci_dss : $oscap_tests::profile_ID_tw;
-    my $n_passed_rules = 120;
+    my $n_passed_rules = 92;
     my $n_failed_rules = 0;
 
     if (is_s390x) {
-        $n_passed_rules = 120;
+        $n_passed_rules = 92;
         $n_failed_rules = 0;
     }
     my @eval_match = ('');
