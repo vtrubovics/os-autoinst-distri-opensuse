@@ -10,10 +10,12 @@ use strict;
 use warnings;
 use testapi;
 use utils;
+use version_utils qw(is_sle);
 
 sub run {
     my ($self) = @_;
     select_console 'root-console';
+    $oscap_tests::profile_ID = is_sle ? $oscap_tests::profile_ID_sle_anssi_bp28_high : $oscap_tests::profile_ID_tw;
 
     $self->oscap_security_guide_setup();
 }

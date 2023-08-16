@@ -16,8 +16,7 @@ sub run {
     my ($self) = @_;
     $oscap_tests::ansible_remediation = 1;
     $oscap_tests::ansible_profile_ID = is_sle ? $oscap_tests::sle_version . $oscap_tests::ansible_playbook_sle_cis : $oscap_tests::ansible_playbook_standart;
-    $oscap_tests::profile_ID =
-      is_sle ? $oscap_tests::profile_ID_sle_cis : $oscap_tests::profile_ID_tw;
+    $oscap_tests::profile_ID = is_sle ? $oscap_tests::profile_ID_sle_cis : $oscap_tests::profile_ID_tw;
 
     select_console 'root-console';
 

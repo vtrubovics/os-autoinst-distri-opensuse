@@ -10,11 +10,13 @@ use strict;
 use warnings;
 use testapi;
 use utils;
+use version_utils qw(is_sle);
 
 sub run {
     my ($self) = @_;
     $oscap_tests::ansible_remediation = 1;
-
+    $oscap_tests::profile_ID = is_sle ? $oscap_tests::profile_ID_sle_anssi_bp28_high : $oscap_tests::profile_ID_tw;
+    $oscap_tests::ansible_profile_ID = is_sle ? $oscap_tests::sle_version . $oscap_tests::ansible_playbook_sle_anssi_bp28_high : $oscap_tests::ansible_playbook_standart;
     select_console 'root-console';
 
     $self->oscap_security_guide_setup();

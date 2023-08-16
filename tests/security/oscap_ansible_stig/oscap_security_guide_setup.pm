@@ -12,7 +12,6 @@ use testapi;
 use utils;
 use version_utils qw(is_sle);
 
-
 sub run {
     my ($self) = @_;
     $oscap_tests::ansible_remediation = 1;
