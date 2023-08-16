@@ -778,7 +778,7 @@ sub oscap_remediate {
         $script_cmd .= "  >> $f_stdout 2>> $f_stderr";
         
         $ret
-          = script_run($script_cmd, timeout => 1800);
+          = script_run($script_cmd, timeout => 3200);
         record_info("Return=$ret", "$script_cmd  returned: $ret");
         # record_info("Return=$ret", "ansible-playbook -i \"localhost,\" -c local $playbook_fpath --skip-tags \"CCE-85611-2, CCE-85765-6, CCE-83278-2, CCE-85638-5 \" returns: $ret");
         $end_time = clock_gettime(CLOCK_MONOTONIC);
