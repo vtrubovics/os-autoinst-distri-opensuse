@@ -196,7 +196,7 @@ sub replace_ds_file {
     
     my $TEST_DS = get_var("TEST_DS", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/$ds_file_name");
     assert_script_run("wget --quiet --no-check-certificate $TEST_DS");
-    assert_script_run("chmod 777 $ds_file_name");
+    assert_script_run("chmod 774 $ds_file_name");
     # Remove original ds file
     assert_script_run("rm $f_ssg_sle_ds");
     # Copy downloaded file to correct location
@@ -210,7 +210,7 @@ sub replace_xccdf_file {
     
     my $TEST_xccdf = get_var("TEST_xccdf", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/$xccdf_file_name");
     assert_script_run("wget --quiet --no-check-certificate $TEST_xccdf");
-    assert_script_run("chmod 777 $xccdf_file_name");
+    assert_script_run("chmod 774 $xccdf_file_name");
     # Remove original xccdf file
     assert_script_run("rm $f_ssg_sle_xccdf");
     # Copy downloaded file to correct location
@@ -227,7 +227,7 @@ sub replace_ansible_file {
     my $TEST_ANSIBLE = get_var("TEST_ANSIBLE", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/$ansible_file_name");
     my $full_ansible_file_path = $ansible_file_path . $ansible_file_name;
     assert_script_run("wget --quiet --no-check-certificate $TEST_ANSIBLE");
-    assert_script_run("chmod 777 $ansible_file_name");
+    assert_script_run("chmod 774 $ansible_file_name");
     # Remove original ansible file
     assert_script_run("rm $full_ansible_file_path");
     # Copy downloaded file to correct location
@@ -244,7 +244,7 @@ sub get_ansible_exclusions {
     my $TEST_ANSIBLE = get_var("TEST_ANSIBLE", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/$ansible_exclusions_file_name");
     
     assert_script_run("wget --quiet --no-check-certificate $TEST_ANSIBLE");
-    assert_script_run("chmod 777 $ansible_exclusions_file_name");
+    assert_script_run("chmod 774 $ansible_exclusions_file_name");
     record_info("Downloaded ansible exclusions file", "Downloaded file $ansible_exclusions_file_name");
     
     my $data = script_output "cat $ansible_exclusions_file_name";
@@ -282,7 +282,7 @@ sub get_bash_exclusions {
     my $TEST_bash = get_var("TEST_bash", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/$bash_exclusions_file_name");
     
     assert_script_run("wget --quiet --no-check-certificate $TEST_bash");
-    assert_script_run("chmod 777 $bash_exclusions_file_name");
+    assert_script_run("chmod 774 $bash_exclusions_file_name");
     record_info("Downloaded bash exclusions file", "Downloaded file $bash_exclusions_file_name");
     
     my $data = script_output "cat $bash_exclusions_file_name";
@@ -333,7 +333,7 @@ sub get_bash_expected_results {
     my $TEST_BASH = get_var("TEST_BASH", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/$bash_rem_script");
 
     assert_script_run("wget --no-check-certificate $TEST_BASH");
-    assert_script_run("chmod 777 $bash_rem_script");
+    assert_script_run("chmod 774 $bash_rem_script");
     record_info("Downloaded bash remediation file", "Downloaded file $bash_rem_script");
     $data = script_output "cat $bash_rem_script" if script_run "! [[ -e $bash_rem_script ]]";
 
@@ -484,7 +484,7 @@ sub modify_ds_ansible_files {
     my $TEST_ds_unselect = get_var("TEST_ds_unselect", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/tests/$ds_unselect_rules_script");
     
     assert_script_run("wget --quiet --no-check-certificate $TEST_ds_unselect");
-    assert_script_run("chmod 777 $ds_unselect_rules_script");
+    assert_script_run("chmod 774 $ds_unselect_rules_script");
     record_info("Downloaded ds_unselect_rules.sh script file", "Downloaded file $ds_unselect_rules_script");
 
    if ($ansible_remediation == 1) {
@@ -600,7 +600,7 @@ sub get_cac_code {
     my $PROFILE_TOOL = get_var("PROFILE_TOOL", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/build-scripts/$tool_file_name");
 
     assert_script_run("wget --no-check-certificate $PROFILE_TOOL");
-    assert_script_run("chmod 777 $tool_file_name");
+    assert_script_run("chmod 774 $tool_file_name");
     record_info("Downloaded tool binary file", "Downloaded file $tool_file_name");
     $compliance_as_code_path .= "/$tool_file_name";
     # record_info("Cloned ComplianceAsCode", "Cloned repo $git_repo to folder: $compliance_as_code_path");
