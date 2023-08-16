@@ -505,7 +505,7 @@ sub modify_ds_ansible_files {
         }
         # Diasble excluded and fix missing rules in ds file
         my $unselect_cmd = "sh ./$ds_unselect_rules_script $f_ssg_sle_ds $ansible_fix_missing";
-        assert_script_run("$unselect_cmd");
+        assert_script_run("$unselect_cmd", timeout => 600);
         assert_script_run("rm $f_ssg_sle_ds");
         assert_script_run("cp /tmp/$ssg_sle_ds $f_ssg_sle_ds");
         record_info("Diasble excluded and fix missing rules in ds file", "Command $unselect_cmd");
