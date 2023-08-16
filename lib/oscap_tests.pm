@@ -522,6 +522,8 @@ sub modify_ds_ansible_files {
         assert_script_run("cp playbook.yml $playbook_fpath");
         record_info("Replaced playbook", "Replaced playbook $playbook_fpath with generated playbook.yml");
         upload_logs("$playbook_fpath") if script_run "! [[ -e $playbook_fpath ]]";
+        # After playbook is regenereates need to modify it on next get_ansible_exclusions call
+        $ansible_playbook_modified = 0;
     }
     else {
         my $bash_f = join "\n",  @bash_rules;
