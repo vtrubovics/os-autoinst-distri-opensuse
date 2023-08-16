@@ -264,7 +264,7 @@ sub get_ansible_exclusions {
     }
     # If exclusion are not found for playbook - ignore_errors: true are added to all tasks in playbook
     if ($found == 0 and $ansible_playbook_modified == 0){
-        record_info("Did not found exclusions", "Did not found exclusions for profile $profile_ID");
+        record_info("Did not found exclusions", "Did not found exclusions for profile $ansible_profile_ID");
         assert_script_run("sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $ansible_file_path");
         record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook");
         $ansible_playbook_modified = 1;
