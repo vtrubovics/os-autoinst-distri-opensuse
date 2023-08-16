@@ -78,6 +78,7 @@ our $f_fregex = '\\bfail\\b';
 our $bash_miss_rem_pattern = 'FIX FOR THIS RULE.+IS MISSING';
 our $bash_rem_pattern = 'Remediating rule';
 our $ansible_exclusions;
+our $ansible_playbook_modified = 0;
 our $compliance_as_code_path;
 
 # Set default value for 'scap-security-guide' ds file
@@ -262,10 +263,11 @@ sub get_ansible_exclusions {
         }
     }
     # If exclusion are not found for playbook - ignore_errors: true are added to all tasks in playbook
-    if ($found == 0){
+    if ($found == 0 and $ansible_playbook_modified == 0){
         record_info("Did not found exclusions", "Did not found exclusions for profile $profile_ID");
         assert_script_run("sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $ansible_file_path");
         record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook");
+        $ansible_playbook_modified = 1;
         }
     #Returning by reference exclusions string
     $_[1] = $exclusions;
