@@ -21,6 +21,7 @@ use registration qw(add_suseconnect_product get_addon_fullname is_phub_ready);
 use List::MoreUtils qw(uniq);
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 use List::Compare;
+use Config::Tiny;
 
 our @EXPORT = qw(
   $profile_ID
@@ -156,6 +157,17 @@ our $ansible_remediation = 0;
 
 # Is it generated mising rules: '1', else: '0'
 our $generated_mising_rules = 0;
+
+# Variables $use_production_files and $remove_rules_missing_fixes are fetched from configuration file located in:
+#https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/blob/main/content/openqa_config.conf
+# If set to 1 - tests will use files from scap-security-guide package
+# If set to 0 - tests will use files from https://gitlab.suse.de/seccert-public/compliance-as-code-compiled repository
+our $use_production_files = 0;
+
+# Option configures to use or not functionality to remove from DS and ansible file rules for which do not have remediations
+# If set to 1 - rules for which do not have remediations will be removed from DS and ansible file rules for which do not have remediations
+# If set to 0 - no changes done.
+our $remove_rules_missing_fixes = 1;
 
 # Get sle version "sle12" or "sle15"
 our $sle_version = 'sle' . get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
@@ -634,6 +646,29 @@ sub get_cac_code {
     };
 =cut
 
+sub get_tests_config {
+{
+    # Get the tests configuration file from repository
+    my $config_file_name = "openqa_config.conf";
+    my $OPENQA_CONFIG = get_var("OPENQA_CONFIG", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/$config_file_name");
+
+    assert_script_run("wget --no-check-certificate $OPENQA_CONFIG");
+    assert_script_run("chmod 774 $config_file_name");
+    record_info("Downloaded tests configuration file", "Downloaded file $config_file_name from $OPENQA_CONFIG");
+    my $config_file_path = script_output("pwd");
+    $config_file_path =~ s/\r|\n//g;
+    $config_file_path .= "/$config_file_name";
+
+    my $config = Config::Tiny->new;
+    $config = Config::Tiny->read( "$config_file_path" );
+
+    $use_production_files = $Config->{tests_config}->{use_production_files};
+    $remove_rules_missing_fixes = $Config->{tests_config}->{remove_rules_missing_fixes};
+    record_info("Set test configuration", "use_production_files = $use_production_files\n  remove_rules_missing_fixes = $remove_rules_missing_fixes");
+    
+    return $config_file_path;
+}
+
 sub oscap_security_guide_setup {
 
     select_console 'root-console';
@@ -655,14 +690,20 @@ sub oscap_security_guide_setup {
     # Check the oscap version information for reference
     $out = script_output("oscap -V");
     record_info("oscap version", "\"# oscap -V\" returns:\n $out");
+
+    # Get the tests configuration file from repository
+    get_tests_config();
     
     # Replace original ds and xccdf files whith downloaded from local repository
     set_ds_file_name();
-    my $ds_file_name = is_sle ? $ssg_sle_ds : $ssg_tw_ds;
-    replace_ds_file(1, $ds_file_name);
-
-    my $xccdf_file_name = is_sle ? $ssg_sle_xccdf : $ssg_tw_xccdf;
-    replace_xccdf_file(1, $xccdf_file_name);
+    
+    if ($use_production_files == 0){
+        my $ds_file_name = is_sle ? $ssg_sle_ds : $ssg_tw_ds;
+        replace_ds_file(1, $ds_file_name);
+        
+        my $xccdf_file_name = is_sle ? $ssg_sle_xccdf : $ssg_tw_xccdf;
+        replace_xccdf_file(1, $xccdf_file_name);
+    }
 
     unless (is_opensuse) {
         # Some Packages require PackageHub repo is available
@@ -694,23 +735,28 @@ sub oscap_security_guide_setup {
         assert_script_run("ansible-galaxy collection install ansible.posix");
     
     }
-    # Get the code for the ComplianceAsCode by cloning its repository
-    get_cac_code ();
-    
-    my $missing_bash_rules_ref;
-    my $missing_ansible_rules_ref;
-    my $missing_bash_rules_fpath;
-    my $missing_ansible_rules_fpath;
-    my $bash_pattern = "missing a bash fix";
-    my $ansible_pattern = "missing a ansible fix";
-    
-    if ($generated_mising_rules == 0){
-        # Generate text file that contains rules that missing implimentation for profile
-        my $mising_rules_full_path = generate_mising_rules (1, $profile_ID);
+    if ($remove_rules_missing_fixes == 1){
+        # Get the code for the ComplianceAsCode by cloning its repository
+        get_cac_code ();
+        
+        my $missing_bash_rules_ref;
+        my $missing_ansible_rules_ref;
+        my $missing_bash_rules_fpath;
+        my $missing_ansible_rules_fpath;
+        my $bash_pattern = "missing a bash fix";
+        my $ansible_pattern = "missing a ansible fix";
+        
+        if ($generated_mising_rules == 0){
+            # Generate text file that contains rules that missing implimentation for profile
+            my $mising_rules_full_path = generate_mising_rules (1, $profile_ID);
 
-        # Get bash and ansible rules lists from data based on provided 
-        modify_ds_ansible_files(1, $mising_rules_full_path, $bash_pattern, $ansible_pattern, $missing_bash_rules_ref, $missing_ansible_rules_ref, $missing_bash_rules_fpath, $missing_ansible_rules_fpath);
-        $generated_mising_rules = 1;
+            # Get bash and ansible rules lists from data based on provided 
+            modify_ds_ansible_files(1, $mising_rules_full_path, $bash_pattern, $ansible_pattern, $missing_bash_rules_ref, $missing_ansible_rules_ref, $missing_bash_rules_fpath, $missing_ansible_rules_fpath);
+            $generated_mising_rules = 1;
+        }
+    }
+    else {
+        record_info("Do not modify DS or Ansible files", "Do not modify DS or Ansible files because remove_rules_missing_fixes = $remove_rules_missing_fixes");
     }
 
 }
