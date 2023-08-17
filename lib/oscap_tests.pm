@@ -660,11 +660,16 @@ sub get_tests_config {
 
     my $config = Config::Tiny->new;
     $config = Config::Tiny->read( "$config_file_path" );
+    my $err = $config::Tiny::errstr;
+    if ($err eq ""){
 
-    $use_production_files = $config->{tests_config}->{use_production_files};
-    $remove_rules_missing_fixes = $config->{tests_config}->{remove_rules_missing_fixes};
-    record_info("Set test configuration", "use_production_files = $use_production_files\n  remove_rules_missing_fixes = $remove_rules_missing_fixes");
-    
+        $use_production_files = $config->{tests_config}->{use_production_files};
+        $remove_rules_missing_fixes = $config->{tests_config}->{remove_rules_missing_fixes};
+        record_info("Set test configuration", "use_production_files = $use_production_files\n  remove_rules_missing_fixes = $remove_rules_missing_fixes");
+    }
+    else {
+        record_info("Tiny->read error", "Config::Tiny->read( $config_file_path )returened error:\n$err");
+    }
     return $config_file_path;
 }
 
