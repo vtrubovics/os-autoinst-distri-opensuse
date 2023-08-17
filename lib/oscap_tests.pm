@@ -647,7 +647,6 @@ sub get_cac_code {
 =cut
 
 sub get_tests_config {
-{
     # Get the tests configuration file from repository
     my $config_file_name = "openqa_config.conf";
     my $OPENQA_CONFIG = get_var("OPENQA_CONFIG", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/$config_file_name");
