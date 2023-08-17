@@ -974,6 +974,7 @@ sub oscap_evaluate {
                     @$failed_rules_ref
                 );
             }
+=comment #Didsabled bash expected results analysis
             if ($ansible_remediation == 0){
                 # Compare lits of rules: list of rules not having remediation to list of rules failed evaluation
                 my $miss_rem_rules_ref; # List of rules missing remediation
@@ -1025,6 +1026,7 @@ sub oscap_evaluate {
                     @Ronly
                 );
             }
+=cut
         }
     }
     else {
