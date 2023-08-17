@@ -657,15 +657,16 @@ sub get_tests_config {
     my $config_file_path = script_output("pwd");
     $config_file_path =~ s/\r|\n//g;
     $config_file_path .= "/$config_file_name";
-
+    
+    my $data = script_output ("cat $config_file_path");
     my $config = Config::Tiny->new;
-    $config = Config::Tiny->read( "$config_file_path" );
+    # $config = Config::Tiny->read( "$config_file_path" );
+    $config = Config::Tiny->read_string("$data");
     my $err = $config::Tiny::errstr;
     if ($err eq ""){
-
         $use_production_files = $config->{tests_config}->{use_production_files};
         $remove_rules_missing_fixes = $config->{tests_config}->{remove_rules_missing_fixes};
-        record_info("Set test configuration", "use_production_files = $use_production_files\n  remove_rules_missing_fixes = $remove_rules_missing_fixes");
+        record_info("Set test configuration", "Set test configuration from file $config_file_path\n use_production_files = $use_production_files\n  remove_rules_missing_fixes = $remove_rules_missing_fixes");
     }
     else {
         record_info("Tiny->read error", "Config::Tiny->read( $config_file_path )returened error:\n$err");
