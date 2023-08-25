@@ -582,16 +582,12 @@ sub generate_mising_rules {
     my $profile = $_[1];
     my $output_file = "missing_rules.txt";
 
-    # assert_script_run("export PYTHONPATH=$compliance_as_code_path");
-    my $env = script_output("env | grep PYTHONPATH");
-    record_info("2 exported PYTHONPATH", "export $env");
     assert_script_run("alias python=python3");
     assert_script_run("cd $compliance_as_code_path");
     assert_script_run("source .pyenv.sh");
-    $env = script_output("env | grep PYTHONPATH");
-    record_info("3 exported PYTHONPATH", "export $env");
+    my $env = script_output("env | grep PYTHONPATH");
+    record_info("exported PYTHONPATH", "export $env");
     my $cmd = "python3 build-scripts/profile_tool.py stats --missing --skip-stats --profile $profile --benchmark $f_ssg_sle_xccdf --format plain > $output_file";
-    # my $cmd = "$compliance_as_code_path stats --missing --skip-stats --profile $profile --benchmark $f_ssg_sle_xccdf --format plain > $output_file";
     assert_script_run("$cmd");
     record_info("Generated file $output_file", "generate_mising_rules Input file $f_ssg_sle_xccdf/n Command:\n$cmd");
     assert_script_run("cp $output_file /root");
@@ -608,8 +604,9 @@ sub get_cac_code {
     my $cac_dir = "src/content";
     my $git_repo = "https://github.com/ComplianceAsCode/content.git";
     my $git_clone_cmd = "git clone " . $git_repo . " $cac_dir";
-    assert_script_run("mkdir src");
+    
     zypper_call("in git-core python3");
+    assert_script_run("mkdir src");
     assert_script_run("rm -r $cac_dir", quiet => 1) if (-e "$cac_dir");
     assert_script_run('git config --global http.sslVerify false', quiet => 1);
     assert_script_run("set -o pipefail ; $git_clone_cmd", quiet => 1);
@@ -618,20 +615,7 @@ sub get_cac_code {
     $compliance_as_code_path =~ s/\r|\n//g;
     $compliance_as_code_path .= "/$cac_dir";
 
-=comment
-    my $tool_file_name = "profile_tool";
-    my $PROFILE_TOOL = get_var("PROFILE_TOOL", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/build-scripts/$tool_file_name");
-
-    assert_script_run("wget --no-check-certificate $PROFILE_TOOL");
-    assert_script_run("chmod 774 $tool_file_name");
-    record_info("Downloaded tool binary file", "Downloaded file $tool_file_name");
-    $compliance_as_code_path .= "/$tool_file_name";
-=cut
-
     record_info("Cloned ComplianceAsCode", "Cloned repo $git_repo to folder: $compliance_as_code_path");
-    assert_script_run("export PYTHONPATH=$compliance_as_code_path");
-    my $env = script_output("env | grep PYTHONPATH");
-    record_info("1 exported PYTHONPATH", "export $env");
     assert_script_run('pip3 --quiet install --upgrade pip', timeout => 600);
     assert_script_run("pip3 --quiet install jinja2", timeout => 600);
     assert_script_run("pip3 --quiet install PyYAML", timeout => 600);
