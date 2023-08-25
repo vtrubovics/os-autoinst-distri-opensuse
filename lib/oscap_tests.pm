@@ -600,7 +600,8 @@ sub get_cac_code {
     # Get the code for the ComplianceAsCode by cloning its repository
     my $cac_dir = "src/content";
     my $git_repo = "https://github.com/ComplianceAsCode/content.git";
-    my $git_clone_cmd = 'git clone ' . $git_repo . ' src';
+    my $git_clone_cmd = "git clone " . $git_repo . " $cac_dir";
+    assert_script_run("mkdir src");
     zypper_call("in git-core python3");
     assert_script_run("rm -r $cac_dir", quiet => 1) if (-e "$cac_dir");
     assert_script_run('git config --global http.sslVerify false', quiet => 1);
