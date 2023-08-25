@@ -582,12 +582,11 @@ sub generate_mising_rules {
     my $profile = $_[1];
     my $output_file = "missing_rules.txt";
 
-    # assert_script_run("source /etc/environment");
     # assert_script_run("export PYTHONPATH=$compliance_as_code_path");
-    # my $env = script_output("env | grep PYTHONPATH");
-    # record_info("export PYTHONPATH", "export $env");
-    # my $cmd = "python3 $compliance_as_code_path/build-scripts/profile_tool.py stats --missing --skip-stats --profile $profile --benchmark $f_ssg_sle_xccdf --format plain";
-    my $cmd = "$compliance_as_code_path stats --missing --skip-stats --profile $profile --benchmark $f_ssg_sle_xccdf --format plain > $output_file";
+    my $env = script_output("env | grep PYTHONPATH");
+    record_info("export PYTHONPATH", "export $env");
+    my $cmd = "python3 $compliance_as_code_path/build-scripts/profile_tool.py stats --missing --skip-stats --profile $profile --benchmark $f_ssg_sle_xccdf --format plain";
+    # my $cmd = "$compliance_as_code_path stats --missing --skip-stats --profile $profile --benchmark $f_ssg_sle_xccdf --format plain > $output_file";
     assert_script_run("$cmd");
     record_info("Generated file $output_file", "generate_mising_rules Input file $f_ssg_sle_xccdf/n Command:\n$cmd");
     my $output_full_path = script_output("pwd");
@@ -599,17 +598,19 @@ sub generate_mising_rules {
 
 sub get_cac_code {
     # Get the code for the ComplianceAsCode by cloning its repository
-    # my $cac_dir = "content";
-    # my $git_repo = "https://github.com/ComplianceAsCode/content.git";
-    # my $git_clone_cmd = 'git clone ' . $git_repo;
+    my $cac_dir = "src/content";
+    my $git_repo = "https://github.com/ComplianceAsCode/content.git";
+    my $git_clone_cmd = 'git clone ' . $git_repo . ' src';
     zypper_call("in git-core python3");
-    # assert_script_run("rm -r $cac_dir", quiet => 1) if (-e "$cac_dir");
-    # assert_script_run('git config --global http.sslVerify false', quiet => 1);
-    # assert_script_run("set -o pipefail ; $git_clone_cmd", quiet => 1);
+    assert_script_run("rm -r $cac_dir", quiet => 1) if (-e "$cac_dir");
+    assert_script_run('git config --global http.sslVerify false', quiet => 1);
+    assert_script_run("set -o pipefail ; $git_clone_cmd", quiet => 1);
+
     $compliance_as_code_path = script_output("pwd");
     $compliance_as_code_path =~ s/\r|\n//g;
-    # $compliance_as_code_path .= "/$cac_dir";
+    $compliance_as_code_path .= "/$cac_dir";
 
+=comment
     my $tool_file_name = "profile_tool";
     my $PROFILE_TOOL = get_var("PROFILE_TOOL", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/build-scripts/$tool_file_name");
 
@@ -617,15 +618,14 @@ sub get_cac_code {
     assert_script_run("chmod 774 $tool_file_name");
     record_info("Downloaded tool binary file", "Downloaded file $tool_file_name");
     $compliance_as_code_path .= "/$tool_file_name";
-    # record_info("Cloned ComplianceAsCode", "Cloned repo $git_repo to folder: $compliance_as_code_path");
-    # assert_script_run("export PYTHONPATH=$compliance_as_code_path");
-    # my $env = script_output("env | grep PYTHONPATH");
-    # record_info("export PYTHONPATH", "export $env");
-    # assert_script_run("echo PYTHONPATH=$compliance_as_code_path >> /etc/environment");
-    # assert_script_run("source /etc/environment");
-    # record_info("export PYTHONPATH", "export PYTHONPATH=$compliance_as_code_path");
-    # assert_script_run('pip3 --quiet install --upgrade pip', timeout => 600);
-    # assert_script_run("pip3 --quiet install jinja2", timeout => 600);
+=cut
+
+    record_info("Cloned ComplianceAsCode", "Cloned repo $git_repo to folder: $compliance_as_code_path");
+    assert_script_run("export PYTHONPATH=$compliance_as_code_path");
+    my $env = script_output("env | grep PYTHONPATH");
+    record_info("export PYTHONPATH", "export $env");
+    assert_script_run('pip3 --quiet install --upgrade pip', timeout => 600);
+    assert_script_run("pip3 --quiet install jinja2", timeout => 600);
 
     return $compliance_as_code_path;
 }
@@ -974,7 +974,7 @@ sub oscap_evaluate {
                     @$failed_rules_ref
                 );
             }
-=comment #Didsabled bash expected results analysis
+=comment #Disabled bash expected results analysis
             if ($ansible_remediation == 0){
                 # Compare lits of rules: list of rules not having remediation to list of rules failed evaluation
                 my $miss_rem_rules_ref; # List of rules missing remediation
