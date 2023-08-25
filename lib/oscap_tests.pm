@@ -634,7 +634,12 @@ sub get_cac_code {
     record_info("1 exported PYTHONPATH", "export $env");
     assert_script_run('pip3 --quiet install --upgrade pip', timeout => 600);
     assert_script_run("pip3 --quiet install jinja2", timeout => 600);
-
+    assert_script_run("pip3 --quiet install PyYAML", timeout => 600);
+    assert_script_run("pip3 --quiet install pytest", timeout => 600);
+    assert_script_run("pip3 --quiet install pytest-cov", timeout => 600);
+    assert_script_run("pip3 --quiet install Jinja2", timeout => 600);
+    assert_script_run("pip3 --quiet install setuptools", timeout => 600);
+    assert_script_run("pip3 --quiet install ninja", timeout => 600);
     return $compliance_as_code_path;
 }
 =comment
