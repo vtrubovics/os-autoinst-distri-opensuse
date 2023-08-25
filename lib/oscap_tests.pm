@@ -585,6 +585,10 @@ sub generate_mising_rules {
     # assert_script_run("export PYTHONPATH=$compliance_as_code_path");
     my $env = script_output("env | grep PYTHONPATH");
     record_info("export PYTHONPATH", "export $env");
+    assert_script_run("alias python=python3");
+    assert_script_run("cd $compliance_as_code_path");
+    assert_script_run("source .pyenv.sh");
+    assert_script_run("cd /root");
     my $cmd = "python3 $compliance_as_code_path/build-scripts/profile_tool.py stats --missing --skip-stats --profile $profile --benchmark $f_ssg_sle_xccdf --format plain";
     # my $cmd = "$compliance_as_code_path stats --missing --skip-stats --profile $profile --benchmark $f_ssg_sle_xccdf --format plain > $output_file";
     assert_script_run("$cmd");
