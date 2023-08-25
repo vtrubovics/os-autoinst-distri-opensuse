@@ -155,9 +155,6 @@ our $remediated = 0;
 # Is it ansible remediation: '0', bash remediation; '1' ansible remediation
 our $ansible_remediation = 0;
 
-# Is it generated mising rules: '1', else: '0'
-our $generated_mising_rules = 0;
-
 # Variables $use_production_files and $remove_rules_missing_fixes are fetched from configuration file located in:
 #https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/blob/main/content/openqa_config.conf
 # If set to 1 - tests will use files from scap-security-guide package
@@ -451,8 +448,8 @@ sub modify_ds_ansible_files {
     # Removes bash and ansible excluded and not having fixes rules from DS and playbook files
     my $self = $_[0];
     my $in_file_path = $_[1];
-    my $bash_pattern = $_[2];
-    my $ansible_pattern = $_[3];
+    my $bash_pattern = "missing a bash fix";
+    my $ansible_pattern = "missing a ansible fix";
     my $data;
     my @bash_rules = ('');
     my @ansible_rules = ('');
@@ -484,20 +481,24 @@ sub modify_ds_ansible_files {
     $i++;
     }
     record_info("Got rules from lists", "Got rules from lists from  $in_file_path\nBash pattern:\n$bash_pattern\nAnsible pattern:\n $ansible_pattern");
-    record_info("Bash rules missing fix", "Bash rules missing fix:\n" . join "\n",
-                @bash_rules
-                );
-    record_info("Ansible rules missing fix", "Ansible rules missing fix:\n" . join "\n",
-                @ansible_rules
-                );
 
+    if ($#bash_rules > 0 and $ansible_remediation == 0) {
+        record_info("Bash rules missing fix", "Bash rules missing fix:\n" . join "\n",
+                    @bash_rules
+                    );
+    }
+    if ($#ansible_rules > 0 and $ansible_remediation == 1) {
+        record_info("Ansible rules missing fix", "Ansible rules missing fix:\n" . join "\n",
+                    @ansible_rules
+                    );
+    }
     #Download ds_unselect_rules.sh script
     my $ds_unselect_rules_script = "ds_unselect_rules.sh";
-    my $TEST_ds_unselect = get_var("TEST_ds_unselect", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/tests/$ds_unselect_rules_script");
+    # my $TEST_ds_unselect = get_var("TEST_ds_unselect", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/tests/$ds_unselect_rules_script");
     
-    assert_script_run("wget --quiet --no-check-certificate $TEST_ds_unselect");
-    assert_script_run("chmod 774 $ds_unselect_rules_script");
-    record_info("Downloaded ds_unselect_rules.sh script file", "Downloaded file $ds_unselect_rules_script");
+    # assert_script_run("wget --quiet --no-check-certificate $TEST_ds_unselect");
+    # assert_script_run("chmod 774 $ds_unselect_rules_script");
+    # record_info("Downloaded ds_unselect_rules.sh script file", "Downloaded file $ds_unselect_rules_script");
 
    if ($ansible_remediation == 1) {
         my $ansible_f = join "\n",  @ansible_rules;
@@ -516,7 +517,7 @@ sub modify_ds_ansible_files {
             record_info("Writing ansible exceptions to file", "Writing ansible exclusions:\n$ansible_exclusions\n\nto file: $ansible_fix_missing");
         }
         # Diasble excluded and fix missing rules in ds file
-        my $unselect_cmd = "sh ./$ds_unselect_rules_script $f_ssg_sle_ds $ansible_fix_missing";
+        my $unselect_cmd = "sh ./$compliance_as_code_path/tests/$ds_unselect_rules_script $f_ssg_sle_ds $ansible_fix_missing";
         assert_script_run("$unselect_cmd", timeout => 600);
         assert_script_run("rm $f_ssg_sle_ds");
         assert_script_run("cp /tmp/$ssg_sle_ds $f_ssg_sle_ds");
@@ -554,7 +555,7 @@ sub modify_ds_ansible_files {
             record_info("Writing bash exceptions to file", "Writing bash exclusions:\n$bash_exclusions\n\nto file: $bash_fix_missing");
         }
         # Diasble excluded and fix missing rules in ds file
-        my $unselect_cmd = "sh ./$ds_unselect_rules_script $f_ssg_sle_ds $bash_fix_missing";
+        my $unselect_cmd = "sh ./$compliance_as_code_path/tests/$ds_unselect_rules_script $f_ssg_sle_ds $bash_fix_missing";
         assert_script_run("$unselect_cmd");
         assert_script_run("rm $f_ssg_sle_ds");
         assert_script_run("cp /tmp/$ssg_sle_ds $f_ssg_sle_ds");
@@ -569,11 +570,6 @@ sub modify_ds_ansible_files {
     my $ansible_file_full_path = "$output_full_path/$ansible_fix_missing";
     record_info("Files paths for missing rules ", "Bash file path:\n$bash_file_full_path\nAnsible file path:\n $ansible_file_full_path");
 
-    # Returning by reference expected data
-    $_[4] = \@bash_rules;
-    $_[5] = \@ansible_rules;
-    $_[6] = $bash_file_full_path;
-    $_[7] = $ansible_file_full_path;
 }
 
 sub generate_mising_rules {
@@ -740,22 +736,11 @@ sub oscap_security_guide_setup {
     if ($remove_rules_missing_fixes == 1){
         # Get the code for the ComplianceAsCode by cloning its repository
         get_cac_code ();
-        
-        my $missing_bash_rules_ref;
-        my $missing_ansible_rules_ref;
-        my $missing_bash_rules_fpath;
-        my $missing_ansible_rules_fpath;
-        my $bash_pattern = "missing a bash fix";
-        my $ansible_pattern = "missing a ansible fix";
-        
-        if ($generated_mising_rules == 0){
-            # Generate text file that contains rules that missing implimentation for profile
-            my $mising_rules_full_path = generate_mising_rules (1, $profile_ID);
+        # Generate text file that contains rules that missing implimentation for profile
+        my $mising_rules_full_path = generate_mising_rules (1, $profile_ID);
 
-            # Get bash and ansible rules lists from data based on provided 
-            modify_ds_ansible_files(1, $mising_rules_full_path, $bash_pattern, $ansible_pattern, $missing_bash_rules_ref, $missing_ansible_rules_ref, $missing_bash_rules_fpath, $missing_ansible_rules_fpath);
-            $generated_mising_rules = 1;
-        }
+        # Get bash and ansible rules lists from data based on provided 
+        modify_ds_ansible_files(1, $mising_rules_full_path);
     }
     else {
         record_info("Do not modify DS or Ansible files", "Do not modify DS or Ansible files because remove_rules_missing_fixes = $remove_rules_missing_fixes");
