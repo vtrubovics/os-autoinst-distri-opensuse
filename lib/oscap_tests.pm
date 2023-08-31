@@ -786,7 +786,7 @@ sub oscap_remediate {
         # my $playbook_content = script_output ("grep -e CCE $playbook_fpath", 120);
         # my $pattern ="CCE-\\d+-\\d";
         # my $cce_ids_array_ref;
-        my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $profile_ID;
+        my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $ansible_profile_ID;
         my $ret;
         my $start_time;
         my $end_time;
@@ -815,7 +815,6 @@ sub oscap_remediate {
         $ret
           = script_run($script_cmd, timeout => 3200);
         record_info("Return=$ret", "$script_cmd  returned: $ret");
-        # record_info("Return=$ret", "ansible-playbook -i \"localhost,\" -c local $playbook_fpath --skip-tags \"CCE-85611-2, CCE-85765-6, CCE-83278-2, CCE-85638-5 \" returns: $ret");
         $end_time = clock_gettime(CLOCK_MONOTONIC);
         $execution_time = $end_time - $start_time;
 
@@ -851,7 +850,7 @@ sub oscap_remediate {
 }
 
 sub oscap_evaluate {
-    my ($self, $f_ssg_ds, $profile_ID, $n_passed_rules, $n_failed_rules, $eval_match) = @_;
+    my ($self, $n_passed_rules, $n_failed_rules, $eval_match) = @_;
     select_console 'root-console';
 
     my $passed_rules_ref;

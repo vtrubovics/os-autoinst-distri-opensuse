@@ -11,15 +11,12 @@ use warnings;
 use testapi;
 use utils;
 use Utils::Architectures;
-use version_utils qw(is_sle);
 
 sub run {
     my ($self) = @_;
     select_console 'root-console';
 
-    # Get ds file and profile ID
-    my $f_ssg_ds = is_sle ? $oscap_tests::f_ssg_sle_ds : $oscap_tests::f_ssg_tw_ds;
-    my $profile_ID = is_sle ? $oscap_tests::profile_ID_sle_stig : $oscap_tests::profile_ID_tw;
+    # Set expected results
     my $n_passed_rules = 210;
     my $n_failed_rules = 5;
     my @eval_match = (
@@ -43,7 +40,7 @@ sub run {
             'content_rule_no_files_unowned_by_user');
     }
 
-    $self->oscap_evaluate($f_ssg_ds, $profile_ID, $n_passed_rules, $n_failed_rules, \@eval_match);
+    $self->oscap_evaluate($n_passed_rules, $n_failed_rules, \@eval_match);
 }
 
 sub test_flags {
