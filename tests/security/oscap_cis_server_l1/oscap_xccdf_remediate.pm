@@ -10,16 +10,12 @@ use strict;
 use warnings;
 use testapi;
 use utils;
-use version_utils qw(is_sle);
 
 sub run {
     my ($self) = @_;
 
-    # Get ds file and profile ID, etc.
-    my $f_ssg_ds = is_sle ? $oscap_tests::f_ssg_sle_ds : $oscap_tests::f_ssg_tw_ds;
-    my $profile_ID = is_sle ? $oscap_tests::profile_ID_sle_cis_server_l1 : $oscap_tests::profile_ID_tw;
 
-    $self->oscap_remediate($f_ssg_ds, $profile_ID);
+    $self->oscap_remediate();
 }
 
 sub test_flags {

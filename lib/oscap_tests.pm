@@ -28,6 +28,7 @@ our @EXPORT = qw(
   $ansible_profile_ID
   $f_ssg_sle_ds
   $f_ssg_sle_xccdf
+  $f_ssg_ds
   $ssg_sle_ds
   $ssg_sle_xccdf
   $ssg_tw_ds
@@ -92,6 +93,7 @@ our $f_ssg_sle_xccdf = '/usr/share/xml/scap/ssg/content/ssg-sle15-xccdf.xml';
 our $f_ssg_tw_xccdf = '/usr/share/xml/scap/ssg/content/ssg-opensuse-xccdf.xml';
 our $ssg_sle_xccdf = 'ssg-sle15-xccdf.xml';
 our $ssg_tw_xccdf = 'ssg-opensuse-xccdf.xml';
+our $f_ssg_ds;
 
 # Profile IDs
 our $profile_ID;
@@ -681,7 +683,7 @@ sub oscap_security_guide_setup {
     set_ds_file();
 
     # Check the ds file information for reference
-    my $f_ssg_ds = is_sle ? $f_ssg_sle_ds : $f_ssg_tw_ds;
+    $f_ssg_ds = is_sle ? $f_ssg_sle_ds : $f_ssg_tw_ds;
     $out = script_output("oscap info $f_ssg_ds");
     record_info("oscap info", "\"# oscap info $f_ssg_ds\" returns:\n $out");
 
@@ -775,7 +777,7 @@ sub oscap_security_guide_setup {
 =cut
 
 sub oscap_remediate {
-    my ($self, $f_ssg_ds, $profile_ID) = @_;
+    my ($self) = @_;
     select_console 'root-console';
     
     # Verify mitigation mode
