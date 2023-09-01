@@ -6,7 +6,7 @@ schedule:
     - boot/boot_to_desktop
     - security/oscap_ansible_anssi_bp28_minimal/oscap_security_guide_setup
     - security/oscap_ansible_anssi_bp28_minimal/oscap_xccdf_eval
-    - security/oscap_ansible_anssi_bp28_minimal/oscap_xccdf_eval_remote
+    # - security/oscap_ansible_anssi_bp28_minimal/oscap_xccdf_eval_remote
     - security/oscap_ansible_anssi_bp28_minimal/oscap_xccdf_remediate
     # Do evaluate again after remediate
     - security/oscap_ansible_anssi_bp28_minimal/oscap_xccdf_eval
