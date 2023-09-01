@@ -102,6 +102,7 @@ our $ansible_profile_ID;
 our $profile_ID_sle_stig = 'xccdf_org.ssgproject.content_profile_stig';
 our $profile_ID_sle_cis = 'xccdf_org.ssgproject.content_profile_cis';
 our $profile_ID_sle_pci_dss = 'xccdf_org.ssgproject.content_profile_pci-dss';
+our $profile_ID_sle_pci_dss_4 = 'xccdf_org.ssgproject.content_profile_pci-dss-4';
 our $profile_ID_sle_hipaa = 'xccdf_org.ssgproject.content_profile_hipaa';
 our $profile_ID_sle_anssi_bp28_high = 'xccdf_org.ssgproject.content_profile_anssi_bp28_high';
 # Priority Medium:
@@ -118,6 +119,7 @@ our $profile_ID_tw = 'xccdf_org.ssgproject.content_profile_standard';
 our $ansible_playbook_sle_stig = "-playbook-stig.yml";
 our $ansible_playbook_sle_cis = "-playbook-cis.yml";
 our $ansible_playbook_sle_pci_dss = "-playbook-pci-dss.yml";
+our $ansible_playbook_sle_pci_dss_4 = "-playbook-pci-dss-4.yml";
 # Only sle-15
 our $ansible_playbook_sle_hipaa = "-playbook-hipaa.yml";
 
