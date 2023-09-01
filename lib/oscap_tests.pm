@@ -268,6 +268,7 @@ sub get_ansible_exclusions {
         if ($lines[$i] =~ /$profile_ID/) {
             @strings = split /\s+/, $lines[$i];
             $exclusions = $strings[1];
+            $exclusions =~ s/\"//g;
             $found = 1;
             record_info("Found exclusions", "Found exclusions $exclusions for profile $profile_ID");
             last;
@@ -306,6 +307,7 @@ sub get_bash_exclusions {
         if ($lines[$i] =~ /$profile_ID/) {
             @strings = split /\s+/, $lines[$i];
             $exclusions = $strings[1];
+            $exclusions =~ s/\"//g;
             $found = 1;
             record_info("Found exclusions", "Found exclusions $exclusions for profile $profile_ID");
             last;
