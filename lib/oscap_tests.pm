@@ -265,14 +265,16 @@ sub get_ansible_exclusions {
     my $found = 0;
     my @strings;
     my $exclusions;
+    my $fprofile_ID = $profile_ID . " "; # Fix for profile names having extensions 
+
     record_info("Looking for exclusions", "Looking for exclusions for profile $profile_ID");
     for my $i (0 .. $#lines) {
-        if ($lines[$i] =~ /$profile_ID/) {
+        if ($lines[$i] =~ /$fprofile_ID/) {
             @strings = split /\s+/, $lines[$i];
             $exclusions = $strings[1];
             $exclusions =~ s/\"//g;
             $found = 1;
-            record_info("Found exclusions", "Found exclusions $exclusions for profile $profile_ID");
+            record_info("Found exclusions", "Found exclusions:\n$exclusions\nfor profile $strings[0]");
             last;
         }
     }
