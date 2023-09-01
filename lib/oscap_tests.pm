@@ -894,7 +894,7 @@ sub oscap_evaluate {
             
             $lc = List::Compare->new('-u', \@$failed_id_rules_ref, \@$eval_match);
             my @intersection = $lc->get_intersection; # list of rules found in both lists
-            my @lonly = $lc->get_Lonly; # list of rules found only in left list
+            my @lonly = $lc->get_Lonly; # list of rules found only in left list (actual results)
             my $intersection_count = $#intersection + 1;
             # if count of rules in intesection  equal to expected rules and equal count of failed rules 
             if  ($#intersection == $#$eval_match and $#intersection == $#$failed_id_rules_ref){
@@ -905,8 +905,8 @@ sub oscap_evaluate {
                         @$failed_id_rules_ref)
                 );
                 record_info(
-                    "check of failed rules",
-                    "Pattern $f_fregex count in file $f_stdout is $failed_rules, expected $n_failed_rules. Matched rules:\n" . (join "\n",
+                    "Check of failed rules",
+                    "Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules. Matched rules:\n" . (join "\n",
                         @$failed_rules_ref) . "\n\nExpected rules to fail:\n" . (join "\n",
                         @$eval_match) . "\n\nSame number $intersection_count rules in expected and failed results:\n" . (join "\n",
                         @intersection)
@@ -915,9 +915,9 @@ sub oscap_evaluate {
              else {
                record_info(
                     "Failed check of failed rules",
-                    "Pattern $f_fregex count in file $f_stdout is $failed_rules, expected $n_failed_rules. Matched rules:\n" . (join "\n",
-                        @$failed_rules_ref) . "\n\nExpected rules to fail:\n" . (join "\n",
-                        @$eval_match) . "\n\nRules failed (not in expected list):\n" . (join "\n",
+                    "#Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules. Matched rules:\n" . (join "\n",
+                        @$failed_rules_ref) . "\n\n#Expected $n_failed_rules rules to fail:\n" . (join "\n",
+                        @$eval_match) . "\n\n#Rules failed (not in expected list):\n" . (join "\n",
                         @lonly),
                     result => 'fail'
                 );
@@ -941,6 +941,7 @@ sub oscap_evaluate {
                     @$passed_rules_ref
                 );
             }
+=comment #Disabled failed results analysis - done on first check
             $fail_count = pattern_count_in_file(1, $data, $f_fregex, $failed_rules_ref, $failed_cce_rules_ref);
             if ($fail_count != $n_failed_rules) {
                 record_info(
@@ -957,6 +958,8 @@ sub oscap_evaluate {
                     @$failed_rules_ref
                 );
             }
+=cut
+
 =comment #Disabled bash expected results analysis
             if ($ansible_remediation == 0){
                 # Compare lits of rules: list of rules not having remediation to list of rules failed evaluation
