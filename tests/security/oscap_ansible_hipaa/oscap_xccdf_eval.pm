@@ -24,8 +24,8 @@ sub run {
         $n_passed_rules = 123;
         $n_failed_rules = 1;
     }
-    my @eval_match = (
-      "content_rule_grub2_password");
+    my @eval_match =
+      ("content_rule_grub2_password");
 
     $self->oscap_evaluate($n_passed_rules, $n_failed_rules, \@eval_match);
 }
