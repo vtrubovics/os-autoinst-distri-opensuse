@@ -819,9 +819,9 @@ sub oscap_security_guide_setup {
         record_info("Do not modify DS or Ansible files", "Do not modify DS or Ansible files because remove_rules_missing_fixes = $remove_rules_missing_fixes");
     }
     # Installing cpanm and perl library YAML::Tiny for expected results pharsing
-    zypper_call "in cpanm sudo";
-    record_info("Install cpanm", "Installed cpanm binaries");
-    assert_script_run("cpanm YAML::Tiny");
+    # zypper_call "in perl";
+    # record_info("Install perl", "Installed perl");
+    assert_script_run("cpan YAML::Tiny");
     record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
 }
 
