@@ -752,6 +752,9 @@ sub oscap_security_guide_setup {
     record_info("Pkg_ver", "openscap security guide packages' version:\n $out");
     # Set ds file
     set_ds_file();
+    
+    assert_script_run('cpan install YAML::Tiny <<<yes', timeout => 300);
+    record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
 
     # Check the ds file information for reference
     $f_ssg_ds = is_sle ? $f_ssg_sle_ds : $f_ssg_tw_ds;
@@ -821,8 +824,6 @@ sub oscap_security_guide_setup {
     # Installing cpanm and perl library YAML::Tiny for expected results pharsing
     # zypper_call "in perl";
     # record_info("Install perl", "Installed perl");
-    assert_script_run("cpan YAML::Tiny");
-    record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
 }
 
 =ansible return codes
