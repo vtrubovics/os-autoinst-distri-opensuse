@@ -23,7 +23,8 @@ use List::MoreUtils qw(uniq);
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 use List::Compare;
 use Config::Tiny;
-use YAML::Tiny;
+# use YAML::Tiny;
+use Module::Runtime qw(use_module use_package_optimistically);
 use Mojo::File;
 
 our @EXPORT = qw(
@@ -710,6 +711,7 @@ sub get_test_expected_results {
     my $data = $path->slurp; 
 
     # Pharse the expected results
+    my $module = use_module("YAML::Tiny");
     my $expected_results = YAML::Tiny->read_string( "$data" );
     record_info("Looking expected results", "Looking expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch");
 
