@@ -17,11 +17,14 @@ use version_utils qw(is_sle is_opensuse);
 use bootloader_setup qw(add_grub_cmdline_settings);
 use power_action_utils 'power_action';
 use Utils::Backends 'is_pvm';
+use Utils::Architectures;
 use registration qw(add_suseconnect_product get_addon_fullname is_phub_ready);
 use List::MoreUtils qw(uniq);
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 use List::Compare;
 use Config::Tiny;
+use YAML::Tiny;
+use Mojo::File;
 
 our @EXPORT = qw(
   $profile_ID
@@ -675,6 +678,66 @@ sub get_tests_config {
     return $config_file_path;
 }
 
+sub get_test_expected_results {
+    my $n_passed_rules = -1;
+    my $eval_match = ();
+    my $found = -1;
+    my $type = "";
+    my $arch = "";
+    
+    if ($ansible_remediation == 1) {
+        $type = 'ansible';
+    }
+    else {
+        $type = 'bash';
+    }
+    if (is_s390x) { $arch = "s390x";}
+    if (is_aarch64 or is_arm) { $arch = "aarch64";}
+    if (is_ppc64le) { $arch = "ppc";}
+    if (is_x86_64) { $arch = "x86_64";}
+    # $sle_version and $profile_ID are global varables
+    my $passed_rules = $sle_version . "-passed_rules";
+    my $exp_fail_list_name = $sle_version . "-exp_fail_list";
+        
+    my $expected_results_file_name = "openqa_tests_expected_results.yaml";
+    my $EXPECTED_RESULTS = get_var("EXPECTED_RESULTS", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/$expected_results_file_name");
+
+    assert_script_run("wget --no-check-certificate $EXPECTED_RESULTS");
+    assert_script_run("chmod 774 $expected_results_file_name");
+    record_info("Downloaded expected results file", "Downloaded file $expected_results_file_name from $EXPECTED_RESULTS");
+
+    my $path = Mojo::File->new("$expected_results_file_name");
+    my $data = $path->slurp; 
+
+    # Pharse the expected results
+    my $expected_results = YAML::Tiny->read_string( "$data" );
+    record_info("Looking expected results", "Looking expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch");
+
+    $n_passed_rules  = $expected_results->[0]->{$profile_ID}->{$type}->{$arch}->{$passed_rules};
+    $eval_match  = $expected_results->[0]->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name};
+
+
+    if (defined $n_passed_rules) {
+        record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nNumber of passed rules: $n_passed_rules\n List of expected to fail rules:\n " . join "\n", @$eval_match);
+        $found = 1;
+        if (defined $eval_match) {
+            $_[1] = $eval_match;
+        }
+        else {
+            my @eval_match = ();
+            $_[1] = \@eval_match;
+        }    }
+    else {
+        record_info("No expected results", "No expected results found in \nfile: $expected_results_file_name\n for profile_ID: $profile_ID\ntype: $type\narch: $arch\n Using results defined in the test file.");
+        $n_passed_rules = -1;
+        my @eval_match = ();
+        $_[1] = \@eval_match;
+    }
+
+    $_[0] = $n_passed_rules;
+    return $found;
+}
+
 sub oscap_security_guide_setup {
 
     select_console 'root-console';
@@ -753,7 +816,11 @@ sub oscap_security_guide_setup {
     else {
         record_info("Do not modify DS or Ansible files", "Do not modify DS or Ansible files because remove_rules_missing_fixes = $remove_rules_missing_fixes");
     }
-
+    # Installing cpanm and perl library YAML::Tiny for expected results pharsing
+    zypper_call "in cpanm sudo";
+    record_info("Install cpanm", "Installed cpanm binaries");
+    assert_script_run("cpanm YAML::Tiny");
+    record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
 }
 
 =ansible return codes
@@ -868,7 +935,17 @@ sub oscap_evaluate {
     my @Ronly;
     my $fail_count;
     my $pass_count;
+    my $expected_pass_count;
+    my $expected_eval_match;
+    my $ret_expected_results;
     
+    $ret_expected_results = get_test_expected_results($expected_pass_count, $expected_eval_match);
+    # Found expected results in yaml file 
+    if ($ret_expected_results == 1){
+        $n_passed_rules = $expected_pass_count;
+        $n_failed_rules = @$expected_eval_match;
+        $eval_match = $expected_eval_match;
+    }
     # Verify detection mode
     my $ret = script_run("oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr", timeout => 600);
     if ($ret == 0 || $ret == 2) {
