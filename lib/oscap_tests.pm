@@ -23,9 +23,7 @@ use List::MoreUtils qw(uniq);
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 use List::Compare;
 use Config::Tiny;
-# use YAML::Tiny;
-use Module::Runtime qw(use_module use_package_optimistically);
-# use Mojo::File;
+use Module::Runtime qw(use_module);
 
 our @EXPORT = qw(
   $profile_ID
@@ -210,10 +208,9 @@ sub set_ds_file_name {
 sub replace_ds_file {
     my $self = $_[0];
     my $ds_file_name = $_[1];
+    my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
     
-    my $TEST_DS = get_var("TEST_DS", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/$ds_file_name");
-    assert_script_run("wget --quiet --no-check-certificate $TEST_DS");
-    assert_script_run("chmod 774 $ds_file_name");
+    download_file_from_https_repo($url, $ds_file_name);
     # Remove original ds file
     assert_script_run("rm $f_ssg_sle_ds");
     # Copy downloaded file to correct location
@@ -224,10 +221,9 @@ sub replace_ds_file {
 sub replace_xccdf_file {
     my $self = $_[0];
     my $xccdf_file_name = $_[1];
+    my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
     
-    my $TEST_xccdf = get_var("TEST_xccdf", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/$xccdf_file_name");
-    assert_script_run("wget --quiet --no-check-certificate $TEST_xccdf");
-    assert_script_run("chmod 774 $xccdf_file_name");
+    download_file_from_https_repo($url, $xccdf_file_name);
     # Remove original xccdf file
     assert_script_run("rm $f_ssg_sle_xccdf");
     # Copy downloaded file to correct location
@@ -240,11 +236,9 @@ sub replace_ansible_file {
     my $self = $_[0];
     my $ansible_file_name = $_[1];
     my $ansible_file_path = $_[2];
-    
-    my $TEST_ANSIBLE = get_var("TEST_ANSIBLE", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/$ansible_file_name");
-    my $full_ansible_file_path = $ansible_file_path . $ansible_file_name;
-    assert_script_run("wget --quiet --no-check-certificate $TEST_ANSIBLE");
-    assert_script_run("chmod 774 $ansible_file_name");
+    my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/";
+
+    download_file_from_https_repo($url, $ansible_file_name);
     # Remove original ansible file
     assert_script_run("rm $full_ansible_file_path");
     # Copy downloaded file to correct location
@@ -257,13 +251,9 @@ sub get_ansible_exclusions {
     my $self = $_[0];
     my $ansible_exclusions_file_name = "ansible_exclusions.txt";
     my $ansible_file_path = '/usr/share/scap-security-guide/ansible/' . $ansible_profile_ID;
-
-    my $TEST_ANSIBLE = get_var("TEST_ANSIBLE", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/$ansible_exclusions_file_name");
+    my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/";
     
-    assert_script_run("wget --quiet --no-check-certificate $TEST_ANSIBLE");
-    assert_script_run("chmod 774 $ansible_exclusions_file_name");
-    record_info("Downloaded ansible exclusions file", "Downloaded file $ansible_exclusions_file_name");
-    
+    download_file_from_https_repo($url, $ansible_exclusions_file_name);
     my $data = script_output "cat $ansible_exclusions_file_name";
     my @lines = split /\n|\r/, $data;
     my $found = 0;
@@ -298,13 +288,10 @@ sub get_ansible_exclusions {
 sub get_bash_exclusions {
     my $self = $_[0];
     my $bash_exclusions_file_name = "bash_exclusions.txt";
+    $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/";
 
-    my $TEST_bash = get_var("TEST_bash", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/$bash_exclusions_file_name");
-    
-    assert_script_run("wget --quiet --no-check-certificate $TEST_bash");
-    assert_script_run("chmod 774 $bash_exclusions_file_name");
-    record_info("Downloaded bash exclusions file", "Downloaded file $bash_exclusions_file_name");
-    
+    download_file_from_https_repo($url, $bash_exclusions_file_name);
+   
     my $data = script_output "cat $bash_exclusions_file_name";
     my @lines = split /\n|\r/, $data;
     my $found = 0;
@@ -321,9 +308,8 @@ sub get_bash_exclusions {
             last;
         }
     }
-    # If exclusion are not found for playbook - ignore_errors: true are added to all tasks in playbook
     if ($found == 0){
-        record_info("Did not found exclusions", "Did not found exclusions for profile $profile_ID");
+        record_info("Did not found exclusions", "Did not found bash exclusions for profile $profile_ID");
         }
     #Returning by reference exclusions string
     $_[1] = $exclusions;
@@ -347,16 +333,13 @@ sub get_bash_expected_results {
     my $pattern = $_[1];
     my $rem_pattern = $_[2];
     my $bash_rem_script = $_[3];
-    my @rules = ('');
-    my @rem_rules = ('');
-    my @strings = ('');
-    my $data = '';
-    my $TEST_BASH = get_var("TEST_BASH", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/$bash_rem_script");
+    my @rules = ();
+    my @rem_rules = ();
+    my @strings = ();
+    my $data = ;
+    my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/";
 
-    assert_script_run("wget --no-check-certificate $TEST_BASH");
-    assert_script_run("chmod 774 $bash_rem_script");
-    record_info("Downloaded bash remediation file", "Downloaded file $bash_rem_script");
-    $data = script_output "cat $bash_rem_script" if script_run "! [[ -e $bash_rem_script ]]";
+    download_file_from_https_repo($url, $bash_rem_script);
 
     my @lines = split /\n|\r/, $data;
 
@@ -401,16 +384,27 @@ sub upload_logs_reports {
           if script_run "! [[ -e $f_report ]]";
     }
 }
+sub download_file_from_https_repo {
+    # downloads file from provided url
+    my $url = $_[0];
+    my $file_name = $_[1];
+    my $full_url = "$url" . "$file_name";
+    
+    my $FULL_URL = get_var("FILE", "$full_url");
 
+    assert_script_run("wget --no-check-certificate $FULL_URL");
+    assert_script_run("chmod 774 $file_name");
+    record_info("Downloaded file", "Downloaded file $file_name from $FULL_URL");
+}
 sub pattern_count_in_file {
 
     #Find count and rules names of matched pattern
     my $self = $_[0];
     my $data = $_[1];
     my $pattern = $_[2];
-    my @rules = ('');
-    my @rules_cce = ('');
-    my @rules_ids = ('');
+    my @rules = ();
+    my @rules_cce = ();
+    my @rules_ids = ();
     my $count = 0;
     my @nlines;
     my @lines = split /\n|\r/, $data;
@@ -463,11 +457,12 @@ sub modify_ds_ansible_files {
     my $bash_pattern = "missing a bash fix";
     my $ansible_pattern = "missing a ansible fix";
     my $data;
-    my @bash_rules = ('');
-    my @ansible_rules = ('');
+    my @bash_rules = ();
+    my @ansible_rules = ();
     my $i = 0;
     my $bash_fix_missing = "bash_fix_missing.txt";
     my $ansible_fix_missing = "ansible_fix_missing.txt";
+    my $ds_unselect_rules_script = "ds_unselect_rules.sh";
 
     $data = script_output("cat $in_file_path");
     
@@ -504,13 +499,6 @@ sub modify_ds_ansible_files {
                     @ansible_rules
                     );
     }
-    #Download ds_unselect_rules.sh script
-    my $ds_unselect_rules_script = "ds_unselect_rules.sh";
-    # my $TEST_ds_unselect = get_var("TEST_ds_unselect", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/tests/$ds_unselect_rules_script");
-    
-    # assert_script_run("wget --quiet --no-check-certificate $TEST_ds_unselect");
-    # assert_script_run("chmod 774 $ds_unselect_rules_script");
-    # record_info("Downloaded ds_unselect_rules.sh script file", "Downloaded file $ds_unselect_rules_script");
 
    if ($ansible_remediation == 1) {
         my $ansible_f = join "\n",  @ansible_rules;
@@ -654,18 +642,16 @@ sub get_cac_code {
 sub get_tests_config {
     # Get the tests configuration file from repository
     my $config_file_name = "openqa_config.conf";
-    my $OPENQA_CONFIG = get_var("OPENQA_CONFIG", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/$config_file_name");
+    my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
 
-    assert_script_run("wget --no-check-certificate $OPENQA_CONFIG");
-    assert_script_run("chmod 774 $config_file_name");
-    record_info("Downloaded tests configuration file", "Downloaded file $config_file_name from $OPENQA_CONFIG");
+    download_file_from_https_repo($url, $config_file_name);
+
     my $config_file_path = script_output("pwd");
     $config_file_path =~ s/\r|\n//g;
     $config_file_path .= "/$config_file_name";
     
     my $data = script_output ("cat $config_file_path");
     my $config = Config::Tiny->new;
-    # $config = Config::Tiny->read( "$config_file_path" );
     $config = Config::Tiny->read_string("$data");
     my $err = $config::Tiny::errstr;
     if ($err eq ""){
@@ -680,7 +666,7 @@ sub get_tests_config {
 }
 
 sub get_test_expected_results {
-    my $n_passed_rules = -1;
+    my $n_passed_rules;
     my $eval_match = ();
     my $found = -1;
     my $type = "";
@@ -699,15 +685,11 @@ sub get_test_expected_results {
     # $sle_version and $profile_ID are global varables
     my $passed_rules = $sle_version . "-passed_rules";
     my $exp_fail_list_name = $sle_version . "-exp_fail_list";
-        
     my $expected_results_file_name = "openqa_tests_expected_results.yaml";
-    my $EXPECTED_RESULTS = get_var("EXPECTED_RESULTS", "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/$expected_results_file_name");
+    my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
 
-    assert_script_run("wget --no-check-certificate $EXPECTED_RESULTS");
-    assert_script_run("chmod 774 $expected_results_file_name");
-    record_info("Downloaded expected results file", "Downloaded file $expected_results_file_name from $EXPECTED_RESULTS");
-
-#    my $path = Mojo::File->new("$expected_results_file_name");
+    download_file_from_https_repo($url, $expected_results_file_name);
+    upload_logs("$expected_results_file_name") if script_run "! [[ -e $expected_results_file_name ]]";
     my $data = script_output ("cat $expected_results_file_name");
 
     # Pharse the expected results
@@ -717,7 +699,6 @@ sub get_test_expected_results {
 
     $n_passed_rules  = $expected_results->[0]->{$profile_ID}->{$type}->{$arch}->{$passed_rules};
     $eval_match  = $expected_results->[0]->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name};
-
 
     if (defined $n_passed_rules) {
         record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nNumber of passed rules: $n_passed_rules\n List of expected to fail rules:\n " . join "\n", @$eval_match);
