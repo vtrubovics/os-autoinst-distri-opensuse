@@ -25,7 +25,7 @@ use List::Compare;
 use Config::Tiny;
 # use YAML::Tiny;
 use Module::Runtime qw(use_module use_package_optimistically);
-use Mojo::File;
+# use Mojo::File;
 
 our @EXPORT = qw(
   $profile_ID
@@ -707,8 +707,8 @@ sub get_test_expected_results {
     assert_script_run("chmod 774 $expected_results_file_name");
     record_info("Downloaded expected results file", "Downloaded file $expected_results_file_name from $EXPECTED_RESULTS");
 
-    my $path = Mojo::File->new("$expected_results_file_name");
-    my $data = $path->slurp; 
+#    my $path = Mojo::File->new("$expected_results_file_name");
+    my $data = script_output ("cat $expected_results_file_name");
 
     # Pharse the expected results
     my $module = use_module("YAML::Tiny");
