@@ -782,14 +782,9 @@ sub oscap_security_guide_setup {
         add_suseconnect_product(get_addon_fullname('phub'));
         # On SLES 12 ansible packages require depencies located in sle-module-public-cloud
         add_suseconnect_product(get_addon_fullname('pcm'), (is_sle('<15') ? '12' : undef)) if is_sle('<15');
-        add_suseconnect_product('sle-module-desktop-applications');
-        if (is_sle '>=15') {
-            add_suseconnect_product('sle-module-development-tools');
-        } 
-        else {
-            add_suseconnect_product('sle-sdk');
-        }
-
+        # Products needed for cpanm install
+        add_suseconnect_product(get_addon_fullname('desktop'));
+        add_suseconnect_product(get_addon_fullname('tcm'));
     }
     # Installing cpanm and perl library YAML::Tiny for expected results pharsing
     zypper_call "in cpanm";
@@ -800,14 +795,6 @@ sub oscap_security_guide_setup {
     # If required ansible remediation
     if ($ansible_remediation == 1) {
         my $pkgs = 'ansible';
-
-        unless (is_opensuse) {
-            # Package'ansible' require PackageHub is available
-            return unless is_phub_ready();
-            add_suseconnect_product(get_addon_fullname('phub'));
-            # On SLES 12 ansible packages require depencies located in sle-module-public-cloud
-            add_suseconnect_product(get_addon_fullname('pcm'), (is_sle('<15') ? '12' : undef)) if is_sle('<15');
-        }
         # Need to update SLES to fix issues with STIG playbook
         record_info("Update", "Updaiting SLES");
         zypper_call("up", timeout => 1800);
@@ -817,7 +804,6 @@ sub oscap_security_guide_setup {
         record_info("$pkgs Pkg_ver", "$pkgs packages' version:\n $out");
         #install ansible.posix
         assert_script_run("ansible-galaxy collection install ansible.posix");
-    
     }
     if ($remove_rules_missing_fixes == 1){
         # Get the code for the ComplianceAsCode by cloning its repository
@@ -949,13 +935,6 @@ sub oscap_evaluate {
     my $expected_eval_match;
     my $ret_expected_results;
     
-    $ret_expected_results = get_test_expected_results($expected_pass_count, $expected_eval_match);
-    # Found expected results in yaml file 
-    if ($ret_expected_results == 1){
-        $n_passed_rules = $expected_pass_count;
-        $n_failed_rules = @$expected_eval_match;
-        $eval_match = $expected_eval_match;
-    }
     # Verify detection mode
     my $ret = script_run("oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr", timeout => 600);
     if ($ret == 0 || $ret == 2) {
@@ -980,6 +959,13 @@ sub oscap_evaluate {
         }
         else {
             #Verify remediated rules
+            $ret_expected_results = get_test_expected_results($expected_pass_count, $expected_eval_match);
+            # Found expected results in yaml file 
+            if ($ret_expected_results == 1){
+                $n_passed_rules = $expected_pass_count;
+                $n_failed_rules = @$expected_eval_match;
+                $eval_match = $expected_eval_match;
+            }
             record_info('remediated', 'after remediation less rules are failing');
             #Verify failed rules
             $fail_count = pattern_count_in_file(1, $data, $f_fregex, $failed_rules_ref, $failed_cce_rules_ref, $failed_id_rules_ref);
