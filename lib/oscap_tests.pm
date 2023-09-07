@@ -289,7 +289,7 @@ sub get_ansible_exclusions {
 sub get_bash_exclusions {
     my $self = $_[0];
     my $bash_exclusions_file_name = "bash_exclusions.txt";
-    $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/";
+    my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/";
 
     download_file_from_https_repo($url, $bash_exclusions_file_name);
    
