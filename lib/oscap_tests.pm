@@ -782,6 +782,7 @@ sub oscap_security_guide_setup {
         add_suseconnect_product(get_addon_fullname('phub'));
         # On SLES 12 ansible packages require depencies located in sle-module-public-cloud
         add_suseconnect_product(get_addon_fullname('pcm'), (is_sle('<15') ? '12' : undef)) if is_sle('<15');
+        add_suseconnect_product('sle-module-desktop-applications');
         if (is_sle '>=15') {
             add_suseconnect_product('sle-module-development-tools');
         } 
