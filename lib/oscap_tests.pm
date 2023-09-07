@@ -753,9 +753,6 @@ sub oscap_security_guide_setup {
     # Set ds file
     set_ds_file();
     
-    assert_script_run('cpan install YAML::Tiny <<<yes', timeout => 300);
-    record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
-
     # Check the ds file information for reference
     $f_ssg_ds = is_sle ? $f_ssg_sle_ds : $f_ssg_tw_ds;
     $out = script_output("oscap info $f_ssg_ds");
@@ -785,7 +782,19 @@ sub oscap_security_guide_setup {
         add_suseconnect_product(get_addon_fullname('phub'));
         # On SLES 12 ansible packages require depencies located in sle-module-public-cloud
         add_suseconnect_product(get_addon_fullname('pcm'), (is_sle('<15') ? '12' : undef)) if is_sle('<15');
+        if (is_sle '>=15') {
+            add_suseconnect_product('sle-module-development-tools');
+        } 
+        else {
+            add_suseconnect_product('sle-sdk');
+        }
+
     }
+    # Installing cpanm and perl library YAML::Tiny for expected results pharsing
+    zypper_call "in cpanm";
+    record_info("Install cpanm", "Installed cpanm");
+    assert_script_run('cpanm YAML::Tiny', timeout => 300);
+    record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
 
     # If required ansible remediation
     if ($ansible_remediation == 1) {
@@ -821,9 +830,6 @@ sub oscap_security_guide_setup {
     else {
         record_info("Do not modify DS or Ansible files", "Do not modify DS or Ansible files because remove_rules_missing_fixes = $remove_rules_missing_fixes");
     }
-    # Installing cpanm and perl library YAML::Tiny for expected results pharsing
-    # zypper_call "in perl";
-    # record_info("Install perl", "Installed perl");
 }
 
 =ansible return codes
