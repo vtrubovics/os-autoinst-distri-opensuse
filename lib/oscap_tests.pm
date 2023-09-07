@@ -337,7 +337,7 @@ sub get_bash_expected_results {
     my @rules = ();
     my @rem_rules = ();
     my @strings = ();
-    my $data = ;
+    my $data;
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/";
 
     download_file_from_https_repo($url, $bash_rem_script);
