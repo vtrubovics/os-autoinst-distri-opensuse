@@ -237,6 +237,7 @@ sub replace_ansible_file {
     my $ansible_file_name = $_[1];
     my $ansible_file_path = $_[2];
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/";
+    my $full_ansible_file_path = $ansible_file_path . $ansible_file_name;
 
     download_file_from_https_repo($url, $ansible_file_name);
     # Remove original ansible file
