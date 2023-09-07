@@ -693,7 +693,10 @@ sub get_test_expected_results {
     upload_logs("$expected_results_file_name") if script_run "! [[ -e $expected_results_file_name ]]";
     my $data = script_output ("cat $expected_results_file_name");
 
-    # Pharse the expected results
+    assert_script_run('cpanm YAML::Tiny', timeout => 300);
+    record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
+
+   # Pharse the expected results
     my $module = use_module("YAML::Tiny");
     my $expected_results = YAML::Tiny->read_string( "$data" );
     record_info("Looking expected results", "Looking expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch");
@@ -771,9 +774,11 @@ sub oscap_security_guide_setup {
     # Installing cpanm and perl library YAML::Tiny for expected results pharsing
     zypper_call "in cpanm";
     record_info("Install cpanm", "Installed cpanm");
-    assert_script_run('cpanm YAML::Tiny', timeout => 300);
-    record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
-
+    # assert_script_run('cpanm YAML::Tiny', timeout => 300);
+    # record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
+    my $expected_pass;
+    my $expected_eval_match;
+    get_test_expected_results($expected_pass, $expected_eval_match);
     # If required ansible remediation
     if ($ansible_remediation == 1) {
         my $pkgs = 'ansible';
