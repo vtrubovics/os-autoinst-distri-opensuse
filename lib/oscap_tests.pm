@@ -775,7 +775,7 @@ sub oscap_security_guide_setup {
     record_info("Install cpanm", "Installed cpanm");
     assert_script_run('cpanm YAML::Tiny', timeout => 300);
     record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
-    assert_script_run('load YAML::Tiny');
+    assert_script_run("load \'YAML::Tiny\'");
 
     # If required ansible remediation
     if ($ansible_remediation == 1) {
