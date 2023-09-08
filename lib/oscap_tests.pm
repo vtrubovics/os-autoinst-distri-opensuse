@@ -23,7 +23,7 @@ use List::MoreUtils qw(uniq);
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 use List::Compare;
 use Config::Tiny;
-# use Module::Load  'all';
+use Module::Runtime qw(use_module use_package_optimistically);
 
 our @EXPORT = qw(
   $profile_ID
@@ -695,6 +695,7 @@ sub get_test_expected_results {
 
     my $mod = 'YAML::Tiny';
     eval "use $mod";
+    use_module("YAML::Tiny");
 
     assert_script_run('cpanm YAML::Tiny', timeout => 300);
     record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
@@ -780,6 +781,7 @@ sub oscap_security_guide_setup {
     record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
     my $mod = 'YAML::Tiny';
     eval "use $mod";
+    use_module("YAML::Tiny");
     my $expected_pass_count;
     my $expected_eval_match;
     my $ret_expected_results = get_test_expected_results($expected_pass_count, $expected_eval_match);
