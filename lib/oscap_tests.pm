@@ -23,7 +23,7 @@ use List::MoreUtils qw(uniq);
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 use List::Compare;
 use Config::Tiny;
-use Module::Runtime qw(use_module use_package_optimistically);
+use Module::Load;
 
 our @EXPORT = qw(
   $profile_ID
@@ -697,7 +697,7 @@ sub get_test_expected_results {
     record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
 
    # Pharse the expected results
-    my $module = use_module("YAML::Tiny");
+    load "YAML::Tiny";
     my $expected_results = YAML::Tiny->read_string( "$data" );
     record_info("Looking expected results", "Looking expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch");
 
