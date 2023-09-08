@@ -530,7 +530,7 @@ sub modify_ds_ansible_files {
         # Generate new playbook without exclusions and fix_missing rules 
         my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $ansible_profile_ID;
         my $playbook_gen_cmd = "oscap xccdf generate fix --profile $profile_ID --fix-type ansible $f_ssg_sle_ds > playbook.yml";
-        assert_script_run("$playbook_gen_cmd");
+        assert_script_run("$playbook_gen_cmd", timeout => 600);
         record_info("Generated playbook", "Command $playbook_gen_cmd");
         assert_script_run("rm $playbook_fpath");
         assert_script_run("cp playbook.yml $playbook_fpath");
@@ -557,7 +557,7 @@ sub modify_ds_ansible_files {
         }
         # Diasble excluded and fix missing rules in ds file
         my $unselect_cmd = "sh $compliance_as_code_path/tests/$ds_unselect_rules_script $f_ssg_sle_ds $bash_fix_missing";
-        assert_script_run("$unselect_cmd");
+        assert_script_run("$unselect_cmd", timeout => 600);
         assert_script_run("rm $f_ssg_sle_ds");
         assert_script_run("cp /tmp/$ssg_sle_ds $f_ssg_sle_ds");
         record_info("Diasble excluded and fix missing rules in ds file", "Command $unselect_cmd");
