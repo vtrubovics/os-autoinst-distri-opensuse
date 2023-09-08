@@ -693,6 +693,9 @@ sub get_test_expected_results {
     upload_logs("$expected_results_file_name") if script_run "! [[ -e $expected_results_file_name ]]";
     my $data = script_output ("cat $expected_results_file_name");
 
+    my $mod = 'YAML::Tiny';
+    eval "use $mod";
+
     assert_script_run('cpanm YAML::Tiny', timeout => 300);
     record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
 
