@@ -606,7 +606,7 @@ sub get_cac_code {
     assert_script_run("mkdir src");
     assert_script_run("rm -r $cac_dir", quiet => 1) if (-e "$cac_dir");
     assert_script_run('git config --global http.sslVerify false', quiet => 1);
-    assert_script_run("set -o pipefail ; $git_clone_cmd", quiet => 1);
+    assert_script_run("set -o pipefail ; $git_clone_cmd", timeout => 600, quiet => 1);
 
     $compliance_as_code_path = script_output("pwd");
     $compliance_as_code_path =~ s/\r|\n//g;
@@ -774,11 +774,8 @@ sub oscap_security_guide_setup {
     # Installing cpanm and perl library YAML::Tiny for expected results pharsing
     zypper_call "in cpanm";
     record_info("Install cpanm", "Installed cpanm");
-    # assert_script_run('cpanm YAML::Tiny', timeout => 300);
-    # record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
-    my $expected_pass;
-    my $expected_eval_match;
-    get_test_expected_results($expected_pass, $expected_eval_match);
+    assert_script_run('cpanm YAML::Tiny', timeout => 300);
+    record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
     # If required ansible remediation
     if ($ansible_remediation == 1) {
         my $pkgs = 'ansible';
