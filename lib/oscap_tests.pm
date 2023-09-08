@@ -23,7 +23,7 @@ use List::MoreUtils qw(uniq);
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 use List::Compare;
 use Config::Tiny;
-use Module::Load;
+use Module::Load  'all';
 
 our @EXPORT = qw(
   $profile_ID
