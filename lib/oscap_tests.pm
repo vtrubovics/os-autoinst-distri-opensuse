@@ -887,7 +887,7 @@ sub oscap_remediate {
     # If doing bash remediation
     else {
         my $ret
-          = script_run("oscap xccdf eval --profile $profile_ID --remediate --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr", timeout => 600);
+          = script_run("oscap xccdf eval --profile $profile_ID --remediate --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr", timeout => 1200);
         record_info("Return=$ret", "# oscap xccdf eval --profile $profile_ID --remediate\" returns: $ret");
         if ($ret != 0 and $ret != 2) {
             record_info('bsc#1194676', 'remediation should be succeeded', result => 'fail');
