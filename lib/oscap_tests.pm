@@ -23,7 +23,7 @@ use List::MoreUtils qw(uniq);
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 use List::Compare;
 use Config::Tiny;
-use Module::Load  'all';
+# use Module::Load  'all';
 
 our @EXPORT = qw(
   $profile_ID
@@ -775,7 +775,9 @@ sub oscap_security_guide_setup {
     record_info("Install cpanm", "Installed cpanm");
     assert_script_run('cpanm YAML::Tiny', timeout => 300);
     record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
-    assert_script_run("load \'YAML::Tiny\'");
+    my $mod = 'YAML::Tiny';
+    eval "require $mod";
+    # load 'YAML::Tiny';
 
     # If required ansible remediation
     if ($ansible_remediation == 1) {
