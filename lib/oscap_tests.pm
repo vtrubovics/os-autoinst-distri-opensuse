@@ -776,7 +776,11 @@ sub oscap_security_guide_setup {
     assert_script_run('cpanm YAML::Tiny', timeout => 300);
     record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
     my $mod = 'YAML::Tiny';
-    eval "require $mod";
+    eval "use $mod";
+    my $expected_pass_count;
+    my $expected_eval_match;
+    my $ret_expected_results = get_test_expected_results($expected_pass_count, $expected_eval_match);
+
     # load 'YAML::Tiny';
 
     # If required ansible remediation
