@@ -697,7 +697,6 @@ sub get_test_expected_results {
     record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
 
    # Pharse the expected results
-    load "YAML::Tiny";
     my $expected_results = YAML::Tiny->read_string( "$data" );
     record_info("Looking expected results", "Looking expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch");
 
@@ -776,6 +775,8 @@ sub oscap_security_guide_setup {
     record_info("Install cpanm", "Installed cpanm");
     assert_script_run('cpanm YAML::Tiny', timeout => 300);
     record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
+    load "YAML::Tiny";
+
     # If required ansible remediation
     if ($ansible_remediation == 1) {
         my $pkgs = 'ansible';
