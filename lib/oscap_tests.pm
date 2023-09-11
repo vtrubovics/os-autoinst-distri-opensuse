@@ -577,8 +577,6 @@ sub modify_ds_ansible_files {
 
 sub generate_mising_rules {
     # Generate text file that contains rules that missing implimentation for profile
-    my $self = $_[0];
-    my $profile = $_[1];
     my $output_file = "missing_rules.txt";
 
     assert_script_run("alias python=python3");
@@ -586,7 +584,7 @@ sub generate_mising_rules {
     assert_script_run("source .pyenv.sh");
     my $env = script_output("env | grep PYTHONPATH");
     record_info("exported PYTHONPATH", "export $env");
-    my $cmd = "python3 build-scripts/profile_tool.py stats --missing --skip-stats --profile $profile --benchmark $f_ssg_sle_xccdf --format plain > $output_file";
+    my $cmd = "python3 build-scripts/profile_tool.py stats --missing --skip-stats --profile $profile_ID --benchmark $f_ssg_sle_xccdf --format plain > $output_file";
     assert_script_run("$cmd");
     record_info("Generated file $output_file", "generate_mising_rules Input file $f_ssg_sle_xccdf/n Command:\n$cmd");
     assert_script_run("cp $output_file /root");
@@ -695,20 +693,10 @@ sub get_test_expected_results {
     upload_logs("$expected_results_file_name") if script_run "! [[ -e $expected_results_file_name ]]";
     my $data = script_output ("cat $expected_results_file_name");
 
-    # my $mod = 'YAML::Tiny';
-    # eval "use $mod";
-    # use_module("YAML::Tiny");
-
-    # assert_script_run('cpanm YAML::Tiny', timeout => 300);
-    # record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
-
-   # # Pharse the expected results
-    # my $expected_results = YAML::Tiny->read_string( "$data" );
+   # Pharse the expected results
     my $expected_results = YAML::PP::Load( $data );
     record_info("Looking expected results", "Looking expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch");
 
-    # $n_passed_rules  = $expected_results->[0]->{$profile_ID}->{$type}->{$arch}->{$passed_rules};
-    # $eval_match  = $expected_results->[0]->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name};
     $n_passed_rules  = $expected_results->{$profile_ID}->{$type}->{$arch}->{$passed_rules};
     $eval_match  = $expected_results->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name};
 
@@ -775,21 +763,6 @@ sub oscap_security_guide_setup {
         add_suseconnect_product(get_addon_fullname('phub'));
         # On SLES 12 ansible packages require depencies located in sle-module-public-cloud
         add_suseconnect_product(get_addon_fullname('pcm'), (is_sle('<15') ? '12' : undef)) if is_sle('<15');
-        # Products needed for cpanm install
-        # add_suseconnect_product(get_addon_fullname('desktop'));
-        # add_suseconnect_product(get_addon_fullname('tcm'));
-    }
-    # Installing cpanm and perl library YAML::Tiny for expected results pharsing
-    # zypper_call "in cpanm";
-    # record_info("Install cpanm", "Installed cpanm");
-    # assert_script_run('cpanm YAML::Tiny', timeout => 300);
-    # record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
-    # my $mod = 'YAML::Tiny';
-    # eval "use $mod";
-    # use_module("YAML::Tiny");
-    my $expected_pass_count;
-    my $expected_eval_match;
-    my $ret_expected_results = get_test_expected_results($expected_pass_count, $expected_eval_match);
 
     # If required ansible remediation
     if ($ansible_remediation == 1) {
@@ -808,7 +781,7 @@ sub oscap_security_guide_setup {
         # Get the code for the ComplianceAsCode by cloning its repository
         get_cac_code ();
         # Generate text file that contains rules that missing implimentation for profile
-        my $mising_rules_full_path = generate_mising_rules (1, $profile_ID);
+        my $mising_rules_full_path = generate_mising_rules ();
 
         # Get bash and ansible rules lists from data based on provided 
         modify_ds_ansible_files(1, $mising_rules_full_path);
