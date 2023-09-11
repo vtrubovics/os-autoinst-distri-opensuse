@@ -23,7 +23,9 @@ use List::MoreUtils qw(uniq);
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 use List::Compare;
 use Config::Tiny;
-use Module::Runtime qw(use_module use_package_optimistically);
+# use Module::Runtime qw(use_module use_package_optimistically);
+use YAML::PP;
+
 
 our @EXPORT = qw(
   $profile_ID
@@ -693,19 +695,22 @@ sub get_test_expected_results {
     upload_logs("$expected_results_file_name") if script_run "! [[ -e $expected_results_file_name ]]";
     my $data = script_output ("cat $expected_results_file_name");
 
-    my $mod = 'YAML::Tiny';
-    eval "use $mod";
-    use_module("YAML::Tiny");
+    # my $mod = 'YAML::Tiny';
+    # eval "use $mod";
+    # use_module("YAML::Tiny");
 
-    assert_script_run('cpanm YAML::Tiny', timeout => 300);
-    record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
+    # assert_script_run('cpanm YAML::Tiny', timeout => 300);
+    # record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
 
-   # Pharse the expected results
-    my $expected_results = YAML::Tiny->read_string( "$data" );
+   # # Pharse the expected results
+    # my $expected_results = YAML::Tiny->read_string( "$data" );
+    my $expected_results = YAML::PP::Load( $data );
     record_info("Looking expected results", "Looking expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch");
 
-    $n_passed_rules  = $expected_results->[0]->{$profile_ID}->{$type}->{$arch}->{$passed_rules};
-    $eval_match  = $expected_results->[0]->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name};
+    # $n_passed_rules  = $expected_results->[0]->{$profile_ID}->{$type}->{$arch}->{$passed_rules};
+    # $eval_match  = $expected_results->[0]->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name};
+    $n_passed_rules  = $expected_results->{$profile_ID}->{$type}->{$arch}->{$passed_rules};
+    $eval_match  = $expected_results->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name};
 
     if (defined $n_passed_rules) {
         record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nNumber of passed rules: $n_passed_rules\n List of expected to fail rules:\n " . join "\n", @$eval_match);
@@ -771,22 +776,20 @@ sub oscap_security_guide_setup {
         # On SLES 12 ansible packages require depencies located in sle-module-public-cloud
         add_suseconnect_product(get_addon_fullname('pcm'), (is_sle('<15') ? '12' : undef)) if is_sle('<15');
         # Products needed for cpanm install
-        add_suseconnect_product(get_addon_fullname('desktop'));
-        add_suseconnect_product(get_addon_fullname('tcm'));
+        # add_suseconnect_product(get_addon_fullname('desktop'));
+        # add_suseconnect_product(get_addon_fullname('tcm'));
     }
     # Installing cpanm and perl library YAML::Tiny for expected results pharsing
-    zypper_call "in cpanm";
-    record_info("Install cpanm", "Installed cpanm");
-    assert_script_run('cpanm YAML::Tiny', timeout => 300);
-    record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
-    my $mod = 'YAML::Tiny';
-    eval "use $mod";
-    use_module("YAML::Tiny");
+    # zypper_call "in cpanm";
+    # record_info("Install cpanm", "Installed cpanm");
+    # assert_script_run('cpanm YAML::Tiny', timeout => 300);
+    # record_info("Install YAML::Tiny", "Installed YAML::Tiny for expected results pharsing");
+    # my $mod = 'YAML::Tiny';
+    # eval "use $mod";
+    # use_module("YAML::Tiny");
     my $expected_pass_count;
     my $expected_eval_match;
     my $ret_expected_results = get_test_expected_results($expected_pass_count, $expected_eval_match);
-
-    # load 'YAML::Tiny';
 
     # If required ansible remediation
     if ($ansible_remediation == 1) {
