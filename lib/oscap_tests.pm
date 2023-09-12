@@ -750,15 +750,17 @@ sub get_test_expected_results {
     $eval_match  = $expected_results->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name};
 
     if (defined $n_passed_rules) {
-        record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nNumber of passed rules: $n_passed_rules\n List of expected to fail rules:\n " . join "\n", @$eval_match);
         $found = 1;
         if (defined $eval_match) {
             $_[1] = $eval_match;
+            record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nNumber of passed rules: $n_passed_rules\n List of expected to fail rules:\n " . join "\n", @$eval_match);
         }
         else {
             my @eval_match = ();
             $_[1] = \@eval_match;
-        }    }
+            record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nNumber of passed rules: $n_passed_rules\n List of expected to fail rules:\n ");
+        }
+    }
     else {
         record_info("No expected results", "No expected results found in \nfile: $expected_results_file_name\n for profile_ID: $profile_ID\ntype: $type\narch: $arch\n Using results defined in the test file.");
         $n_passed_rules = -1;
@@ -1016,8 +1018,8 @@ sub oscap_evaluate {
                         @intersection)
                 );
             }
-             else {
-               record_info(
+            else {
+                record_info(
                     "Failed check of failed rules",
                     "#Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules. Matched rules:\n" . (join "\n",
                         @$failed_rules_ref) . "\n\n#Expected $n_failed_rules rules to fail:\n" . (join "\n",
