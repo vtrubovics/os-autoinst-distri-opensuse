@@ -361,10 +361,43 @@ sub get_bash_expected_results {
 
     $_[4] = \@rules;
     $_[5] = \@rem_rules;
-
 }
-sub upload_logs_reports {
 
+sub ansible_result_analysis {
+#Find count of failed ansible remediations
+#PLAY RECAP *********************************************************************************************************************
+#localhost                  : ok=2132 changed=389  unreachable=0    failed=0    skipped=695  rescued=1    ignored=0
+    my $data = $_[0];
+    my @report = ();
+    my $found = 0;
+    my $full_report = "";
+    my $failed_number = -1;
+    my $i;
+
+    my @lines = split /\n|\r/, $data;
+    for ($i = $#lines; $i >= 0;) {
+        if ($lines[$i] =~ /PLAY RECAP/) {
+            $found = 1;
+            $full_report = $lines[$i + 1];
+            my @report = split /\s+/, $full_report;
+            for my $j (0 .. $#report) {
+                if ($report[$j] =~ /failed/) {
+                    my @failed = split /\=/, $report[$j];
+                    $failed_number = $failed[1];
+                    last;
+                }
+            }
+            last;
+        }
+        $i--;
+    }
+    #Returning results
+    $_[1] = $full_report;
+    $_[2] = $failed_number;
+    return $found;
+}
+
+sub upload_logs_reports {
     # Upload logs & ouputs for reference
     my $files;
     if (is_sle) {
@@ -872,13 +905,31 @@ sub oscap_remediate {
         record_info("Return=$ret", "$script_cmd  returned: $ret");
         $end_time = clock_gettime(CLOCK_MONOTONIC);
         $execution_time = $end_time - $start_time;
-
+        
         $line = "playbook execution time: $execution_time";
         script_run("echo $line >> $execution_times");
         record_info("Time info", "$line");
         if ($ret != 0 and $ret != 2 and $ret != 4) {
             record_info("Returened $ret", 'remediation should be succeeded', result => 'fail');
             $self->result('fail');
+        }
+        # Analysis of ansible playbok execution.
+        # If found failed tasks - setting test failed.
+        my $res_ret = -1;
+        my $full_report;
+        my $failed_number;
+        my $out_f_stdout = script_output("tail -n 10 $f_stdout");
+        $res_ret = ansible_result_analysis ($out_f_stdout, $full_report, $failed_number);
+        if ($res_ret == -1 or $res_ret == 0) {
+            record_info('Failed to get results', "Failed to get results ansible playbook remediation results.\nansible_result_analysis returned: $res_ret");
+            $self->result('fail');
+        }
+        else {
+            record_info('Got analysis results', "Ansible playbook.\nPLAY RECAP:\n$full_report");
+            if ($failed_number > 0 ) {
+                record_info('Found failed tasks', "Found $failed_number failed ansible playbook remediations");
+                $self->result('fail');
+            }
         }
 
         # Upload only stdout logs
