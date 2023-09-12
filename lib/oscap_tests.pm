@@ -935,11 +935,9 @@ sub oscap_remediate {
         }
         # Upload logs & ouputs for reference
         upload_logs_reports();
-   }
-    if ($remediated == 0) {
-        $remediated = 1;
-        record_info('remediated', 'setting status remediated');
     }
+    $remediated ++;
+    record_info("Remediated $remediated", "Setting status remediated. Count $remediated");
 }
 
 sub oscap_evaluate {
@@ -960,13 +958,14 @@ sub oscap_evaluate {
     my $ret_expected_results;
     
     # Verify detection mode
-    my $ret = script_run("oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr", timeout => 600);
+    my $eval_cmd = "oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr";
+    my $ret = script_run("$eval_cmd", timeout => 600);
     if ($ret == 0 || $ret == 2) {
-        record_info("Returned $ret", "oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr");
+        record_info("Returned $ret", "$eval_cmd");
         # Note: the system cannot be fully remediated in this test and some rules are verified failing
         my $data = script_output "cat $f_stdout";
         # For a new installed OS the first time remediate can permit fail
-        if ($remediated == 0) {
+        if ($remediated <= 1) {
             record_info('non remediated', 'before remediation more rules fails are expected');
             $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref, $passed_cce_rules_ref);
             record_info(
@@ -1048,13 +1047,12 @@ sub oscap_evaluate {
             }
             # Upload logs & ouputs for reference
             upload_logs_reports();
-            if ($reboot_count == 0) {
-                record_info('Rebooting', "Reboot count: $reboot_count");
-                power_action('reboot', textmode => 1, keepconsole => 1);
-                $reboot_count++;
-            }
         }
-        
+        if ($reboot_count == 0 and $remediated == 2) {
+            record_info('Rebooting', "Reboot count: $reboot_count");
+            power_action('reboot', textmode => 1, keepconsole => 1);
+            $reboot_count++;
+        }
     }
     else {
         record_info("errno=$ret", "# oscap xccdf eval --profile \"$profile_ID\" returns: $ret", result => 'fail');
