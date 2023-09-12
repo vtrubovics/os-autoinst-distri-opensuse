@@ -578,6 +578,7 @@ sub modify_ds_ansible_files {
 sub generate_mising_rules {
     # Generate text file that contains rules that missing implimentation for profile
     my $output_file = "missing_rules.txt";
+    my $stats_output_file = "stats_profile_missing.txt";
 
     assert_script_run("alias python=python3");
     assert_script_run("cd $compliance_as_code_path");
@@ -585,9 +586,21 @@ sub generate_mising_rules {
     my $env = script_output("env | grep PYTHONPATH");
     record_info("exported PYTHONPATH", "export $env");
     my $cmd = "python3 build-scripts/profile_tool.py stats --missing --skip-stats --profile $profile_ID --benchmark $f_ssg_sle_xccdf --format plain > $output_file";
+    my $stats_cmd = "python3 build-scripts/profile_tool.py stats --missing --profile $profile_ID --benchmark $f_ssg_sle_xccdf --format plain > $stats_output_file";
+    
     assert_script_run("$cmd");
-    record_info("Generated file $output_file", "generate_mising_rules Input file $f_ssg_sle_xccdf/n Command:\n$cmd");
+    record_info("Generated file $output_file", "generate_mising_rules Input file $f_ssg_sle_xccdf\n Command:\n$cmd");
     assert_script_run("cp $output_file /root");
+    
+    # Getting and showing profile statistics
+    assert_script_run("$stats_cmd");
+    record_info("Generated file $stats_output_file", "generate_mising_rules statistics. Input file $f_ssg_sle_xccdf\n Command:\n$stats_cmd");
+    my $data = script_output("cat $stats_output_file");
+    record_info("Profile missing stat", "Profile missing stat:\n $data");
+    
+    #Uplaod file to logs
+    upload_logs("$stats_output_file") if script_run "! [[ -e $stats_output_file ]]";
+    
     assert_script_run("cd /root");
     my $output_full_path = script_output("pwd");
     $output_full_path =~ s/\r|\n//g;
