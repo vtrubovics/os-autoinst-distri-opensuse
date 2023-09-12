@@ -871,9 +871,6 @@ sub oscap_remediate {
     # Verify mitigation mode
     # If doing ansible playbook remediation
     if ($ansible_remediation == 1) {
-        # my $playbook_content = script_output ("grep -e CCE $playbook_fpath", 120);
-        # my $pattern ="CCE-\\d+-\\d";
-        # my $cce_ids_array_ref;
         my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $ansible_profile_ID;
         my $ret;
         my $start_time;
@@ -881,24 +878,10 @@ sub oscap_remediate {
         my $execution_times = "execution_times.txt";
         my $execution_time;
         my $line;
-        my $ret_get_exclusions = 0;
-        my $ansible_exclusions;
         my $script_cmd;
 
-        # Get rule exclusions for ansible playbook
-        $ret_get_exclusions
-          = get_ansible_exclusions (1, $ansible_exclusions);
-        
-        # Get array of CCE IDs
-        # cce_ids_in_file (1, $playbook_content, $pattern, $cce_ids_array_ref );
         $start_time = clock_gettime(CLOCK_MONOTONIC);
-        $script_cmd = "ansible-playbook -i \"localhost,\" -c local $playbook_fpath";
-        
-        # If found exclusions for current profile will add tem to command line
-        # if ($ret_get_exclusions != 0) {
-            # $script_cmd .= " --skip-tags " . $ansible_exclusions;
-        # }
-        $script_cmd .= "  >> $f_stdout 2>> $f_stderr";
+        $script_cmd = "ansible-playbook -i \"localhost,\" -c local $playbook_fpath >> $f_stdout 2>> $f_stderr";
         
         $ret
           = script_run($script_cmd, timeout => 3200);
