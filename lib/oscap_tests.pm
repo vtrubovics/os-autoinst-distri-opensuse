@@ -980,6 +980,8 @@ sub oscap_evaluate {
                 "Pattern $f_fregex count in file $f_stdout is $fail_count. Matched rules:\n" . join "\n",
                 @$failed_rules_ref
             );
+            # Upload logs & ouputs for reference
+            upload_logs_reports();
         }
         else {
             #Verify remediated rules
@@ -1044,9 +1046,10 @@ sub oscap_evaluate {
                     @$passed_rules_ref
                 );
             }
+            # Upload logs & ouputs for reference
+            upload_logs_reports();
             if ($reboot_count == 0) {
                 record_info('Rebooting', "Reboot count: $reboot_count");
-
                 power_action('reboot', textmode => 1, keepconsole => 1);
                 $reboot_count++;
             }
@@ -1057,9 +1060,6 @@ sub oscap_evaluate {
         record_info("errno=$ret", "# oscap xccdf eval --profile \"$profile_ID\" returns: $ret", result => 'fail');
         $self->result('fail');
     }
-
-    # Upload logs & ouputs for reference
-    upload_logs_reports();
 }
 
 sub oscap_evaluate_remote {
