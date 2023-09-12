@@ -1050,7 +1050,7 @@ sub oscap_evaluate {
             # Upload logs & ouputs for reference
             upload_logs_reports();
         }
-        if ($reboot_count == 0 and $remediated == 2) {
+        if ($reboot_count == 0 and $remediated == 1) {
             record_info('Rebooting', "Reboot count: $reboot_count");
             power_action('reboot', textmode => 1, keepconsole => 1);
             $reboot_count++;
