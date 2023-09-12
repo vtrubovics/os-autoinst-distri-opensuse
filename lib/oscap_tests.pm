@@ -174,6 +174,9 @@ our $use_production_files = 0;
 # If set to 0 - no changes done.
 our $remove_rules_missing_fixes = 1;
 
+# Keeps count of reboots to control it
+our $reboot_count = 0;
+
 # Get sle version "sle12" or "sle15"
 our $sle_version = 'sle' . get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
 
@@ -1041,79 +1044,14 @@ sub oscap_evaluate {
                     @$passed_rules_ref
                 );
             }
-=comment #Disabled failed results analysis - done on first check
-            $fail_count = pattern_count_in_file(1, $data, $f_fregex, $failed_rules_ref, $failed_cce_rules_ref);
-            if ($fail_count != $n_failed_rules) {
-                record_info(
-                    "Failed check of failed rules count",
-                    "Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules. Matched rules: \n" . join "\n",
-                    @$failed_rules_ref, result => 'fail'
-                );
-                $self->result('fail');
-            }
-            else {
-                record_info(
-                    "Passed check of failed rules count",
-                    "Pattern $f_fregex count in file $f_stdout is $fail_count. Matched rules: \n" . join "\n",
-                    @$failed_rules_ref
-                );
-            }
-=cut
+            if ($reboot_count == 0) {
+                record_info('Rebooting', "Reboot count: $reboot_count");
 
-=comment #Disabled bash expected results analysis
-            if ($ansible_remediation == 0){
-                # Compare lits of rules: list of rules not having remediation to list of rules failed evaluation
-                my $miss_rem_rules_ref; # List of rules missing remediation
-                my $rem_rules_ref; # List of rules having remediation
-                # Get bash script name
-                my $bash_script_name = profile_id_to_bash_script(1, $profile_ID);
-                record_info("Got bash script name", "bash script name: $bash_script_name");
-                # Get lists of of rules from the bash script returened to $miss_rem_rules_ref, $rem_rules_ref
-                get_bash_expected_results (1, $bash_miss_rem_pattern, $bash_rem_pattern, $bash_script_name, $miss_rem_rules_ref, $rem_rules_ref);
-                # Convert list to correct format
-                my @strings;
-                my @rules;
-                for my $i (0 .. $#$failed_rules_ref) {
-                    @strings = split /\.|\,/, $$failed_rules_ref[$i];
-                    push(@rules, $strings[2]);
-                }
-                $lc = List::Compare->new('-u', \@$miss_rem_rules_ref, \@rules);
-                # my @intersection = $lc->get_intersection;
-                # Get list of failed rules which do not have remediation 
-                @Ronly = $lc->get_Ronly;
-                record_info(
-                    "List of rules which do not have remediation",
-                    "List of rules which do not have remediation: \n" . join "\n",
-                    @$miss_rem_rules_ref
-                );
-               record_info(
-                    "List of failed rules which do not have remediation",
-                    "List of failed rules which do not have remediation: \n" . join "\n",
-                    @Ronly
-                );
+                power_action('reboot', textmode => 1, keepconsole => 1);
+                $reboot_count++;
             }
-            else {
-                # Print differnce between exluded and failed ansible rules
-                my $a_exclusions = $ansible_exclusions;
-                $a_exclusions =~ s/\"//g; # remove " from cce_id
-                my @excluded_cce = split /\,/, $a_exclusions; # Split to array CCE IDs
-                
-                $lc = List::Compare->new('-u',  \@excluded_cce, \@$failed_cce_rules_ref);
-                # Get list of failed rules which do not have remediation 
-                @Ronly = $lc->get_Ronly;
-                record_info(
-                    "List excluded ansible rules",
-                    "List excluded ansible rules:\n" . join "\n",
-                    @excluded_cce
-                );
-                record_info(
-                    "List of failed ansible rules except excluded",
-                    "List of failed ansible rules except excluded: \n" . join "\n",
-                    @Ronly
-                );
-            }
-=cut
         }
+        
     }
     else {
         record_info("errno=$ret", "# oscap xccdf eval --profile \"$profile_ID\" returns: $ret", result => 'fail');
