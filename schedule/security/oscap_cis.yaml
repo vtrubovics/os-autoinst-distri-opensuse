@@ -10,7 +10,10 @@ schedule:
     - security/oscap_cis/oscap_xccdf_remediate
     # Do evaluate again after remediate
     - security/oscap_cis/oscap_xccdf_eval
-    - security/oscap_cis/baseline_comparison
+    - security/oscap_cis/oscap_xccdf_remediate
+    # Do evaluate again after remediate
+    - security/oscap_cis/oscap_xccdf_eval
+    # - security/oscap_cis/baseline_comparison
 conditional_schedule:
     bootloader:
         ARCH:
