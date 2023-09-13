@@ -44,6 +44,7 @@ our @EXPORT = qw(
   $ansible_remediation
   $sle_version
   $compliance_as_code_path
+  $evaluate_count
   set_ds_file
   set_ds_file_name
   upload_logs_reports
@@ -176,6 +177,10 @@ our $remove_rules_missing_fixes = 1;
 
 # Keeps count of reboots to control it
 our $reboot_count = 0;
+
+# evaluate execution count done by test execution. Set in oscap_security_guide_setup.pm 
+# and "security/oscap_stig/oscap_xccdf_eval" need to be set in the schedule yaml file accordingly
+our $evaluate_count = 2;
 
 # Get sle version "sle12" or "sle15"
 our $sle_version = 'sle' . get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
@@ -967,7 +972,7 @@ sub oscap_evaluate {
         # Note: the system cannot be fully remediated in this test and some rules are verified failing
         my $data = script_output "cat $f_stdout";
         # For a new installed OS the first time remediate can permit fail
-        if ($remediated <= 1) {
+        if (($remediated <= 1 and $evaluate_count == 3) or ($remediated == 0 and $evaluate_count == 2)) {
             record_info('non remediated', 'before remediation more rules fails are expected');
             $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref, $passed_cce_rules_ref);
             record_info(
@@ -996,22 +1001,21 @@ sub oscap_evaluate {
             record_info('remediated', 'after remediation less rules are failing');
             #Verify failed rules
             $fail_count = pattern_count_in_file(1, $data, $f_fregex, $failed_rules_ref, $failed_cce_rules_ref, $failed_id_rules_ref);
-            my $failed_rules = $#$failed_id_rules_ref + 1;
             
             $lc = List::Compare->new('-u', \@$failed_id_rules_ref, \@$eval_match);
             my @intersection = $lc->get_intersection; # list of rules found in both lists
             my @lonly = $lc->get_Lonly; # list of rules found only in left list (actual results)
-            my $intersection_count = $#intersection + 1;
+            my $intersection_count = @intersection;
             # if count of rules in intesection  equal to expected rules and equal count of failed rules 
             if  ($#intersection == $#$eval_match and $#intersection == $#$failed_id_rules_ref){
                 record_info(
                     "Passed check of failed rules",
                     "Passed check of $fail_count expected failed rules:\n" . (join "\n",
-                        @$eval_match) . "\n in file $f_stdout. \n\nMatched $failed_rules rules in file:\n" . (join "\n",
+                        @$eval_match) . "\n in file $f_stdout. \n\nMatched @$failed_id_rules_ref rules in file:\n" . (join "\n",
                         @$failed_id_rules_ref)
                 );
                 record_info(
-                    "Check of failed rules",
+                    "Passed check of failed rules",
                     "Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules. Matched rules:\n" . (join "\n",
                         @$failed_rules_ref) . "\n\nExpected rules to fail:\n" . (join "\n",
                         @$eval_match) . "\n\nSame number $intersection_count rules in expected and failed results:\n" . (join "\n",
