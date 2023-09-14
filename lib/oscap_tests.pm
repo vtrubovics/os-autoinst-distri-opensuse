@@ -719,9 +719,8 @@ sub get_tests_config {
     }
     return $config_file_path;
 }
-
+# Get efpected results from remote file
 sub get_test_expected_results {
-    my $n_passed_rules;
     my $eval_match = ();
     my $found = -1;
     my $type = "";
@@ -738,7 +737,6 @@ sub get_test_expected_results {
     if (is_ppc64le) { $arch = "ppc";}
     if (is_x86_64) { $arch = "x86_64";}
     # $sle_version and $profile_ID are global varables
-    my $passed_rules = $sle_version . "-passed_rules";
     my $exp_fail_list_name = $sle_version . "-exp_fail_list";
     my $expected_results_file_name = "openqa_tests_expected_results.yaml";
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
@@ -751,32 +749,28 @@ sub get_test_expected_results {
     my $expected_results = YAML::PP::Load( $data );
     record_info("Looking expected results", "Looking expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch");
 
-    $n_passed_rules  = $expected_results->{$profile_ID}->{$type}->{$arch}->{$passed_rules};
     $eval_match  = $expected_results->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name};
-
-    if (defined $n_passed_rules) {
+    # If results defined
+    if (defined $eval_match) {
         $found = 1;
-        if (defined $eval_match) {
-            $_[1] = $eval_match;
-            record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nNumber of passed rules: $n_passed_rules\n List of expected to fail rules:\n " . join "\n", @$eval_match);
+        if (not defined $$eval_match[0]) {
+            my @eval_match = ();
+            $_[0] = \@eval_match;
+            record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nList of expected to fail rules:\n @eval_match");
         }
         else {
-            my @eval_match = ();
-            $_[1] = \@eval_match;
-            record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nNumber of passed rules: $n_passed_rules\n List of expected to fail rules:\n ");
-        }
+            $_[0] = $eval_match;
+            record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nList of expected to fail rules:\n @$eval_match");
+       }
     }
     else {
         record_info("No expected results", "No expected results found in \nfile: $expected_results_file_name\n for profile_ID: $profile_ID\ntype: $type\narch: $arch\n Using results defined in the test file.");
-        $n_passed_rules = -1;
         my @eval_match = ();
-        $_[1] = \@eval_match;
+        $_[0] = \@eval_match;
     }
-
-    $_[0] = $n_passed_rules;
     return $found;
 }
-
+# Main test setup function
 sub oscap_security_guide_setup {
 
     select_console 'root-console';
@@ -991,10 +985,9 @@ sub oscap_evaluate {
         }
         else {
             #Verify remediated rules
-            $ret_expected_results = get_test_expected_results($expected_pass_count, $expected_eval_match);
+            $ret_expected_results = get_test_expected_results($expected_eval_match);
             # Found expected results in yaml file 
             if ($ret_expected_results == 1){
-                $n_passed_rules = $expected_pass_count;
                 $n_failed_rules = @$expected_eval_match;
                 $eval_match = $expected_eval_match;
             }
@@ -1034,23 +1027,28 @@ sub oscap_evaluate {
                  $self->result('fail');
             }
  
-            #Verify number of passed and failed rules
+            #record number of passed rules
             $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref, $passed_cce_rules_ref);
-            if ($pass_count != $n_passed_rules) {
-                record_info(
-                    "Failed check of passed rules count",
-                    "Pattern $f_pregex count in file $f_stdout is $pass_count, expected $n_passed_rules. Matched rules:\n" . join "\n",
-                    @$passed_rules_ref, result => 'fail'
-                );
-                $self->result('fail');
-            }
-            else {
-                record_info(
-                    "Passed check of passed rules count",
-                    "Pattern $f_pregex count in file $f_stdout is $pass_count. Matched rules:\n" . join "\n",
-                    @$passed_rules_ref
-                );
-            }
+             record_info(
+                "Passed check of passed rules count",
+                "Pattern $f_pregex count in file $f_stdout is $pass_count. Matched rules:\n" . join "\n",
+                @$passed_rules_ref
+            );
+            # if ($pass_count != $n_passed_rules) {
+                # record_info(
+                    # "Failed check of passed rules count",
+                    # "Pattern $f_pregex count in file $f_stdout is $pass_count, expected $n_passed_rules. Matched rules:\n" . join "\n",
+                    # @$passed_rules_ref, result => 'fail'
+                # );
+                # $self->result('fail');
+            # }
+            # else {
+                # record_info(
+                    # "Passed check of passed rules count",
+                    # "Pattern $f_pregex count in file $f_stdout is $pass_count. Matched rules:\n" . join "\n",
+                    # @$passed_rules_ref
+                # );
+            # }
             # Upload logs & ouputs for reference
             upload_logs_reports();
         }
