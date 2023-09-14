@@ -10,7 +10,10 @@ schedule:
     - security/oscap_anssi_bp28_minimal/oscap_xccdf_remediate
     # Do evaluate again after remediate
     - security/oscap_anssi_bp28_minimal/oscap_xccdf_eval
-    - security/oscap_anssi_bp28_minimal/baseline_comparison
+     - security/oscap_anssi_bp28_minimal/oscap_xccdf_remediate
+    # Do evaluate again after remediate
+    - security/oscap_anssi_bp28_minimal/oscap_xccdf_eval
+    # - security/oscap_anssi_bp28_minimal/baseline_comparison
 conditional_schedule:
     bootloader:
         ARCH:
