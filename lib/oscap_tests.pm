@@ -407,19 +407,19 @@ sub ansible_result_analysis {
 
 sub upload_logs_reports {
     # Upload logs & ouputs for reference
-    my $files;
-    if (is_sle) {
-        $files = script_output('ls | grep "^ssg-sle.*.xml"');
-    }
-    else {
-        $files = script_output('ls | grep "^ssg-opensuse.*.xml"');
-    }
-    # Check if list of files returned correctly
-    if (defined $files) {
-        foreach my $file (split("\n", $files)) {
-            upload_logs("$file") if script_run "! [[ -e $file ]]";
-        }
-    }
+    # my $files;
+    # if (is_sle) {
+        # $files = script_output('ls | grep "^ssg-sle.*.xml"');
+    # }
+    # else {
+        # $files = script_output('ls | grep "^ssg-opensuse.*.xml"');
+    # }
+    # # Check if list of files returned correctly
+    # if (defined $files) {
+        # foreach my $file (split("\n", $files)) {
+            # upload_logs("$file") if script_run "! [[ -e $file ]]";
+        # }
+    # }
     upload_logs("$f_stdout") if script_run "! [[ -e $f_stdout ]]";
     upload_logs("$f_stderr") if script_run "! [[ -e $f_stderr ]]";
     
