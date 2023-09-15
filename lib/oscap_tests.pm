@@ -951,7 +951,6 @@ sub oscap_evaluate {
     my $failed_cce_rules_ref;
     my $failed_id_rules_ref;
     my $lc;
-    my @Ronly;
     my $fail_count;
     my $pass_count;
     my $expected_pass_count;
