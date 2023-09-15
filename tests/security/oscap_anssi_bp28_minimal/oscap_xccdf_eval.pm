@@ -18,8 +18,8 @@ sub run {
 
     # Set expected results
 
-    my $n_passed_rules = 100; # Number of expected rules to pass
-    my $n_failed_rules = 10; # Number of expected rules to fail
+    my $n_passed_rules = 100;    # Number of expected rules to pass
+    my $n_failed_rules = 10;    # Number of expected rules to fail
     my @eval_match = (
         "content_rule_is_fips_mode_enabled",
         "content_rule_partition_for_var_log_audit",
@@ -28,8 +28,8 @@ sub run {
         "content_rule_no_files_unowned_by_user");
 
     # if (is_s390x) {
-        # $n_passed_rules = 97;
-        # $n_failed_rules = 5;
+    # $n_passed_rules = 97;
+    # $n_failed_rules = 5;
     # }
 
     $self->oscap_evaluate($n_passed_rules, $n_failed_rules, \@eval_match);

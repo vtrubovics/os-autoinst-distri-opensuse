@@ -24,8 +24,8 @@ sub run {
         $n_failed_rules = 0;
     }
     my @eval_match = ('');
-      
-     $self->oscap_evaluate($n_passed_rules, $n_failed_rules, \@eval_match);
+
+    $self->oscap_evaluate($n_passed_rules, $n_failed_rules, \@eval_match);
 }
 
 sub test_flags {

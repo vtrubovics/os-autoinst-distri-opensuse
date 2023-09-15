@@ -178,7 +178,7 @@ our $remove_rules_missing_fixes = 1;
 # Keeps count of reboots to control it
 our $reboot_count = 0;
 
-# evaluate execution count done by test execution. Set in oscap_security_guide_setup.pm 
+# evaluate execution count done by test execution. Set in oscap_security_guide_setup.pm
 # and "security/oscap_stig/oscap_xccdf_eval" need to be set in the schedule yaml file accordingly
 our $evaluate_count = 2;
 
@@ -193,7 +193,7 @@ sub set_ds_file {
 
     # Set the ds file for separate product, e.g.,
     # for SLE15 the ds file is "ssg-sle15-ds.xml";
-    # for SLE12 the ds file is "ssg-sle12-ds.xml"; 
+    # for SLE12 the ds file is "ssg-sle12-ds.xml";
     # for Tumbleweed the ds file is "ssg-opensuse-ds.xml"
     my $version = get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
     $f_ssg_sle_ds =
@@ -205,7 +205,7 @@ sub set_ds_file_name {
 
     # Set the ds file for separate product, e.g.,
     # for SLE15 the ds file is "ssg-sle15-ds.xml";
-    # for SLE12 the ds file is "ssg-sle12-ds.xml"; 
+    # for SLE12 the ds file is "ssg-sle12-ds.xml";
     # for Tumbleweed the ds file is "ssg-opensuse-ds.xml"
     my $version = get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
     $ssg_sle_ds =
@@ -219,7 +219,7 @@ sub replace_ds_file {
     my $self = $_[0];
     my $ds_file_name = $_[1];
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
-    
+
     download_file_from_https_repo($url, $ds_file_name);
     # Remove original ds file
     assert_script_run("rm $f_ssg_sle_ds");
@@ -232,7 +232,7 @@ sub replace_xccdf_file {
     my $self = $_[0];
     my $xccdf_file_name = $_[1];
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
-    
+
     download_file_from_https_repo($url, $xccdf_file_name);
     # Remove original xccdf file
     assert_script_run("rm $f_ssg_sle_xccdf");
@@ -263,14 +263,14 @@ sub get_ansible_exclusions {
     my $ansible_exclusions_file_name = "ansible_exclusions.txt";
     my $ansible_file_path = '/usr/share/scap-security-guide/ansible/' . $ansible_profile_ID;
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/";
-    
+
     download_file_from_https_repo($url, $ansible_exclusions_file_name);
     my $data = script_output "cat $ansible_exclusions_file_name";
     my @lines = split /\n|\r/, $data;
     my $found = 0;
     my @strings;
     my $exclusions;
-    my $fprofile_ID = $profile_ID . " "; # Fix for profile names having extensions 
+    my $fprofile_ID = $profile_ID . " ";    # Fix for profile names having extensions
 
     record_info("Looking for exclusions", "Looking for exclusions for profile $profile_ID");
     for my $i (0 .. $#lines) {
@@ -284,13 +284,13 @@ sub get_ansible_exclusions {
         }
     }
     # If exclusion are not found for playbook - ignore_errors: true are added to all tasks in playbook
-    if ($found == 0 and $ansible_playbook_modified == 0){
+    if ($found == 0 and $ansible_playbook_modified == 0) {
         record_info("Did not found exclusions", "Did not found exclusions for profile $profile_ID");
         my $insert_cmd = "sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $ansible_file_path";
         assert_script_run("$insert_cmd");
         record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook. CMD:\n$insert_cmd");
         $ansible_playbook_modified = 1;
-        }
+    }
     #Returning by reference exclusions string
     $_[1] = $exclusions;
     return $found;
@@ -302,7 +302,7 @@ sub get_bash_exclusions {
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/";
 
     download_file_from_https_repo($url, $bash_exclusions_file_name);
-   
+
     my $data = script_output "cat $bash_exclusions_file_name";
     my @lines = split /\n|\r/, $data;
     my $found = 0;
@@ -319,9 +319,9 @@ sub get_bash_exclusions {
             last;
         }
     }
-    if ($found == 0){
+    if ($found == 0) {
         record_info("Did not found exclusions", "Did not found bash exclusions for profile $profile_ID");
-        }
+    }
     #Returning by reference exclusions string
     $_[1] = $exclusions;
     return $found;
@@ -372,9 +372,9 @@ sub get_bash_expected_results {
 }
 
 sub ansible_result_analysis {
-#Find count of failed ansible remediations
-#PLAY RECAP *********************************************************************************************************************
-#localhost                  : ok=2132 changed=389  unreachable=0    failed=0    skipped=695  rescued=1    ignored=0
+    #Find count of failed ansible remediations
+    #PLAY RECAP *********************************************************************************************************************
+    #localhost                  : ok=2132 changed=389  unreachable=0    failed=0    skipped=695  rescued=1    ignored=0
     my $data = $_[0];
     my @report = ();
     my $found = 0;
@@ -409,20 +409,20 @@ sub upload_logs_reports {
     # Upload logs & ouputs for reference
     # my $files;
     # if (is_sle) {
-        # $files = script_output('ls | grep "^ssg-sle.*.xml"');
+    # $files = script_output('ls | grep "^ssg-sle.*.xml"');
     # }
     # else {
-        # $files = script_output('ls | grep "^ssg-opensuse.*.xml"');
+    # $files = script_output('ls | grep "^ssg-opensuse.*.xml"');
     # }
     # # Check if list of files returned correctly
     # if (defined $files) {
-        # foreach my $file (split("\n", $files)) {
-            # upload_logs("$file") if script_run "! [[ -e $file ]]";
-        # }
+    # foreach my $file (split("\n", $files)) {
+    # upload_logs("$file") if script_run "! [[ -e $file ]]";
+    # }
     # }
     upload_logs("$f_stdout") if script_run "! [[ -e $f_stdout ]]";
     upload_logs("$f_stderr") if script_run "! [[ -e $f_stderr ]]";
-    
+
     if (get_var('UPLOAD_REPORT_HTML')) {
         upload_logs("$f_report", timeout => 600)
           if script_run "! [[ -e $f_report ]]";
@@ -433,7 +433,7 @@ sub download_file_from_https_repo {
     my $url = $_[0];
     my $file_name = $_[1];
     my $full_url = "$url" . "$file_name";
-    
+
     my $FULL_URL = get_var("FILE", "$full_url");
 
     assert_script_run("wget --no-check-certificate $FULL_URL");
@@ -455,13 +455,13 @@ sub pattern_count_in_file {
     for my $i (0 .. $#lines) {
         if ($lines[$i] =~ /$pattern/) {
             $count++;
-            $lines[$i - 2] =~ s/\s+//g; # remove whitespace from cce_id
-            $lines[$i - 4] =~ s/\s+//g; # remove whitespace from rule id
+            $lines[$i - 2] =~ s/\s+//g;    # remove whitespace from cce_id
+            $lines[$i - 4] =~ s/\s+//g;    # remove whitespace from rule id
             @nlines = split /\./, $lines[$i - 4];
-            push(@rules_ids, $nlines[2]); # push rule id to list
-            $nlines[2] .= ", " . $lines[$i - 2]; # add cce id
-            push(@rules_cce, $lines[$i - 2]);# push rule cce id to list
-            push(@rules, $nlines[2]) if ($i >= 4); # push rule id and rule cce id to list
+            push(@rules_ids, $nlines[2]);    # push rule id to list
+            $nlines[2] .= ", " . $lines[$i - 2];    # add cce id
+            push(@rules_cce, $lines[$i - 2]);    # push rule cce id to list
+            push(@rules, $nlines[2]) if ($i >= 4);    # push rule id and rule cce id to list
         }
     }
     #Returning by reference array of matched rules
@@ -481,8 +481,8 @@ sub cce_ids_in_file {
     my $cce;
 
     my @lines = split /\n|\r/, $data;
-    for my $i (0 .. $#lines){
-        if($lines[$i] =~ /($pattern)/){
+    for my $i (0 .. $#lines) {
+        if ($lines[$i] =~ /($pattern)/) {
             $cce = $1;
             push(@cces, $cce);
         }
@@ -509,14 +509,14 @@ sub modify_ds_ansible_files {
     my $ds_unselect_rules_script = "ds_unselect_rules.sh";
 
     $data = script_output("cat $in_file_path");
-    
+
     my @lines = split /\n|\r/, $data;
 
-    for  ($i = 0; $i <= $#lines;) { #(0 .. $#lines)
+    for ($i = 0; $i <= $#lines;) {    #(0 .. $#lines)
         if ($lines[$i] =~ /$bash_pattern/) {
             $i++;
             until ($lines[$i] =~ /\*\*\*/) {
-                $lines[$i] =~ s/\s+|\r|\n//g; #remowe unneded symbols
+                $lines[$i] =~ s/\s+|\r|\n//g;    #remowe unneded symbols
                 push(@bash_rules, $lines[$i]);
                 $i++;
             }
@@ -524,37 +524,37 @@ sub modify_ds_ansible_files {
         if ($lines[$i] =~ /$ansible_pattern/) {
             $i++;
             until ($lines[$i] =~ /\*\*\*/) {
-                $lines[$i] =~ s/\s+|\r|\n//g; #remowe unneded symbols
+                $lines[$i] =~ s/\s+|\r|\n//g;    #remowe unneded symbols
                 push(@ansible_rules, $lines[$i]);
                 $i++;
             }
         }
-    $i++;
+        $i++;
     }
     record_info("Got rules from lists", "Got rules from lists from  $in_file_path\nBash pattern:\n$bash_pattern\nAnsible pattern:\n $ansible_pattern");
 
     if ($#bash_rules > 0 and $ansible_remediation == 0) {
         record_info("Bash rules missing fix", "Bash rules missing fix:\n" . join "\n",
-                    @bash_rules
-                    );
+            @bash_rules
+        );
     }
     if ($#ansible_rules > 0 and $ansible_remediation == 1) {
         record_info("Ansible rules missing fix", "Ansible rules missing fix:\n" . join "\n",
-                    @ansible_rules
-                    );
+            @ansible_rules
+        );
     }
 
-   if ($ansible_remediation == 1) {
-        my $ansible_f = join "\n",  @ansible_rules;
+    if ($ansible_remediation == 1) {
+        my $ansible_f = join "\n", @ansible_rules;
         assert_script_run("printf \"$ansible_f\" > \"$ansible_fix_missing\"");
-        
+
         my $ret_get_ansible_exclusions = 0;
         my $ansible_exclusions;
 
         # Get rule exclusions for ansible playbook
         $ret_get_ansible_exclusions
-          = get_ansible_exclusions (1, $ansible_exclusions);
-        # Write exclusions to the file 
+          = get_ansible_exclusions(1, $ansible_exclusions);
+        # Write exclusions to the file
         if ($ret_get_ansible_exclusions == 1) {
             $ansible_exclusions =~ s/\,/\n/g;
             assert_script_run("printf \"\n$ansible_exclusions\" >> \"$ansible_fix_missing\"");
@@ -568,9 +568,9 @@ sub modify_ds_ansible_files {
         record_info("Diasble excluded and fix missing rules in ds file", "Command $unselect_cmd");
         upload_logs("$ansible_fix_missing") if script_run "! [[ -e $ansible_fix_missing ]]";
         # Replace ansible file with located on https://gitlab.suse.de/seccert-public/compliance-as-code-compiled
-        replace_ansible_file (1, $ansible_profile_ID, '/usr/share/scap-security-guide/ansible/');
+        replace_ansible_file(1, $ansible_profile_ID, '/usr/share/scap-security-guide/ansible/');
 
-        # Generate new playbook without exclusions and fix_missing rules 
+        # Generate new playbook without exclusions and fix_missing rules
         my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $ansible_profile_ID;
         my $playbook_gen_cmd = "oscap xccdf generate fix --profile $profile_ID --fix-type ansible $f_ssg_sle_ds > playbook.yml";
         assert_script_run("$playbook_gen_cmd", timeout => 600);
@@ -583,7 +583,7 @@ sub modify_ds_ansible_files {
         $ansible_playbook_modified = 0;
     }
     else {
-        my $bash_f = join "\n",  @bash_rules;
+        my $bash_f = join "\n", @bash_rules;
         assert_script_run("printf \"$bash_f\" > \"$bash_fix_missing\"");
 
         my $ret_get_bash_exclusions = 0;
@@ -591,8 +591,8 @@ sub modify_ds_ansible_files {
 
         # Get rule exclusions for bash playbook
         $ret_get_bash_exclusions
-          = get_bash_exclusions (1, $bash_exclusions);
-        # Write exclusions to the file 
+          = get_bash_exclusions(1, $bash_exclusions);
+        # Write exclusions to the file
         if ($ret_get_bash_exclusions == 1) {
             $bash_exclusions =~ s/\,/\n/g;
             assert_script_run("printf \"\n$bash_exclusions\" >> \"$bash_fix_missing\"");
@@ -605,7 +605,7 @@ sub modify_ds_ansible_files {
         assert_script_run("cp /tmp/$ssg_sle_ds $f_ssg_sle_ds");
         record_info("Diasble excluded and fix missing rules in ds file", "Command $unselect_cmd");
         upload_logs("$bash_fix_missing") if script_run "! [[ -e $bash_fix_missing ]]";
-     }
+    }
     upload_logs("$f_ssg_sle_ds") if script_run "! [[ -e $f_ssg_sle_ds ]]";
 
     my $output_full_path = script_output("pwd");
@@ -628,20 +628,20 @@ sub generate_mising_rules {
     record_info("exported PYTHONPATH", "export $env");
     my $cmd = "python3 build-scripts/profile_tool.py stats --missing --skip-stats --profile $profile_ID --benchmark $f_ssg_sle_xccdf --format plain > $output_file";
     my $stats_cmd = "python3 build-scripts/profile_tool.py stats --missing --profile $profile_ID --benchmark $f_ssg_sle_xccdf --format plain > $stats_output_file";
-    
+
     assert_script_run("$cmd");
     record_info("Generated file $output_file", "generate_mising_rules Input file $f_ssg_sle_xccdf\n Command:\n$cmd");
     assert_script_run("cp $output_file /root");
-    
+
     # Getting and showing profile statistics
     assert_script_run("$stats_cmd");
     record_info("Generated file $stats_output_file", "generate_mising_rules statistics. Input file $f_ssg_sle_xccdf\n Command:\n$stats_cmd");
     my $data = script_output("cat $stats_output_file");
     record_info("Profile missing stat", "Profile missing stat:\n $data");
-    
+
     #Uplaod file to logs
     upload_logs("$stats_output_file") if script_run "! [[ -e $stats_output_file ]]";
-    
+
     assert_script_run("cd /root");
     my $output_full_path = script_output("pwd");
     $output_full_path =~ s/\r|\n//g;
@@ -655,7 +655,7 @@ sub get_cac_code {
     my $cac_dir = "src/content";
     my $git_repo = "https://github.com/ComplianceAsCode/content.git";
     my $git_clone_cmd = "git clone " . $git_repo . " $cac_dir";
-    
+
     zypper_call("in git-core python3");
     assert_script_run("mkdir src");
     assert_script_run("rm -r $cac_dir", quiet => 1) if (-e "$cac_dir");
@@ -704,12 +704,12 @@ sub get_tests_config {
     my $config_file_path = script_output("pwd");
     $config_file_path =~ s/\r|\n//g;
     $config_file_path .= "/$config_file_name";
-    
-    my $data = script_output ("cat $config_file_path");
+
+    my $data = script_output("cat $config_file_path");
     my $config = Config::Tiny->new;
     $config = Config::Tiny->read_string("$data");
     my $err = $config::Tiny::errstr;
-    if ($err eq ""){
+    if ($err eq "") {
         $use_production_files = $config->{tests_config}->{use_production_files};
         $remove_rules_missing_fixes = $config->{tests_config}->{remove_rules_missing_fixes};
         record_info("Set test configuration", "Set test configuration from file $config_file_path\n use_production_files = $use_production_files\n  remove_rules_missing_fixes = $remove_rules_missing_fixes");
@@ -725,17 +725,17 @@ sub get_test_expected_results {
     my $found = -1;
     my $type = "";
     my $arch = "";
-    
+
     if ($ansible_remediation == 1) {
         $type = 'ansible';
     }
     else {
         $type = 'bash';
     }
-    if (is_s390x) { $arch = "s390x";}
-    if (is_aarch64 or is_arm) { $arch = "aarch64";}
-    if (is_ppc64le) { $arch = "ppc";}
-    if (is_x86_64) { $arch = "x86_64";}
+    if (is_s390x) { $arch = "s390x"; }
+    if (is_aarch64 or is_arm) { $arch = "aarch64"; }
+    if (is_ppc64le) { $arch = "ppc"; }
+    if (is_x86_64) { $arch = "x86_64"; }
     # $sle_version and $profile_ID are global varables
     my $exp_fail_list_name = $sle_version . "-exp_fail_list";
     my $expected_results_file_name = "openqa_tests_expected_results.yaml";
@@ -743,13 +743,13 @@ sub get_test_expected_results {
 
     download_file_from_https_repo($url, $expected_results_file_name);
     upload_logs("$expected_results_file_name") if script_run "! [[ -e $expected_results_file_name ]]";
-    my $data = script_output ("cat $expected_results_file_name");
+    my $data = script_output("cat $expected_results_file_name");
 
-   # Pharse the expected results
-    my $expected_results = YAML::PP::Load( $data );
+    # Pharse the expected results
+    my $expected_results = YAML::PP::Load($data);
     record_info("Looking expected results", "Looking expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch");
 
-    $eval_match  = $expected_results->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name};
+    $eval_match = $expected_results->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name};
     # If results defined
     if (defined $eval_match) {
         $found = 1;
@@ -761,7 +761,7 @@ sub get_test_expected_results {
         else {
             $_[0] = $eval_match;
             record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nList of expected to fail rules:\n @$eval_match");
-       }
+        }
     }
     else {
         record_info("No expected results", "No expected results found in \nfile: $expected_results_file_name\n for profile_ID: $profile_ID\ntype: $type\narch: $arch\n Using results defined in the test file.");
@@ -783,7 +783,7 @@ sub oscap_security_guide_setup {
     record_info("Pkg_ver", "openscap security guide packages' version:\n $out");
     # Set ds file
     set_ds_file();
-    
+
     # Check the ds file information for reference
     $f_ssg_ds = is_sle ? $f_ssg_sle_ds : $f_ssg_tw_ds;
     $out = script_output("oscap info $f_ssg_ds");
@@ -795,14 +795,14 @@ sub oscap_security_guide_setup {
 
     # Get the tests configuration file from repository
     get_tests_config();
-    
+
     # Replace original ds and xccdf files whith downloaded from local repository
     set_ds_file_name();
-    
-    if ($use_production_files == 0){
+
+    if ($use_production_files == 0) {
         my $ds_file_name = is_sle ? $ssg_sle_ds : $ssg_tw_ds;
         replace_ds_file(1, $ds_file_name);
-        
+
         my $xccdf_file_name = is_sle ? $ssg_sle_xccdf : $ssg_tw_xccdf;
         replace_xccdf_file(1, $xccdf_file_name);
     }
@@ -828,13 +828,13 @@ sub oscap_security_guide_setup {
         #install ansible.posix
         assert_script_run("ansible-galaxy collection install ansible.posix");
     }
-    if ($remove_rules_missing_fixes == 1){
+    if ($remove_rules_missing_fixes == 1) {
         # Get the code for the ComplianceAsCode by cloning its repository
-        get_cac_code ();
+        get_cac_code();
         # Generate text file that contains rules that missing implimentation for profile
-        my $mising_rules_full_path = generate_mising_rules ();
+        my $mising_rules_full_path = generate_mising_rules();
 
-        # Get bash and ansible rules lists from data based on provided 
+        # Get bash and ansible rules lists from data based on provided
         modify_ds_ansible_files(1, $mising_rules_full_path);
     }
     else {
@@ -871,7 +871,7 @@ sub oscap_security_guide_setup {
 sub oscap_remediate {
     my ($self) = @_;
     select_console 'root-console';
-    
+
     # Verify mitigation mode
     # If doing ansible playbook remediation
     if ($ansible_remediation == 1) {
@@ -886,13 +886,13 @@ sub oscap_remediate {
 
         $start_time = clock_gettime(CLOCK_MONOTONIC);
         $script_cmd = "ansible-playbook -i \"localhost,\" -c local $playbook_fpath >> $f_stdout 2>> $f_stderr";
-        
+
         $ret
           = script_run($script_cmd, timeout => 3200);
         record_info("Return=$ret", "$script_cmd  returned: $ret");
         $end_time = clock_gettime(CLOCK_MONOTONIC);
         $execution_time = $end_time - $start_time;
-        
+
         $line = "playbook execution time: $execution_time";
         script_run("echo $line >> $execution_times");
         record_info("Time info", "$line");
@@ -906,14 +906,14 @@ sub oscap_remediate {
         my $full_report;
         my $failed_number;
         my $out_f_stdout = script_output("tail -n 10 $f_stdout");
-        $res_ret = ansible_result_analysis ($out_f_stdout, $full_report, $failed_number);
+        $res_ret = ansible_result_analysis($out_f_stdout, $full_report, $failed_number);
         if ($res_ret == -1 or $res_ret == 0) {
             record_info('Failed to get results', "Failed to get results ansible playbook remediation results.\nansible_result_analysis returned: $res_ret");
             $self->result('fail');
         }
         else {
             record_info('Got analysis results', "Ansible playbook.\nPLAY RECAP:\n$full_report");
-            if ($failed_number > 0 ) {
+            if ($failed_number > 0) {
                 record_info('Found failed tasks', "Found $failed_number failed ansible playbook remediations");
                 $self->result('fail');
             }
@@ -937,7 +937,7 @@ sub oscap_remediate {
         # Upload logs & ouputs for reference
         upload_logs_reports();
     }
-    $remediated ++;
+    $remediated++;
     record_info("Remediated $remediated", "Setting status remediated. Count $remediated");
 }
 
@@ -956,7 +956,7 @@ sub oscap_evaluate {
     my $expected_pass_count;
     my $expected_eval_match;
     my $ret_expected_results;
-    
+
     # Verify detection mode
     my $eval_cmd = "oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr";
     my $ret = script_run("$eval_cmd", timeout => 600);
@@ -985,21 +985,21 @@ sub oscap_evaluate {
         else {
             #Verify remediated rules
             $ret_expected_results = get_test_expected_results($expected_eval_match);
-            # Found expected results in yaml file 
-            if ($ret_expected_results == 1){
+            # Found expected results in yaml file
+            if ($ret_expected_results == 1) {
                 $n_failed_rules = @$expected_eval_match;
                 $eval_match = $expected_eval_match;
             }
             record_info('remediated', 'after remediation less rules are failing');
             #Verify failed rules
             $fail_count = pattern_count_in_file(1, $data, $f_fregex, $failed_rules_ref, $failed_cce_rules_ref, $failed_id_rules_ref);
-            
+
             $lc = List::Compare->new('-u', \@$failed_id_rules_ref, \@$eval_match);
-            my @intersection = $lc->get_intersection; # list of rules found in both lists
-            my @lonly = $lc->get_Lonly; # list of rules found only in left list (actual results)
+            my @intersection = $lc->get_intersection;    # list of rules found in both lists
+            my @lonly = $lc->get_Lonly;    # list of rules found only in left list (actual results)
             my $intersection_count = @intersection;
-            # if count of rules in intesection  equal to expected rules and equal count of failed rules 
-            if  ($#intersection == $#$eval_match and $#intersection == $#$failed_id_rules_ref){
+            # if count of rules in intesection  equal to expected rules and equal count of failed rules
+            if ($#intersection == $#$eval_match and $#intersection == $#$failed_id_rules_ref) {
                 record_info(
                     "Passed check of failed rules",
                     "Passed check of $fail_count expected failed rules:\n" . (join "\n",
@@ -1023,30 +1023,30 @@ sub oscap_evaluate {
                         @lonly),
                     result => 'fail'
                 );
-                 $self->result('fail');
+                $self->result('fail');
             }
- 
+
             #record number of passed rules
             $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref, $passed_cce_rules_ref);
-             record_info(
+            record_info(
                 "Passed check of passed rules count",
                 "Pattern $f_pregex count in file $f_stdout is $pass_count. Matched rules:\n" . join "\n",
                 @$passed_rules_ref
             );
             # if ($pass_count != $n_passed_rules) {
-                # record_info(
-                    # "Failed check of passed rules count",
-                    # "Pattern $f_pregex count in file $f_stdout is $pass_count, expected $n_passed_rules. Matched rules:\n" . join "\n",
-                    # @$passed_rules_ref, result => 'fail'
-                # );
-                # $self->result('fail');
+            # record_info(
+            # "Failed check of passed rules count",
+            # "Pattern $f_pregex count in file $f_stdout is $pass_count, expected $n_passed_rules. Matched rules:\n" . join "\n",
+            # @$passed_rules_ref, result => 'fail'
+            # );
+            # $self->result('fail');
             # }
             # else {
-                # record_info(
-                    # "Passed check of passed rules count",
-                    # "Pattern $f_pregex count in file $f_stdout is $pass_count. Matched rules:\n" . join "\n",
-                    # @$passed_rules_ref
-                # );
+            # record_info(
+            # "Passed check of passed rules count",
+            # "Pattern $f_pregex count in file $f_stdout is $pass_count. Matched rules:\n" . join "\n",
+            # @$passed_rules_ref
+            # );
             # }
             # Upload logs & ouputs for reference
             upload_logs_reports();

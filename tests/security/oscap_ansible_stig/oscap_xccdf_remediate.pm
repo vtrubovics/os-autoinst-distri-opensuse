@@ -12,8 +12,8 @@ use testapi;
 use utils;
 
 sub run {
-    my ($self) = @_; 
-    
+    my ($self) = @_;
+
     $self->oscap_remediate();
 }
 

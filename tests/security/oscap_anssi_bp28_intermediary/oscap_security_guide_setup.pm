@@ -14,8 +14,8 @@ use version_utils qw(is_sle);
 
 sub run {
     my ($self) = @_;
-     $oscap_tests::evaluate_count = 3;
-   $oscap_tests::profile_ID = is_sle ? $oscap_tests::profile_ID_sle_anssi_bp28_intermediary : $oscap_tests::profile_ID_tw;
+    $oscap_tests::evaluate_count = 3;
+    $oscap_tests::profile_ID = is_sle ? $oscap_tests::profile_ID_sle_anssi_bp28_intermediary : $oscap_tests::profile_ID_tw;
     select_console 'root-console';
 
     $self->oscap_security_guide_setup();
