@@ -380,6 +380,7 @@ sub ansible_result_analysis {
     my $found = 0;
     my $full_report = "";
     my $failed_number = -1;
+    my $error_number = -1;
     my $i;
 
     my @lines = split /\n|\r/, $data;
@@ -392,7 +393,10 @@ sub ansible_result_analysis {
                 if ($report[$j] =~ /failed/) {
                     my @failed = split /\=/, $report[$j];
                     $failed_number = $failed[1];
-                    last;
+                }
+                if ($report[$j] =~ /error/) {
+                    my @failed = split /\=/, $report[$j];
+                    $error_number = $failed[1];
                 }
             }
             last;
@@ -402,6 +406,7 @@ sub ansible_result_analysis {
     #Returning results
     $_[1] = $full_report;
     $_[2] = $failed_number;
+    $_[3] = $error_number;
     return $found;
 }
 
@@ -548,18 +553,19 @@ sub modify_ds_ansible_files {
         my $ansible_f = join "\n", @ansible_rules;
         assert_script_run("printf \"$ansible_f\" > \"$ansible_fix_missing\"");
 
-        my $ret_get_ansible_exclusions = 0;
-        my $ansible_exclusions;
+        # my $ret_get_ansible_exclusions = 0;
+        # my $ansible_exclusions;
 
         # Get rule exclusions for ansible playbook
-        $ret_get_ansible_exclusions
-          = get_ansible_exclusions(1, $ansible_exclusions);
-        # Write exclusions to the file
-        if ($ret_get_ansible_exclusions == 1) {
-            $ansible_exclusions =~ s/\,/\n/g;
-            assert_script_run("printf \"\n$ansible_exclusions\" >> \"$ansible_fix_missing\"");
-            record_info("Writing ansible exceptions to file", "Writing ansible exclusions:\n$ansible_exclusions\n\nto file: $ansible_fix_missing");
-        }
+        # $ret_get_ansible_exclusions
+          # = get_ansible_exclusions(1, $ansible_exclusions);
+        # # Write exclusions to the file
+        # if ($ret_get_ansible_exclusions == 1) {
+            # $ansible_exclusions =~ s/\,/\n/g;
+            # assert_script_run("printf \"\n$ansible_exclusions\" >> \"$ansible_fix_missing\"");
+            # record_info("Writing ansible exceptions to file", "Writing ansible exclusions:\n$ansible_exclusions\n\nto file: $ansible_fix_missing");
+        # }
+
         # Diasble excluded and fix missing rules in ds file
         my $unselect_cmd = "sh $compliance_as_code_path/tests/$ds_unselect_rules_script $f_ssg_sle_ds $ansible_fix_missing";
         assert_script_run("$unselect_cmd", timeout => 600);
@@ -578,9 +584,17 @@ sub modify_ds_ansible_files {
         assert_script_run("rm $playbook_fpath");
         assert_script_run("cp playbook.yml $playbook_fpath");
         record_info("Replaced playbook", "Replaced playbook $playbook_fpath with generated playbook.yml");
+        # Modify ansible playbook
+        if ($ansible_playbook_modified == 0) {
+            my $insert_cmd = "sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $playbook_fpath";
+            assert_script_run("$insert_cmd");
+            record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook. CMD:\n$insert_cmd");
+            $ansible_playbook_modified = 1;
+        }
+        
         upload_logs("$playbook_fpath") if script_run "! [[ -e $playbook_fpath ]]";
         # After playbook is regenereates need to modify it on next get_ansible_exclusions call
-        $ansible_playbook_modified = 0;
+        # $ansible_playbook_modified = 0;
     }
     else {
         my $bash_f = join "\n", @bash_rules;
@@ -905,8 +919,9 @@ sub oscap_remediate {
         my $res_ret = -1;
         my $full_report;
         my $failed_number;
+        my $error_number;
         my $out_f_stdout = script_output("tail -n 10 $f_stdout");
-        $res_ret = ansible_result_analysis($out_f_stdout, $full_report, $failed_number);
+        $res_ret = ansible_result_analysis($out_f_stdout, $full_report, $failed_number, $error_number);
         if ($res_ret == -1 or $res_ret == 0) {
             record_info('Failed to get results', "Failed to get results ansible playbook remediation results.\nansible_result_analysis returned: $res_ret");
             $self->result('fail');
