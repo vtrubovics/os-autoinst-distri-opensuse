@@ -944,19 +944,6 @@ sub oscap_security_guide_setup {
     # Replace original ds and xccdf files whith downloaded from local repository
     set_ds_file_name();
 
-    if ($use_production_files == 0) {
-        my $ds_file_name = is_sle ? $ssg_sle_ds : $ssg_tw_ds;
-        replace_ds_file(1, $ds_file_name);
-
-        my $xccdf_file_name = is_sle ? $ssg_sle_xccdf : $ssg_tw_xccdf;
-        replace_xccdf_file(1, $xccdf_file_name);
-        
-        if ($ansible_remediation == 1) {
-            replace_ansible_file(1, $ansible_profile_ID, '/usr/share/scap-security-guide/ansible/');
-        }
-
-    }
-
     unless (is_opensuse) {
         # Some Packages require PackageHub repo is available
         return unless is_phub_ready();
@@ -982,6 +969,19 @@ sub oscap_security_guide_setup {
         # Get the code for the ComplianceAsCode by cloning its repository
         get_cac_code();
     }
+
+    if ($use_production_files == 0) {
+        my $ds_file_name = is_sle ? $ssg_sle_ds : $ssg_tw_ds;
+        replace_ds_file(1, $ds_file_name);
+
+        my $xccdf_file_name = is_sle ? $ssg_sle_xccdf : $ssg_tw_xccdf;
+        replace_xccdf_file(1, $xccdf_file_name);
+        
+        if ($ansible_remediation == 1) {
+            replace_ansible_file(1, $ansible_profile_ID, '/usr/share/scap-security-guide/ansible/');
+        }
+    }
+
    if ($remove_rules_missing_fixes == 1) {
         # Generate text file that contains rules that missing implimentation for profile
         my $mising_rules_full_path = generate_mising_rules();
