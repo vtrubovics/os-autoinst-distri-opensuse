@@ -10,9 +10,6 @@ schedule:
     - security/oscap_ansible_stig/oscap_xccdf_remediate
     # Do evaluate again after remediate
     - security/oscap_ansible_stig/oscap_xccdf_eval
-    - security/oscap_ansible_stig/oscap_xccdf_remediate
-    # Do evaluate again after remediate
-    - security/oscap_ansible_stig/oscap_xccdf_eval
 conditional_schedule:
     bootloader:
         ARCH:
