@@ -1046,7 +1046,7 @@ sub oscap_remediate {
                     record_info(
                         "Found failed tasks",
                         "Failed tasks names ($sesrch_ret):\n" . (join "\n",
-                            @$cce_id_and_name_ref)
+                            @$failed_tasks_ref)
                     );
                     my $out_ansible_playbook = script_output("cat $playbook_fpath", quiet => 1);
                     my $find_ret = find_ansible_cce_by_task_name ($out_ansible_playbook, $failed_tasks_ref, $cce_ids_ref, $cce_id_and_name_ref);
