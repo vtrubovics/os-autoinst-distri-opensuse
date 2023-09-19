@@ -381,6 +381,7 @@ sub ansible_result_analysis {
     my $full_report = "";
     my $failed_number = -1;
     my $error_number = -1;
+    my $ignored_number = -1;
     my $i;
 
     my @lines = split /\n|\r/, $data;
