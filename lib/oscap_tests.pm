@@ -398,6 +398,10 @@ sub ansible_result_analysis {
                     my @failed = split /\=/, $report[$j];
                     $error_number = $failed[1];
                 }
+               if ($report[$j] =~ /ignored/) {
+                    my @failed = split /\=/, $report[$j];
+                    $ignored_number = $failed[1];
+                }
             }
             last;
         }
@@ -407,6 +411,94 @@ sub ansible_result_analysis {
     $_[1] = $full_report;
     $_[2] = $failed_number;
     $_[3] = $error_number;
+    $_[4] = $ignored_number;
+    return $found;
+}
+
+sub ansible_failed_tasks_search {
+    #Find ansible failed tasks in the stdout
+    my $data = $_[0];
+    my @report = ();
+    my $found = 0;
+    my $full_report = "";
+    my $i;
+    my $j = 1;
+    my @failed_tasks = ();
+    my $found_task = 0;
+
+    my @lines = split /\n|\r/, $data;
+    for ($i = 0; $i <= $#lines;) {
+        if ($lines[$i] =~ /^fatal:/) {
+            $found++;
+            # looking for TASK name in upper lines
+            unless ($found_task == 1) {
+                if ($lines[$i - $j] =~ /TASK/) {
+                    $found_task = 1;
+                }
+                else{$j++;}
+            }
+            $full_report = $lines[$i - $j];
+            @report = split /\[/, $full_report;
+            $report[1] =~ s/\].+|\n//g;
+            push(@failed_tasks, $report[1]);
+            $j = 1;
+            $found_task = 0
+        }
+        $i++;
+    }
+    @failed_tasks = uniq @failed_tasks;
+    $_[1] = \@failed_tasks;
+
+    return $found;
+}
+
+sub find_ansible_cce_by_task_name {
+    #Find task CCE ID using task name
+    my $data = $_[0];
+    my $failed_tasks = $_[1];
+    my $task_name;
+    my $j = 1;
+    my $i;
+    my $cce_id;
+    my $cce_id_raw;
+    my @cce_ids = ();
+    my @cce_id_and_name = ();
+    my $found = 0;
+    my $found_task = 0;
+    my $line;
+    my @report = ();
+
+    foreach $task_name (@$failed_tasks) {
+        my @lines = split /\n|\r/, $data;
+        for ($i = 0; $i <= $#lines;) {
+            if ($lines[$i] =~ /$task_name/) {
+                $found++;
+                # looking for task CCE ID
+                while ($found_task == 0) {
+                    if ($lines[$i + $j] =~ /CCE-/ or $lines[$i + $j] =~ /- name:/) {
+                        $found_task = 1;
+                        $cce_id_raw = $lines[$i + $j];
+                        # if did not found CCE - set not_found
+                        if ($lines[$i + $j] =~ /- name:/) {
+                            $cce_id_raw = "- not_found\n";
+                        }
+                    }
+                    else{$j++;}
+                }
+                @report = split /\-\s+/, $cce_id_raw;
+                $report[1] =~ s/\r|\n//g;
+                $cce_id = $report[1];
+                push(@cce_ids, $report[1]);
+                $line = "$cce_id, $task_name";
+                push(@cce_id_and_name, $line);
+                $j = 1;
+                $found_task = 0;
+            }
+            $i++;
+        }
+    }
+    $_[2] = \@cce_ids;
+    $_[3] = \@cce_id_and_name;
     return $found;
 }
 
@@ -920,17 +1012,42 @@ sub oscap_remediate {
         my $full_report;
         my $failed_number;
         my $error_number;
+        my $ignored_number;
+
         my $out_f_stdout = script_output("tail -n 10 $f_stdout");
-        $res_ret = ansible_result_analysis($out_f_stdout, $full_report, $failed_number, $error_number);
+        $res_ret = ansible_result_analysis($out_f_stdout, $full_report, $failed_number, $error_number, $ignored_number);
         if ($res_ret == -1 or $res_ret == 0) {
             record_info('Failed to get results', "Failed to get results ansible playbook remediation results.\nansible_result_analysis returned: $res_ret");
             $self->result('fail');
         }
         else {
+            $out_f_stdout = script_output("cat $f_stdout");
             record_info('Got analysis results', "Ansible playbook.\nPLAY RECAP:\n$full_report");
-            if ($failed_number > 0) {
-                record_info('Found failed tasks', "Found $failed_number failed ansible playbook remediations");
+            if ($failed_number > 0 or $error_number > 0 or $ignored_number >0) {
+                record_info('Found failed tasks', "Found:\nFailed tasks: $failed_number\nErored tasks: $error_number\nIgnored tasks: $ignored_number\nin ansible playbook remediations $f_stdout file");
                 $self->result('fail');
+
+                my $failed_tasks_ref;
+                my $cce_ids_ref;
+                my $cce_id_and_name_ref;
+                my $sesrch_ret = ansible_failed_tasks_search($out_f_stdout, $failed_tasks_ref);
+                if ($sesrch_ret > 0) {
+                    record_info(
+                        "Found failed tasks",
+                        "Failed tasks names ($sesrch_ret):\n" . (join "\n",
+                            @$cce_id_and_name_ref)
+                    );
+                    my $out_ansible_playbook = script_output("cat $playbook_fpath");
+                    my $find_ret = find_ansible_cce_by_task_name ($out_ansible_playbook, $failed_tasks_ref, $cce_ids_ref, $cce_id_and_name_ref);
+                    if ($find_ret > 0) {
+                        record_info(
+                            "Found CCE IDs for failed tasks",
+                            "CCE IDs and tasks names ($find_ret):\n" . (join "\n",
+                                @$cce_id_and_name_ref) . "\n\nCCE IDs ($find_ret):\n" . (join "\n",
+                                @$cce_ids_ref)
+                        );
+                    }
+                }
             }
         }
 
