@@ -836,8 +836,8 @@ sub get_cac_code {
 
         # Building CaC content 
         assert_script_run("cd $compliance_as_code_path");
-        # assert_script_run("sh build_product $sle_version");
-        my $data = script_output("sh build_product $sle_version");
+        assert_script_run("sh build_product $sle_version", timeout => 9000);
+        # my $data = script_output("sh build_product $sle_version");
         record_info("build_product", "build_product out:\n$data");
         assert_script_run("cd /root");
     }
