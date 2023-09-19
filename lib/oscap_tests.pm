@@ -816,6 +816,7 @@ sub get_cac_code {
 
     if ($use_cac_master_files == 1) {
         zypper_call('in cmake', timeout => 180);
+        zypper_call('in libxslt-tools', timeout => 180);
 
         assert_script_run("pip3 --quiet install lxml", timeout => 600);
         assert_script_run("pip3 --quiet install pytest", timeout => 600);
