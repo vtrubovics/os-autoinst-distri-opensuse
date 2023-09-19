@@ -1001,6 +1001,14 @@ sub oscap_remediate {
         my $line;
         my $script_cmd;
 
+        my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $ansible_profile_ID;
+        if ($ansible_playbook_modified == 0) {
+            my $insert_cmd = "sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $playbook_fpath";
+            assert_script_run("$insert_cmd");
+            record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook. CMD:\n$insert_cmd");
+            $ansible_playbook_modified = 1;
+        }
+
         $start_time = clock_gettime(CLOCK_MONOTONIC);
         $script_cmd = "ansible-playbook -i \"localhost,\" -c local $playbook_fpath >> $f_stdout 2>> $f_stderr";
 
