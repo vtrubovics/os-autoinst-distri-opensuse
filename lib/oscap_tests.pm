@@ -815,6 +815,8 @@ sub get_cac_code {
     record_info("Cloned ComplianceAsCode", "Cloned repo $git_repo to folder: $compliance_as_code_path");
 
     if ($use_cac_master_files == 1) {
+        zypper_call('in cmake', timeout => 180);
+
         # Building CaC content 
         assert_script_run("cd $compliance_as_code_path");
         assert_script_run("sh build_product $sle_version");
