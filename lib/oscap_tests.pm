@@ -176,7 +176,7 @@ our $use_production_files = 0;
 our $remove_rules_missing_fixes = 1;
 
 # If set to 1 - tests will use files from coned and compiled repository https://github.com/ComplianceAsCode/content
-our $use_cac_master_files = 0;
+our $use_cac_master_files = 1;
 
 # Keeps count of reboots to control it
 our $reboot_count = 0;
@@ -217,34 +217,52 @@ sub set_ds_file_name {
       'ssg-sle' . "$version" . '-xccdf.xml';
 }
 
-# Replace original ds file whith downloaded from repository
+# Replace original ds file whith built or downloaded from repository
 sub replace_ds_file {
     my $self = $_[0];
     my $ds_file_name = $_[1];
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
 
-    download_file_from_https_repo($url, $ds_file_name);
-    # Remove original ds file
-    assert_script_run("rm $f_ssg_sle_ds");
-    # Copy downloaded file to correct location
-    assert_script_run("cp $ds_file_name $f_ssg_sle_ds");
-    record_info("Copied ds file", "Copied file $ds_file_name to $f_ssg_sle_ds");
+    if ($use_cac_master_files == 1) {
+        assert_script_run("rm $f_ssg_sle_ds");
+        # Copy built file to correct location
+        my $ds_local_full_file_path = "$compliance_as_code_path/build/$ds_file_name";
+        assert_script_run("cp $ds_local_full_file_path $f_ssg_sle_ds");
+        record_info("Copied ds file", "Copied file $ds_local_full_file_path to $f_ssg_sle_ds");
+    }
+    else {
+        download_file_from_https_repo($url, $ds_file_name);
+        # Remove original ds file
+        assert_script_run("rm $f_ssg_sle_ds");
+        # Copy downloaded file to correct location
+        assert_script_run("cp $ds_file_name $f_ssg_sle_ds");
+        record_info("Copied ds file", "Copied file $ds_file_name to $f_ssg_sle_ds");
+    }
 }
-# Replace original xccdf file whith downloaded from repository
+# Replace original xccdf file whith built or downloaded from repository
 sub replace_xccdf_file {
     my $self = $_[0];
     my $xccdf_file_name = $_[1];
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
 
-    download_file_from_https_repo($url, $xccdf_file_name);
-    # Remove original xccdf file
-    assert_script_run("rm $f_ssg_sle_xccdf");
-    # Copy downloaded file to correct location
-    assert_script_run("cp $xccdf_file_name $f_ssg_sle_xccdf");
-    record_info("Copied xccdf file", "Copied file $xccdf_file_name to $f_ssg_sle_xccdf");
+    if ($use_cac_master_files == 1) {
+        assert_script_run("rm $f_ssg_sle_xccdf");
+        # Copy built file to correct location
+        my $xccdf_local_full_file_path = "$compliance_as_code_path/build/$xccdf_file_name";
+        assert_script_run("cp $xccdf_local_full_file_path $f_ssg_sle_xccdf");
+        record_info("Copied xccdf file", "Copied file $xccdf_local_full_file_path to $f_ssg_sle_xccdf");
+    }
+    else {
+        download_file_from_https_repo($url, $xccdf_file_name);
+        # Remove original xccdf file
+        assert_script_run("rm $f_ssg_sle_xccdf");
+        # Copy downloaded file to correct location
+        assert_script_run("cp $xccdf_file_name $f_ssg_sle_xccdf");
+        record_info("Copied xccdf file", "Copied file $xccdf_file_name to $f_ssg_sle_xccdf");
+    }
 }
 
-# Replace original ansible file whith downloaded from repository
+# Replace original ansible file whith built or downloaded from repository
 sub replace_ansible_file {
     my $self = $_[0];
     my $ansible_file_name = $_[1];
@@ -252,12 +270,22 @@ sub replace_ansible_file {
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/";
     my $full_ansible_file_path = $ansible_file_path . $ansible_file_name;
 
-    download_file_from_https_repo($url, $ansible_file_name);
-    # Remove original ansible file
-    assert_script_run("rm $full_ansible_file_path");
-    # Copy downloaded file to correct location
-    assert_script_run("cp $ansible_file_name $full_ansible_file_path");
-    record_info("Copied ansible file", "Copied file $ansible_file_name to $full_ansible_file_path");
+    if ($use_cac_master_files == 1) {
+        # Remove original ansible file
+        assert_script_run("rm $full_ansible_file_path");
+        my $ansible_local_full_file_path = "$compliance_as_code_path/build/ansible/$ansible_file_name";
+        # Copy built file to correct location
+        assert_script_run("cp $ansible_local_full_file_path $full_ansible_file_path");
+        record_info("Copied ansible file", "Copied file $ansible_local_full_file_path to $full_ansible_file_path");
+    }
+    else {
+        download_file_from_https_repo($url, $ansible_file_name);
+        # Remove original ansible file
+        assert_script_run("rm $full_ansible_file_path");
+        # Copy downloaded file to correct location
+        assert_script_run("cp $ansible_file_name $full_ansible_file_path");
+        record_info("Copied ansible file", "Copied file $ansible_file_name to $full_ansible_file_path");
+    }
 }
 
 # Download and pharse ansible exclusions file from repository
@@ -669,12 +697,10 @@ sub modify_ds_ansible_files {
         assert_script_run("cp /tmp/$ssg_sle_ds $f_ssg_sle_ds");
         record_info("Diasble excluded and fix missing rules in ds file", "Command $unselect_cmd");
         upload_logs("$ansible_fix_missing") if script_run "! [[ -e $ansible_fix_missing ]]";
-        # Replace ansible file with located on https://gitlab.suse.de/seccert-public/compliance-as-code-compiled
-        replace_ansible_file(1, $ansible_profile_ID, '/usr/share/scap-security-guide/ansible/');
-
         # Generate new playbook without exclusions and fix_missing rules
         my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $ansible_profile_ID;
         my $playbook_gen_cmd = "oscap xccdf generate fix --profile $profile_ID --fix-type ansible $f_ssg_sle_ds > playbook.yml";
+
         assert_script_run("$playbook_gen_cmd", timeout => 600);
         record_info("Generated playbook", "Command $playbook_gen_cmd");
         assert_script_run("rm $playbook_fpath");
@@ -731,6 +757,16 @@ sub generate_mising_rules {
     my $output_file = "missing_rules.txt";
     my $stats_output_file = "stats_profile_missing.txt";
 
+    zypper_call("in python3");
+    assert_script_run('pip3 --quiet install --upgrade pip', timeout => 600);
+    assert_script_run("pip3 --quiet install jinja2", timeout => 600);
+    assert_script_run("pip3 --quiet install PyYAML", timeout => 600);
+    assert_script_run("pip3 --quiet install pytest", timeout => 600);
+    assert_script_run("pip3 --quiet install pytest-cov", timeout => 600);
+    assert_script_run("pip3 --quiet install Jinja2", timeout => 600);
+    assert_script_run("pip3 --quiet install setuptools", timeout => 600);
+    assert_script_run("pip3 --quiet install ninja", timeout => 600);
+
     assert_script_run("alias python=python3");
     assert_script_run("cd $compliance_as_code_path");
     assert_script_run("source .pyenv.sh");
@@ -766,7 +802,7 @@ sub get_cac_code {
     my $git_repo = "https://github.com/ComplianceAsCode/content.git";
     my $git_clone_cmd = "git clone " . $git_repo . " $cac_dir";
 
-    zypper_call("in git-core python3");
+    zypper_call("in git-core");
     assert_script_run("mkdir src");
     assert_script_run("rm -r $cac_dir", quiet => 1) if (-e "$cac_dir");
     assert_script_run('git config --global http.sslVerify false', quiet => 1);
@@ -777,15 +813,7 @@ sub get_cac_code {
     $compliance_as_code_path .= "/$cac_dir";
 
     record_info("Cloned ComplianceAsCode", "Cloned repo $git_repo to folder: $compliance_as_code_path");
-    assert_script_run('pip3 --quiet install --upgrade pip', timeout => 600);
-    assert_script_run("pip3 --quiet install jinja2", timeout => 600);
-    assert_script_run("pip3 --quiet install PyYAML", timeout => 600);
-    assert_script_run("pip3 --quiet install pytest", timeout => 600);
-    assert_script_run("pip3 --quiet install pytest-cov", timeout => 600);
-    assert_script_run("pip3 --quiet install Jinja2", timeout => 600);
-    assert_script_run("pip3 --quiet install setuptools", timeout => 600);
-    assert_script_run("pip3 --quiet install ninja", timeout => 600);
-    
+
     if ($use_cac_master_files == 1) {
         # Building CaC content 
         assert_script_run("cd $compliance_as_code_path");
@@ -922,6 +950,11 @@ sub oscap_security_guide_setup {
 
         my $xccdf_file_name = is_sle ? $ssg_sle_xccdf : $ssg_tw_xccdf;
         replace_xccdf_file(1, $xccdf_file_name);
+        
+        if ($ansible_remediation == 1) {
+            replace_ansible_file(1, $ansible_profile_ID, '/usr/share/scap-security-guide/ansible/');
+        }
+
     }
 
     unless (is_opensuse) {
@@ -945,9 +978,11 @@ sub oscap_security_guide_setup {
         #install ansible.posix
         assert_script_run("ansible-galaxy collection install ansible.posix");
     }
-    if ($remove_rules_missing_fixes == 1) {
+    if ($remove_rules_missing_fixes == 1 or $use_cac_master_files == 1) {
         # Get the code for the ComplianceAsCode by cloning its repository
         get_cac_code();
+    }
+   if ($remove_rules_missing_fixes == 1) {
         # Generate text file that contains rules that missing implimentation for profile
         my $mising_rules_full_path = generate_mising_rules();
 
