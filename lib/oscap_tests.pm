@@ -817,6 +817,22 @@ sub get_cac_code {
     if ($use_cac_master_files == 1) {
         zypper_call('in cmake', timeout => 180);
 
+        assert_script_run("pip3 --quiet install lxml", timeout => 600);
+        assert_script_run("pip3 --quiet install pytest", timeout => 600);
+        assert_script_run("pip3 --quiet install pytest_cov", timeout => 600);
+        assert_script_run("pip3 --quiet install json2html", timeout => 600);
+        assert_script_run("pip3 --quiet install sphinxcontrib-jinjadomain", timeout => 600);
+        assert_script_run("pip3 --quiet install autojinja", timeout => 600);
+        assert_script_run("pip3 --quiet install sphinx_rtd_theme", timeout => 600);
+        assert_script_run("pip3 --quiet install myst_parser", timeout => 600);
+        assert_script_run("pip3 --quiet install prometheus_client", timeout => 600);
+        assert_script_run("pip3 --quiet install mypy", timeout => 600);
+        assert_script_run("pip3 --quiet install openpyxl", timeout => 600);
+        assert_script_run("pip3 --quiet install pandas", timeout => 600);
+        assert_script_run("pip3 --quiet install pcre2", timeout => 600);
+        assert_script_run("pip3 --quiet install cmakelint", timeout => 600);
+        assert_script_run("pip3 --quiet install sphinx", timeout => 600);
+
         # Building CaC content 
         assert_script_run("cd $compliance_as_code_path");
         assert_script_run("sh build_product $sle_version");
