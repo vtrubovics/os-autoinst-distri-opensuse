@@ -175,6 +175,9 @@ our $use_production_files = 0;
 # If set to 0 - no changes done.
 our $remove_rules_missing_fixes = 1;
 
+# If set to 1 - tests will use files from coned and compiled repository https://github.com/ComplianceAsCode/content
+our $use_cac_master_files = 0;
+
 # Keeps count of reboots to control it
 our $reboot_count = 0;
 
@@ -782,6 +785,13 @@ sub get_cac_code {
     assert_script_run("pip3 --quiet install Jinja2", timeout => 600);
     assert_script_run("pip3 --quiet install setuptools", timeout => 600);
     assert_script_run("pip3 --quiet install ninja", timeout => 600);
+    
+    if ($use_cac_master_files == 1) {
+        # Building CaC content 
+        assert_script_run("cd $compliance_as_code_path");
+        assert_script_run("sh build_product $sle_version");
+        assert_script_run("cd /root");
+    }
     return $compliance_as_code_path;
 }
 =comment
@@ -1022,7 +1032,7 @@ sub oscap_remediate {
             $self->result('fail');
         }
         else {
-            $out_f_stdout = script_output("cat $f_stdout");
+            $out_f_stdout = script_output("cat $f_stdout", quiet => 1);
             record_info('Got analysis results', "Ansible playbook.\nPLAY RECAP:\n$full_report");
             if ($failed_number > 0 or $error_number > 0 or $ignored_number >0) {
                 record_info('Found failed tasks', "Found:\nFailed tasks: $failed_number\nErored tasks: $error_number\nIgnored tasks: $ignored_number\nin ansible playbook remediations $f_stdout file");
@@ -1038,7 +1048,7 @@ sub oscap_remediate {
                         "Failed tasks names ($sesrch_ret):\n" . (join "\n",
                             @$cce_id_and_name_ref)
                     );
-                    my $out_ansible_playbook = script_output("cat $playbook_fpath");
+                    my $out_ansible_playbook = script_output("cat $playbook_fpath", quiet => 1);
                     my $find_ret = find_ansible_cce_by_task_name ($out_ansible_playbook, $failed_tasks_ref, $cce_ids_ref, $cce_id_and_name_ref);
                     if ($find_ret > 0) {
                         record_info(
