@@ -268,7 +268,7 @@ sub get_ansible_exclusions {
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/";
 
     download_file_from_https_repo($url, $ansible_exclusions_file_name);
-    my $data = script_output "cat $ansible_exclusions_file_name";
+    my $data = script_output ("cat $ansible_exclusions_file_name", quiet => 1);
     my @lines = split /\n|\r/, $data;
     my $found = 0;
     my @strings;
@@ -306,7 +306,7 @@ sub get_bash_exclusions {
 
     download_file_from_https_repo($url, $bash_exclusions_file_name);
 
-    my $data = script_output "cat $bash_exclusions_file_name";
+    my $data = script_output ("cat $bash_exclusions_file_name", quiet => 1);
     my @lines = split /\n|\r/, $data;
     my $found = 0;
     my @strings;
@@ -609,7 +609,7 @@ sub modify_ds_ansible_files {
     my $ansible_fix_missing = "ansible_fix_missing.txt";
     my $ds_unselect_rules_script = "ds_unselect_rules.sh";
 
-    $data = script_output("cat $in_file_path");
+    $data = script_output("cat $in_file_path", quiet => 1);
 
     my @lines = split /\n|\r/, $data;
 
@@ -718,7 +718,7 @@ sub modify_ds_ansible_files {
     }
     upload_logs("$f_ssg_sle_ds") if script_run "! [[ -e $f_ssg_sle_ds ]]";
 
-    my $output_full_path = script_output("pwd");
+    my $output_full_path = script_output("pwd", quiet => 1);
     $output_full_path =~ s/\r|\n//g;
     my $bash_file_full_path = "$output_full_path/$bash_fix_missing";
     my $ansible_file_full_path = "$output_full_path/$ansible_fix_missing";
@@ -734,7 +734,7 @@ sub generate_mising_rules {
     assert_script_run("alias python=python3");
     assert_script_run("cd $compliance_as_code_path");
     assert_script_run("source .pyenv.sh");
-    my $env = script_output("env | grep PYTHONPATH");
+    my $env = script_output("env | grep PYTHONPATH", quiet => 1);
     record_info("exported PYTHONPATH", "export $env");
     my $cmd = "python3 build-scripts/profile_tool.py stats --missing --skip-stats --profile $profile_ID --benchmark $f_ssg_sle_xccdf --format plain > $output_file";
     my $stats_cmd = "python3 build-scripts/profile_tool.py stats --missing --profile $profile_ID --benchmark $f_ssg_sle_xccdf --format plain > $stats_output_file";
@@ -746,14 +746,14 @@ sub generate_mising_rules {
     # Getting and showing profile statistics
     assert_script_run("$stats_cmd");
     record_info("Generated file $stats_output_file", "generate_mising_rules statistics. Input file $f_ssg_sle_xccdf\n Command:\n$stats_cmd");
-    my $data = script_output("cat $stats_output_file");
+    my $data = script_output("cat $stats_output_file", quiet => 1);
     record_info("Profile missing stat", "Profile missing stat:\n $data");
 
     #Uplaod file to logs
     upload_logs("$stats_output_file") if script_run "! [[ -e $stats_output_file ]]";
 
     assert_script_run("cd /root");
-    my $output_full_path = script_output("pwd");
+    my $output_full_path = script_output("pwd", quiet => 1);
     $output_full_path =~ s/\r|\n//g;
     $output_full_path .= "/$output_file";
 
@@ -772,7 +772,7 @@ sub get_cac_code {
     assert_script_run('git config --global http.sslVerify false', quiet => 1);
     assert_script_run("set -o pipefail ; $git_clone_cmd", timeout => 600, quiet => 1);
 
-    $compliance_as_code_path = script_output("pwd");
+    $compliance_as_code_path = script_output("pwd", quiet => 1);
     $compliance_as_code_path =~ s/\r|\n//g;
     $compliance_as_code_path .= "/$cac_dir";
 
@@ -818,11 +818,11 @@ sub get_tests_config {
 
     download_file_from_https_repo($url, $config_file_name);
 
-    my $config_file_path = script_output("pwd");
+    my $config_file_path = script_output("pwd", quiet => 1);
     $config_file_path =~ s/\r|\n//g;
     $config_file_path .= "/$config_file_name";
 
-    my $data = script_output("cat $config_file_path");
+    my $data = script_output("cat $config_file_path", quiet => 1);
     my $config = Config::Tiny->new;
     $config = Config::Tiny->read_string("$data");
     my $err = $config::Tiny::errstr;
@@ -860,7 +860,7 @@ sub get_test_expected_results {
 
     download_file_from_https_repo($url, $expected_results_file_name);
     upload_logs("$expected_results_file_name") if script_run "! [[ -e $expected_results_file_name ]]";
-    my $data = script_output("cat $expected_results_file_name");
+    my $data = script_output("cat $expected_results_file_name", quiet => 1);
 
     # Pharse the expected results
     my $expected_results = YAML::PP::Load($data);
@@ -903,7 +903,7 @@ sub oscap_security_guide_setup {
 
     # Check the ds file information for reference
     $f_ssg_ds = is_sle ? $f_ssg_sle_ds : $f_ssg_tw_ds;
-    $out = script_output("oscap info $f_ssg_ds");
+    $out = script_output("oscap info $f_ssg_ds", quiet => 1);
     record_info("oscap info", "\"# oscap info $f_ssg_ds\" returns:\n $out");
 
     # Check the oscap version information for reference
@@ -940,7 +940,7 @@ sub oscap_security_guide_setup {
         zypper_call("up", timeout => 1800);
         zypper_call "in $pkgs sudo";
         # Record the pkgs' version for reference
-        my $out = script_output("zypper se -s $pkgs");
+        my $out = script_output("zypper se -s $pkgs", quiet => 1);
         record_info("$pkgs Pkg_ver", "$pkgs packages' version:\n $out");
         #install ansible.posix
         assert_script_run("ansible-galaxy collection install ansible.posix");
@@ -1033,7 +1033,7 @@ sub oscap_remediate {
         my $error_number;
         my $ignored_number;
 
-        my $out_f_stdout = script_output("tail -n 10 $f_stdout");
+        my $out_f_stdout = script_output("tail -n 10 $f_stdout", quiet => 1);
         $res_ret = ansible_result_analysis($out_f_stdout, $full_report, $failed_number, $error_number, $ignored_number);
         if ($res_ret == -1 or $res_ret == 0) {
             record_info('Failed to get results', "Failed to get results ansible playbook remediation results.\nansible_result_analysis returned: $res_ret");
@@ -1043,7 +1043,7 @@ sub oscap_remediate {
             $out_f_stdout = script_output("cat $f_stdout", quiet => 1);
             record_info('Got analysis results', "Ansible playbook.\nPLAY RECAP:\n$full_report");
             if ($failed_number > 0 or $error_number > 0 or $ignored_number >0) {
-                record_info('Found failed tasks', "Found:\nFailed tasks: $failed_number\nErored tasks: $error_number\nIgnored tasks: $ignored_number\nin ansible playbook remediations $f_stdout file");
+                record_info('Found failed tasks', "Found:\nFailed tasks: $failed_number\nErrored tasks: $error_number\nIgnored tasks: $ignored_number\nin ansible playbook remediations $f_stdout file");
                 $self->result('fail');
 
                 my $failed_tasks_ref;
@@ -1052,8 +1052,8 @@ sub oscap_remediate {
                 my $sesrch_ret = ansible_failed_tasks_search($out_f_stdout, $failed_tasks_ref);
                 if ($sesrch_ret > 0) {
                     record_info(
-                        "Found failed tasks",
-                        "Failed tasks names ($sesrch_ret):\n" . (join "\n",
+                        "Found failed tasks names",
+                        "Failed tasks unique names ($sesrch_ret):\n" . (join "\n",
                             @$failed_tasks_ref)
                     );
                     my $out_ansible_playbook = script_output("cat $playbook_fpath", quiet => 1);
@@ -1114,7 +1114,7 @@ sub oscap_evaluate {
     if ($ret == 0 || $ret == 2) {
         record_info("Returned $ret", "$eval_cmd");
         # Note: the system cannot be fully remediated in this test and some rules are verified failing
-        my $data = script_output "cat $f_stdout";
+        my $data = script_output ("cat $f_stdout", quiet => 1);
         # For a new installed OS the first time remediate can permit fail
         if (($remediated <= 1 and $evaluate_count == 3) or ($remediated == 0 and $evaluate_count == 2)) {
             record_info('non remediated', 'before remediation more rules fails are expected');
