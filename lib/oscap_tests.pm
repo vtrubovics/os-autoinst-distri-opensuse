@@ -277,6 +277,7 @@ sub replace_ansible_file {
         # Copy built file to correct location
         assert_script_run("cp $ansible_local_full_file_path $full_ansible_file_path");
         record_info("Copied ansible file", "Copied file $ansible_local_full_file_path to $full_ansible_file_path");
+        upload_logs("$full_ansible_file_path") if script_run "! [[ -e $full_ansible_file_path ]]";
     }
     else {
         download_file_from_https_repo($url, $ansible_file_name);
@@ -499,21 +500,39 @@ sub find_ansible_cce_by_task_name {
     my $found_task = 0;
     my $line;
     my @report = ();
+    my $index;
 
+    # Preparing data
+    my @lines = split /\n|\r/, $data;
+    for ($i = 0; $i <= $#lines;) {
+        # Looking for tasks names which need to be joined to one line and joining if found
+        # example:
+        #        - name: Set Lockout Time for Failed Password Attempts using pam_tally2 - Ensure
+        #            the correct control for the required PAM module line in /etc/pam.d/common-account
+        if ($lines[$i] =~ /- name:/) {
+            $index = index($lines[$i], "me: ");
+            if ($lines[$i + 1] =~ /^\s{$index}/) {
+                $lines[$i] =~ s/\r|\n//g;
+                $lines[$i + 1] =~ s/^\s{$index}//g;
+                $lines[$i] .= " " . $lines[$i + 1];
+            }
+        }
+        $i++;
+    }
     foreach $task_name (@$failed_tasks) {
-        my @lines = split /\n|\r/, $data;
         for ($i = 0; $i <= $#lines;) {
             if ($lines[$i] =~ /$task_name/) {
                 $found++;
                 # looking for task CCE ID
                 while ($found_task == 0) {
-                    if ($lines[$i + $j] =~ /CCE-/ or $lines[$i + $j] =~ /- name:/) {
+                    # if ($lines[$i + $j] =~ /CCE-/ or $lines[$i + $j] =~ /- name:/) {
+                    if ($lines[$i + $j] =~ /CCE-/) {
                         $found_task = 1;
                         $cce_id_raw = $lines[$i + $j];
                         # if did not found CCE - set not_found
-                        if ($lines[$i + $j] =~ /- name:/) {
-                            $cce_id_raw = "- not_found\n";
-                        }
+                        # if ($lines[$i + $j] =~ /- name:/) {
+                            # $cce_id_raw = "- not_found\n";
+                        # }
                     }
                     else{$j++;}
                 }
