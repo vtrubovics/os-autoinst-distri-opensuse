@@ -427,11 +427,7 @@ sub ansible_result_analysis {
                     my @failed = split /\=/, $report[$j];
                     $failed_number = $failed[1];
                 }
-                if ($report[$j] =~ /error/) {
-                    my @failed = split /\=/, $report[$j];
-                    $error_number = $failed[1];
-                }
-               if ($report[$j] =~ /ignored/) {
+                if ($report[$j] =~ /ignored/) {
                     my @failed = split /\=/, $report[$j];
                     $ignored_number = $failed[1];
                 }
@@ -443,8 +439,7 @@ sub ansible_result_analysis {
     #Returning results
     $_[1] = $full_report;
     $_[2] = $failed_number;
-    $_[3] = $error_number;
-    $_[4] = $ignored_number;
+    $_[3] = $ignored_number;
     return $found;
 }
 
@@ -1105,11 +1100,10 @@ sub oscap_remediate {
         my $res_ret = -1;
         my $full_report;
         my $failed_number;
-        my $error_number;
         my $ignored_number;
 
         my $out_f_stdout = script_output("tail -n 10 $f_stdout", quiet => 1);
-        $res_ret = ansible_result_analysis($out_f_stdout, $full_report, $failed_number, $error_number, $ignored_number);
+        $res_ret = ansible_result_analysis($out_f_stdout, $full_report, $failed_number, $ignored_number);
         if ($res_ret == -1 or $res_ret == 0) {
             record_info('Failed to get results', "Failed to get results ansible playbook remediation results.\nansible_result_analysis returned: $res_ret");
             $self->result('fail');
@@ -1117,7 +1111,7 @@ sub oscap_remediate {
         else {
             $out_f_stdout = script_output("cat $f_stdout", quiet => 1);
             record_info('Got analysis results', "Ansible playbook.\nPLAY RECAP:\n$full_report");
-            if ($failed_number > 0 or $error_number > 0 or $ignored_number >0) {
+            if ($failed_number > 0 or $ignored_number >0) {
                 record_info('Found failed tasks', "Found:\nFailed tasks: $failed_number\nErrored tasks: $error_number\nIgnored tasks: $ignored_number\nin ansible playbook remediations $f_stdout file");
                 $self->result('fail');
 
