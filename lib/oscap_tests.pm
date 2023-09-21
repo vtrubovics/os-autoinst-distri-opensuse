@@ -476,8 +476,9 @@ sub ansible_failed_tasks_search {
     }
     @failed_tasks = uniq @failed_tasks;
     $_[1] = \@failed_tasks;
+    my $failed_tasks_size = @failed_tasks;
 
-    return $found;
+    return $failed_tasks_size;
 }
 
 sub find_ansible_cce_by_task_name {
@@ -545,9 +546,10 @@ sub find_ansible_cce_by_task_name {
     }
     @cce_ids = uniq @cce_ids;
     @cce_id_and_name = uniq @cce_id_and_name;
+    my $cce_ids_size = @cce_ids;
     $_[2] = \@cce_ids;
     $_[3] = \@cce_id_and_name;
-    return $found;
+    return $cce_ids_size;
 }
 
 sub upload_logs_reports {
