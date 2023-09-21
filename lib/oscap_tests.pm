@@ -478,8 +478,8 @@ sub ansible_failed_tasks_search {
                 else{$j++;}
             }
             $full_report = $lines[$i - $j];
-            @report = split /\[/, $full_report;
-            $report[1] =~ s/\].+|\n//g;
+            @report = (split /\[/, $full_report, 2);
+            $report[1] =~ s/\]\s\*+|\n//g;
             push(@failed_tasks, $report[1]);
             $j = 1;
             $found_task = 0
