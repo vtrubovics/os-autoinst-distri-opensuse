@@ -468,7 +468,7 @@ sub ansible_failed_tasks_search {
 
     my @lines = split /\n|\r/, $data;
     for ($i = 0; $i <= $#lines;) {
-        if ($lines[$i] =~ /^fatal:/) {
+        if ($lines[$i] =~ /^fatal:/ or $lines[$i] =~ /^failed:/) {
             $found++;
             # looking for TASK name in upper lines
             unless ($found_task == 1) {
