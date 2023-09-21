@@ -277,25 +277,25 @@ sub replace_ansible_file {
     if ($use_cac_master_files == 1) {
         # Remove original ansible file
         assert_script_run("rm $full_ansible_file_path");
-        my $ansible_local_full_file_path = "$compliance_as_code_path/build/ansible/$ansible_file_name";
+        my $ansible_local_full_file_path = "$compliance_as_code_path/build/ansible/$ansible_profile_ID";
         # Copy built file to correct location
         assert_script_run("cp $ansible_local_full_file_path $full_ansible_file_path");
         record_info("Copied ansible file", "Copied file $ansible_local_full_file_path to $full_ansible_file_path");
         upload_logs("$full_ansible_file_path") if script_run "! [[ -e $full_ansible_file_path ]]";
     }
     elsif ($use_production_files == 0){
-        download_file_from_https_repo($url, $ansible_file_name);
+        download_file_from_https_repo($url, $ansible_profile_ID);
         # Remove original ansible file
         assert_script_run("rm $full_ansible_file_path");
         # Copy downloaded file to correct location
-        assert_script_run("cp $ansible_file_name $full_ansible_file_path");
-        record_info("Copied ansible file", "Copied file $ansible_file_name to $full_ansible_file_path");
+        assert_script_run("cp $ansible_profile_ID $full_ansible_file_path");
+        record_info("Copied ansible file", "Copied file $ansible_profile_ID to $full_ansible_file_path");
     }
     elsif ($use_production_files == 1){
         # Remove original ansible file
         assert_script_run("rm $full_ansible_file_path");
         # Copy downloaded file to correct location
-        my $ansible_local_full_file_path = "/root/$ansible_file_name";
+        my $ansible_local_full_file_path = "/root/$ansible_profile_ID";
         assert_script_run("cp $ansible_local_full_file_path $full_ansible_file_path");
         record_info("Copied ansible file", "Copied file $ansible_local_full_file_path to $full_ansible_file_path");
     }

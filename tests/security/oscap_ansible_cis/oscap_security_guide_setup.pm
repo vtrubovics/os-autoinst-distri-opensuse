@@ -14,6 +14,7 @@ use version_utils qw(is_sle);
 
 sub run {
     my ($self) = @_;
+    $oscap_tests::evaluate_count = 3;
     $oscap_tests::ansible_remediation = 1;
     $oscap_tests::ansible_profile_ID = is_sle ? $oscap_tests::sle_version . $oscap_tests::ansible_playbook_sle_cis : $oscap_tests::ansible_playbook_standart;
     $oscap_tests::profile_ID = is_sle ? $oscap_tests::profile_ID_sle_cis : $oscap_tests::profile_ID_tw;

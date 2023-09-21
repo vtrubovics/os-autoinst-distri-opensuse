@@ -10,6 +10,9 @@ schedule:
     - security/oscap_ansible_pci_dss/oscap_xccdf_remediate
     # Do evaluate again after remediate
     - security/oscap_ansible_pci_dss/oscap_xccdf_eval
+    - security/oscap_ansible_pci_dss/oscap_xccdf_remediate
+    # Do evaluate again after remediate
+    - security/oscap_ansible_pci_dss/oscap_xccdf_eval
 conditional_schedule:
     bootloader:
         ARCH:
