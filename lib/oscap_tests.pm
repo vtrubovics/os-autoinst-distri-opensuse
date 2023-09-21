@@ -1119,7 +1119,7 @@ sub oscap_remediate {
             $out_f_stdout = script_output("cat $f_stdout", quiet => 1);
             record_info('Got analysis results', "Ansible playbook.\nPLAY RECAP:\n$full_report");
             if ($failed_number > 0 or $ignored_number >0) {
-                record_info('Found failed tasks', "Found:\nFailed tasks: $failed_number\nErrored tasks: $error_number\nIgnored tasks: $ignored_number\nin ansible playbook remediations $f_stdout file");
+                record_info('Found failed tasks', "Found:\nFailed tasks: $failed_number\nIgnored tasks: $ignored_number\nin ansible playbook remediations $f_stdout file");
                 $self->result('fail');
 
                 my $failed_tasks_ref;
