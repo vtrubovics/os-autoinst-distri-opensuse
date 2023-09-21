@@ -164,6 +164,9 @@ our $remediated = 0;
 # Is it ansible remediation: '0', bash remediation; '1' ansible remediation
 our $ansible_remediation = 0;
 
+# Directory where ansible playbooks resides on local system
+our $ansible_file_path = "/usr/share/scap-security-guide/ansible/";
+
 # Variables $use_production_files and $remove_rules_missing_fixes are fetched from configuration file located in:
 #https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/blob/main/content/openqa_config.conf
 # If set to 1 - tests will use files from scap-security-guide package
@@ -268,11 +271,8 @@ sub replace_xccdf_file {
 
 # Replace original ansible file whith built or downloaded from repository
 sub replace_ansible_file {
-    my $self = $_[0];
-    my $ansible_file_name = $_[1];
-    my $ansible_file_path = $_[2];
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/";
-    my $full_ansible_file_path = $ansible_file_path . $ansible_file_name;
+    my $full_ansible_file_path = $ansible_file_path . $ansible_profile_ID;
 
     if ($use_cac_master_files == 1) {
         # Remove original ansible file
@@ -283,13 +283,21 @@ sub replace_ansible_file {
         record_info("Copied ansible file", "Copied file $ansible_local_full_file_path to $full_ansible_file_path");
         upload_logs("$full_ansible_file_path") if script_run "! [[ -e $full_ansible_file_path ]]";
     }
-    else {
+    elsif ($use_production_files == 0){
         download_file_from_https_repo($url, $ansible_file_name);
         # Remove original ansible file
         assert_script_run("rm $full_ansible_file_path");
         # Copy downloaded file to correct location
         assert_script_run("cp $ansible_file_name $full_ansible_file_path");
         record_info("Copied ansible file", "Copied file $ansible_file_name to $full_ansible_file_path");
+    }
+    elsif ($use_production_files == 1){
+        # Remove original ansible file
+        assert_script_run("rm $full_ansible_file_path");
+        # Copy downloaded file to correct location
+        my $ansible_local_full_file_path = "/root/$ansible_file_name";
+        assert_script_run("cp $ansible_local_full_file_path $full_ansible_file_path");
+        record_info("Copied ansible file", "Copied file $ansible_local_full_file_path to $full_ansible_file_path");
     }
 }
 
@@ -1007,6 +1015,15 @@ sub oscap_security_guide_setup {
         record_info("$pkgs Pkg_ver", "$pkgs packages' version:\n $out");
         #install ansible.posix
         assert_script_run("ansible-galaxy collection install ansible.posix");
+
+        if ($use_production_files == 1) {
+            # Backup ansible playbok for later reuse
+            my $full_ansible_file_path = $ansible_file_path . $ansible_profile_ID;
+            # Copy downloaded file to correct location
+            my $ansible_local_full_file_path = "/root/$ansible_profile_ID";
+            assert_script_run("cp $ansible_local_full_file_path $full_ansible_file_path");
+            record_info("Backuped ansible file", "Backuped file $ansible_local_full_file_path to $full_ansible_file_path");
+        }
     }
     if ($remove_rules_missing_fixes == 1 or $use_cac_master_files == 1) {
         # Get the code for the ComplianceAsCode by cloning its repository
@@ -1021,7 +1038,7 @@ sub oscap_security_guide_setup {
         replace_xccdf_file(1, $xccdf_file_name);
         
         if ($ansible_remediation == 1) {
-            replace_ansible_file(1, $ansible_profile_ID, '/usr/share/scap-security-guide/ansible/');
+            replace_ansible_file();
         }
     }
 
@@ -1085,7 +1102,7 @@ sub oscap_remediate {
             $script_cmd = "ansible-playbook -i \"localhost,\" -c local $playbook_fpath >> $f_stdout 2>> $f_stderr";
         }
         else {
-            replace_ansible_file(1, $ansible_profile_ID, '/usr/share/scap-security-guide/ansible/');
+            replace_ansible_file();
             # $ansible_playbook_modified = 0;
             $script_cmd = "ansible-playbook -i \"localhost,\" -c local $playbook_fpath";
             # If found faled tasks for current profile will add tem to command line
@@ -1093,7 +1110,7 @@ sub oscap_remediate {
             if ($cce_count > 0) {
                 $script_cmd .= " --skip-tags " . (join ",", @$failed_cce_ids_ref);
             }
-            $script_cmd .= "  >> $f_stdout 2>> $f_stderr";
+            $script_cmd .= " >> $f_stdout 2>> $f_stderr";
         }
         $ret
           = script_run($script_cmd, timeout => 3200);
