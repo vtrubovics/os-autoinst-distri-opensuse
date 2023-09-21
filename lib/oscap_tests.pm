@@ -176,7 +176,7 @@ our $use_production_files = 0;
 our $remove_rules_missing_fixes = 1;
 
 # If set to 1 - tests will use files from coned and compiled repository https://github.com/ComplianceAsCode/content
-our $use_cac_master_files = 1;
+our $use_cac_master_files = 0;
 
 # Keeps count of reboots to control it
 our $reboot_count = 0;
@@ -184,6 +184,10 @@ our $reboot_count = 0;
 # evaluate execution count done by test execution. Set in oscap_security_guide_setup.pm
 # and "security/oscap_stig/oscap_xccdf_eval" need to be set in the schedule yaml file accordingly
 our $evaluate_count = 2;
+
+# Stores CCE IDs of failed ansible remediation tasks. 
+# Used in second ansible remediation as exclusions.
+our $failed_cce_ids_ref;
 
 # Get sle version "sle12" or "sle15"
 our $sle_version = 'sle' . get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
@@ -1068,14 +1072,8 @@ sub oscap_remediate {
     if ($ansible_remediation == 1) {
         my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $ansible_profile_ID;
         my $ret;
-        my $start_time;
-        my $end_time;
-        my $execution_times = "execution_times.txt";
-        my $execution_time;
-        my $line;
         my $script_cmd;
 
-        my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $ansible_profile_ID;
         if ($ansible_playbook_modified == 0) {
             my $insert_cmd = "sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $playbook_fpath";
             assert_script_run("$insert_cmd");
@@ -1083,18 +1081,23 @@ sub oscap_remediate {
             $ansible_playbook_modified = 1;
         }
 
-        $start_time = clock_gettime(CLOCK_MONOTONIC);
-        $script_cmd = "ansible-playbook -i \"localhost,\" -c local $playbook_fpath >> $f_stdout 2>> $f_stderr";
-
+        if ($remediated == 0){
+            $script_cmd = "ansible-playbook -i \"localhost,\" -c local $playbook_fpath >> $f_stdout 2>> $f_stderr";
+        }
+        else {
+            replace_ansible_file(1, $ansible_profile_ID, '/usr/share/scap-security-guide/ansible/');
+            # $ansible_playbook_modified = 0;
+            $script_cmd = "ansible-playbook -i \"localhost,\" -c local $playbook_fpath";
+            # If found faled tasks for current profile will add tem to command line
+            my $cce_count = @$failed_cce_ids_ref;
+            if ($cce_count > 0) {
+                $script_cmd .= " --skip-tags " . (join ",", @$failed_cce_ids_ref);
+            }
+            $script_cmd .= "  >> $f_stdout 2>> $f_stderr";
+        }
         $ret
           = script_run($script_cmd, timeout => 3200);
         record_info("Return=$ret", "$script_cmd  returned: $ret");
-        $end_time = clock_gettime(CLOCK_MONOTONIC);
-        $execution_time = $end_time - $start_time;
-
-        $line = "playbook execution time: $execution_time";
-        script_run("echo $line >> $execution_times");
-        record_info("Time info", "$line");
         if ($ret != 0 and $ret != 2 and $ret != 4) {
             record_info("Returened $ret", 'remediation should be succeeded', result => 'fail');
             $self->result('fail');
@@ -1120,7 +1123,6 @@ sub oscap_remediate {
                 $self->result('fail');
 
                 my $failed_tasks_ref;
-                my $cce_ids_ref;
                 my $cce_id_and_name_ref;
                 my $sesrch_ret = ansible_failed_tasks_search($out_f_stdout, $failed_tasks_ref);
                 if ($sesrch_ret > 0) {
@@ -1130,13 +1132,13 @@ sub oscap_remediate {
                             @$failed_tasks_ref)
                     );
                     my $out_ansible_playbook = script_output("cat $playbook_fpath", quiet => 1);
-                    my $find_ret = find_ansible_cce_by_task_name ($out_ansible_playbook, $failed_tasks_ref, $cce_ids_ref, $cce_id_and_name_ref);
+                    my $find_ret = find_ansible_cce_by_task_name ($out_ansible_playbook, $failed_tasks_ref, $failed_cce_ids_ref, $cce_id_and_name_ref);
                     if ($find_ret > 0) {
                         record_info(
                             "Found CCE IDs for failed tasks",
                             "CCE IDs and tasks names ($find_ret):\n" . (join "\n",
                                 @$cce_id_and_name_ref) . "\n\nCCE IDs ($find_ret):\n" . (join "\n",
-                                @$cce_ids_ref)
+                                @$failed_cce_ids_ref)
                         );
                     }
                 }
@@ -1146,7 +1148,6 @@ sub oscap_remediate {
         # Upload only stdout logs
         upload_logs("$f_stdout") if script_run "! [[ -e $f_stdout ]]";
         upload_logs("$f_stderr") if script_run "! [[ -e $f_stderr ]]";
-        upload_logs("$execution_times") if script_run "! [[ -e $execution_times ]]";
     }
     # If doing bash remediation
     else {
