@@ -10,7 +10,7 @@ schedule:
     - security/oscap_ansible_hipaa/oscap_xccdf_remediate
     # Do evaluate again after remediate
     - security/oscap_ansible_hipaa/oscap_xccdf_eval
-c    - security/oscap_ansible_hipaa/oscap_xccdf_remediate
+    - security/oscap_ansible_hipaa/oscap_xccdf_remediate
     # Do evaluate again after remediate
     - security/oscap_ansible_hipaa/oscap_xccdf_eval
 conditional_schedule:
