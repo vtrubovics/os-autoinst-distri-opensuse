@@ -543,6 +543,8 @@ sub find_ansible_cce_by_task_name {
             $i++;
         }
     }
+    @cce_ids = uniq @cce_ids;
+    @cce_id_and_name = uniq @cce_id_and_name;
     $_[2] = \@cce_ids;
     $_[3] = \@cce_id_and_name;
     return $found;
