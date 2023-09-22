@@ -1190,13 +1190,13 @@ sub oscap_remediate {
         }
 
         if ($remediated == 0){
-            $script_cmd = "ansible-playbook -i -vv \"localhost,\" -c local $full_ansible_file_path >> $f_stdout 2>> $f_stderr";
+            $script_cmd = "ansible-playbook -vv -i \"localhost,\" -c local $full_ansible_file_path >> $f_stdout 2>> $f_stderr";
         }
         else {
             # replace modified file to original to verify exclusions
             replace_ansible_file();
             # $ansible_playbook_modified = 0;
-            $script_cmd = "ansible-playbook -i -vv \"localhost,\" -c local $full_ansible_file_path";
+            $script_cmd = "ansible-playbook -vv -i \"localhost,\" -c local $full_ansible_file_path";
             # If found faled tasks for current profile will add tem to command line
             my $cce_count = @$failed_cce_ids_ref;
             if ($cce_count > 0) {
