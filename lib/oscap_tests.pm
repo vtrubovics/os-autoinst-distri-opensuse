@@ -1065,7 +1065,6 @@ sub oscap_security_guide_setup {
 
     # Install packages
     zypper_call('in openscap-utils scap-security-guide', timeout => 180);
-    $full_ansible_file_path = $ansible_file_path . $ansible_profile_ID;
     # Record the pkgs' version for reference
     my $out = script_output("zypper se -s openscap-utils scap-security-guide");
     record_info("Pkg_ver", "openscap security guide packages' version:\n $out");
@@ -1188,6 +1187,7 @@ sub oscap_remediate {
             record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook. CMD:\n$insert_cmd");
             $ansible_playbook_modified = 1;
         }
+        my $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1, timeout => 1200);
 
         if ($remediated == 0){
             $script_cmd = "ansible-playbook -vv -i \"localhost,\" -c local $full_ansible_file_path >> $f_stdout 2>> $f_stderr";
@@ -1243,7 +1243,7 @@ sub oscap_remediate {
                         "\n\nFailed tasks line numbers ($sesrch_ret):\n" . (join "\n",
                             @$tasks_line_numbers_ref)
                     );
-                    my $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1, timeout => 1200);
+                    # my $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1, timeout => 1200);
                     my $find_ret = find_ansible_cce_by_task_name_vv ($out_ansible_playbook, $failed_tasks_ref, $tasks_line_numbers_ref, $failed_cce_ids_ref, $cce_id_and_name_ref);
                     if ($find_ret > 0) {
                         record_info(
