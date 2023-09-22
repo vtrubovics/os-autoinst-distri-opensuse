@@ -1225,7 +1225,7 @@ sub oscap_remediate {
             $self->result('fail');
         }
         else {
-            $out_f_stdout = script_output("cat $f_stdout", quiet => 1);
+            $out_f_stdout = script_output("cat $f_stdout", quiet => 1, timeout => 1200);
             record_info('Got analysis results', "Ansible playbook.\nPLAY RECAP:\n$full_report");
             if ($failed_number > 0 or $ignored_number >0) {
                 record_info('Found failed tasks', "Found:\nFailed tasks: $failed_number\nIgnored tasks: $ignored_number\nin ansible playbook remediations $f_stdout file");
@@ -1243,7 +1243,7 @@ sub oscap_remediate {
                         "\n\nFailed tasks line numbers ($sesrch_ret):\n" . (join "\n",
                             @$tasks_line_numbers_ref)
                     );
-                    my $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1);
+                    my $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1, timeout => 1200);
                     my $find_ret = find_ansible_cce_by_task_name_vv ($out_ansible_playbook, $failed_tasks_ref, $tasks_line_numbers_ref, $failed_cce_ids_ref, $cce_id_and_name_ref);
                     if ($find_ret > 0) {
                         record_info(
