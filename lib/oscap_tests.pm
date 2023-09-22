@@ -1065,7 +1065,7 @@ sub oscap_security_guide_setup {
 
     # Install packages
     zypper_call('in openscap-utils scap-security-guide', timeout => 180);
-
+    $full_ansible_file_path = $ansible_file_path . $ansible_profile_ID;
     # Record the pkgs' version for reference
     my $out = script_output("zypper se -s openscap-utils scap-security-guide");
     record_info("Pkg_ver", "openscap security guide packages' version:\n $out");
@@ -1097,6 +1097,7 @@ sub oscap_security_guide_setup {
 
     # If required ansible remediation
     if ($ansible_remediation == 1) {
+        $full_ansible_file_path = $ansible_file_path . $ansible_profile_ID;
         my $pkgs = 'ansible';
         # Need to update SLES to fix issues with STIG playbook
         record_info("Update", "Updaiting SLES");
