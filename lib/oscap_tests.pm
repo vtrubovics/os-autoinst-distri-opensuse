@@ -166,6 +166,7 @@ our $ansible_remediation = 0;
 
 # Directory where ansible playbooks resides on local system
 our $ansible_file_path = "/usr/share/scap-security-guide/ansible/";
+our $full_ansible_file_path = $ansible_file_path . $ansible_profile_ID;
 
 # Variables $use_production_files and $remove_rules_missing_fixes are fetched from configuration file located in:
 #https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/blob/main/content/openqa_config.conf
@@ -272,8 +273,6 @@ sub replace_xccdf_file {
 # Replace original ansible file whith built or downloaded from repository
 sub replace_ansible_file {
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/";
-    my $full_ansible_file_path = $ansible_file_path . $ansible_profile_ID;
-
     if ($use_cac_master_files == 1) {
         # Remove original ansible file
         assert_script_run("rm $full_ansible_file_path");
@@ -305,7 +304,6 @@ sub replace_ansible_file {
 sub get_ansible_exclusions {
     my $self = $_[0];
     my $ansible_exclusions_file_name = "ansible_exclusions.txt";
-    my $ansible_file_path = '/usr/share/scap-security-guide/ansible/' . $ansible_profile_ID;
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/";
 
     download_file_from_https_repo($url, $ansible_exclusions_file_name);
@@ -330,7 +328,7 @@ sub get_ansible_exclusions {
     # If exclusion are not found for playbook - ignore_errors: true are added to all tasks in playbook
     if ($found == 0 and $ansible_playbook_modified == 0) {
         record_info("Did not found exclusions", "Did not found exclusions for profile $profile_ID");
-        my $insert_cmd = "sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $ansible_file_path";
+        my $insert_cmd = "sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $full_ansible_file_path";
         assert_script_run("$insert_cmd");
         record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook. CMD:\n$insert_cmd");
         $ansible_playbook_modified = 1;
@@ -563,7 +561,102 @@ sub find_ansible_cce_by_task_name {
     $_[3] = \@cce_id_and_name;
     return $cce_ids_size;
 }
+sub ansible_failed_tasks_search_vv {
+    #Find count and rules names of matched pattern
+    my $data = $_[0];
+    my @report = ();
+    my $full_report = "";
+    my $i;
+    my $j = 1;
+    my @failed_tasks = ();
+    my @tasks_line_numbers = ();
+    my $found_task = 0;
 
+    my @lines = split /\n|\r/, $data;
+    for ($i = 0; $i <= $#lines;) {
+        if ($lines[$i] =~ /^fatal:/ or $lines[$i] =~ /^failed:/) {
+            # looking for TASK name in upper lines
+            unless ($found_task == 1 or $i - $j == 0) {
+                if ($lines[$i - $j] =~ /task path:/) {
+                    @report = (split /:/, $lines[$i - $j]);
+                    $report[2] =~ s/\r|\n//g;
+                    push(@tasks_line_numbers, $report[2]);
+                }
+                if ($lines[$i - $j] =~ /TASK/) {
+                    $found_task = 1;
+                }
+                else{$j++;}
+            }
+            $full_report = $lines[$i - $j];
+            @report = (split /\[/, $full_report, 2);
+            $report[1] =~ s/\]\s\*+|\n//g;
+            push(@failed_tasks, $report[1]);
+            $j = 1;
+            $found_task = 0
+        }
+        $i++;
+    }
+    @failed_tasks = uniq @failed_tasks;
+    $_[1] = \@failed_tasks;
+    $_[2] = \@tasks_line_numbers;
+    my $failed_tasks_size = @failed_tasks;
+
+    return $failed_tasks_size;
+}
+
+sub find_ansible_cce_by_task_name_vv {
+    my $data = $_[0];
+    my $failed_tasks = $_[1];
+    my $tasks_line_numbers = $_[2];
+    my $j = 1;
+    my $i;
+    my @cce_ids;
+    my @cce_id_and_name;
+    my $found_cce = 0;
+    my $index;
+    my $line;
+    my @report = ();
+    my $task_line_number;
+
+    my @lines = split /\n/, $data;
+    for ($i = 0; $i <= $#lines;) {
+        if ($lines[$i] =~ /- name:/) {
+            $index = index($lines[$i], "me: ");
+            if ($lines[$i + 1] =~ /^\s{$index}/) {
+                $lines[$i] =~ s/\r|\n//g;
+                $lines[$i + 1] =~ s/^\s{$index}//g;
+                $lines[$i] .= " " . $lines[$i + 1];
+            }
+        }
+        $i++;
+    }
+    $i = 0;
+    foreach $task_line_number (@$tasks_line_numbers) {
+        if ($lines[$task_line_number - 1] =~ /- name:/) {
+            # looking for task CCE ID
+            while ($found_cce == 0) {
+                if ($lines[$task_line_number + $j] =~ /CCE-/) {
+                    $found_cce = 1;
+                }
+                else{$j++;}
+            }
+            @report = split /\-\s+/, $lines[$task_line_number + $j];
+            $report[1] =~ s/\r|\n//g;
+            push(@cce_ids, $report[1]);
+            $line = "$report[1], @$failed_tasks[$i], Line number: $task_line_number";
+            push(@cce_id_and_name, $line);
+            $j = 1;
+            $found_cce = 0;
+        }
+        $i++;
+    }
+    @cce_ids = uniq @cce_ids;
+    @cce_id_and_name = uniq @cce_id_and_name;
+    my $cce_ids_size = @cce_ids;
+    $_[3] = \@cce_ids;
+    $_[4] = \@cce_id_and_name;
+    return $cce_ids_size;
+}
 sub upload_logs_reports {
     # Upload logs & ouputs for reference
     # my $files;
@@ -728,23 +821,22 @@ sub modify_ds_ansible_files {
         record_info("Diasble excluded and fix missing rules in ds file", "Command $unselect_cmd");
         upload_logs("$ansible_fix_missing") if script_run "! [[ -e $ansible_fix_missing ]]";
         # Generate new playbook without exclusions and fix_missing rules
-        my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $ansible_profile_ID;
-        my $playbook_gen_cmd = "oscap xccdf generate fix --profile $profile_ID --fix-type ansible $f_ssg_sle_ds > playbook.yml";
+       my $playbook_gen_cmd = "oscap xccdf generate fix --profile $profile_ID --fix-type ansible $f_ssg_sle_ds > playbook.yml";
 
         assert_script_run("$playbook_gen_cmd", timeout => 600);
         record_info("Generated playbook", "Command $playbook_gen_cmd");
-        assert_script_run("rm $playbook_fpath");
-        assert_script_run("cp playbook.yml $playbook_fpath");
-        record_info("Replaced playbook", "Replaced playbook $playbook_fpath with generated playbook.yml");
+        assert_script_run("rm $full_ansible_file_path");
+        assert_script_run("cp playbook.yml $full_ansible_file_path");
+        record_info("Replaced playbook", "Replaced playbook $full_ansible_file_path with generated playbook.yml");
         # Modify ansible playbook
         if ($ansible_playbook_modified == 0) {
-            my $insert_cmd = "sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $playbook_fpath";
+            my $insert_cmd = "sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $full_ansible_file_path";
             assert_script_run("$insert_cmd");
             record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook. CMD:\n$insert_cmd");
             $ansible_playbook_modified = 1;
         }
         
-        upload_logs("$playbook_fpath") if script_run "! [[ -e $playbook_fpath ]]";
+        upload_logs("$full_ansible_file_path") if script_run "! [[ -e $full_ansible_file_path ]]";
         # After playbook is regenereates need to modify it on next get_ansible_exclusions call
         # $ansible_playbook_modified = 0;
     }
@@ -1018,7 +1110,6 @@ sub oscap_security_guide_setup {
 
         if ($use_production_files == 1) {
             # Backup ansible playbok for later reuse
-            my $full_ansible_file_path = $ansible_file_path . $ansible_profile_ID;
             # Copy downloaded file to correct location
             my $ansible_local_full_file_path = "/root/$ansible_profile_ID";
             assert_script_run("cp $ansible_local_full_file_path $full_ansible_file_path");
@@ -1087,24 +1178,24 @@ sub oscap_remediate {
     # Verify mitigation mode
     # If doing ansible playbook remediation
     if ($ansible_remediation == 1) {
-        my $playbook_fpath = '/usr/share/scap-security-guide/ansible/' . $ansible_profile_ID;
         my $ret;
         my $script_cmd;
 
         if ($ansible_playbook_modified == 0) {
-            my $insert_cmd = "sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $playbook_fpath";
+            my $insert_cmd = "sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $full_ansible_file_path";
             assert_script_run("$insert_cmd");
             record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook. CMD:\n$insert_cmd");
             $ansible_playbook_modified = 1;
         }
 
         if ($remediated == 0){
-            $script_cmd = "ansible-playbook -i \"localhost,\" -c local $playbook_fpath >> $f_stdout 2>> $f_stderr";
+            $script_cmd = "ansible-playbook -i -vv \"localhost,\" -c local $full_ansible_file_path >> $f_stdout 2>> $f_stderr";
         }
         else {
+            # replace modified file to original to verify exclusions
             replace_ansible_file();
             # $ansible_playbook_modified = 0;
-            $script_cmd = "ansible-playbook -i \"localhost,\" -c local $playbook_fpath";
+            $script_cmd = "ansible-playbook -i -vv \"localhost,\" -c local $full_ansible_file_path";
             # If found faled tasks for current profile will add tem to command line
             my $cce_count = @$failed_cce_ids_ref;
             if ($cce_count > 0) {
@@ -1141,15 +1232,18 @@ sub oscap_remediate {
 
                 my $failed_tasks_ref;
                 my $cce_id_and_name_ref;
-                my $sesrch_ret = ansible_failed_tasks_search($out_f_stdout, $failed_tasks_ref);
+                my $tasks_line_numbers_ref;
+                my $sesrch_ret = ansible_failed_tasks_search_vv($out_f_stdout, $failed_tasks_ref, $tasks_line_numbers_ref);
                 if ($sesrch_ret > 0) {
                     record_info(
                         "Found failed tasks names",
                         "Failed tasks unique names ($sesrch_ret):\n" . (join "\n",
-                            @$failed_tasks_ref)
+                            @$failed_tasks_ref) . 
+                        "\n\nFailed tasks line numbers ($sesrch_ret):\n" . (join "\n",
+                            @$tasks_line_numbers_ref)
                     );
-                    my $out_ansible_playbook = script_output("cat $playbook_fpath", quiet => 1);
-                    my $find_ret = find_ansible_cce_by_task_name ($out_ansible_playbook, $failed_tasks_ref, $failed_cce_ids_ref, $cce_id_and_name_ref);
+                    my $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1);
+                    my $find_ret = find_ansible_cce_by_task_name_vv ($out_ansible_playbook, $failed_tasks_ref, $tasks_line_numbers_ref, $failed_cce_ids_ref, $cce_id_and_name_ref);
                     if ($find_ret > 0) {
                         record_info(
                             "Found CCE IDs for failed tasks",
@@ -1158,6 +1252,12 @@ sub oscap_remediate {
                                 @$failed_cce_ids_ref)
                         );
                     }
+                    else {
+                        record_info('No failed CCE', "Did not find failed CCE IDs");
+                    }
+                }
+                else {
+                    record_info('No failed tasks', "Did not find failed tasks");
                 }
             }
         }
