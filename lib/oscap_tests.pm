@@ -179,8 +179,8 @@ our $use_production_files = 0;
 # If set to 0 - no changes done.
 our $remove_rules_missing_fixes = 1;
 
-# If set to 1 - tests will use files from coned and compiled repository https://github.com/ComplianceAsCode/content
-our $use_cac_master_files = 1;
+# If set to 1 - tests will use files from cloned and compiled repository https://github.com/ComplianceAsCode/content
+our $use_cac_master_files = 0;
 
 # Keeps count of reboots to control it
 our $reboot_count = 0;
