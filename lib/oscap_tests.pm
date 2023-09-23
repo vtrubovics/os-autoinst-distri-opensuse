@@ -1203,7 +1203,7 @@ sub oscap_remediate {
             # $ansible_playbook_modified = 0;
             $script_cmd = "ansible-playbook -vv -i \"localhost,\" -c local $full_ansible_file_path";
             # If found faled tasks for current profile will add tem to command line
-            if (defined @$failed_cce_ids_ref) {
+            if (defined $failed_cce_ids_ref) {
                 my $cce_count = @$failed_cce_ids_ref;
                 if ($cce_count > 0) {
                     $script_cmd .= " --skip-tags " . (join ",", @$failed_cce_ids_ref);
