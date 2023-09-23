@@ -168,19 +168,18 @@ our $ansible_remediation = 0;
 our $ansible_file_path = "/usr/share/scap-security-guide/ansible/";
 our $full_ansible_file_path = $ansible_file_path . $ansible_profile_ID;
 
-# Variables $use_production_files and $remove_rules_missing_fixes are fetched from configuration file located in:
+# Variables $use_content_type and $remove_rules_missing_fixes are fetched from configuration file located in:
 #https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/blob/main/content/openqa_config.conf
+# Configuration for the contenyt type (source of ds, ansible and xccdf files):
 # If set to 1 - tests will use files from scap-security-guide package
-# If set to 0 - tests will use files from https://gitlab.suse.de/seccert-public/compliance-as-code-compiled repository
-our $use_production_files = 0;
+# If set to 2 - tests will use files from compliance-as-code-compiled repository - https://gitlab.suse.de/seccert-public/compliance-as-code-compiled 
+# If set to 3 - tests will use files cloned and built from ComplianceAsCode repository master branch - https://github.com/ComplianceAsCode/content.git 
+our $use_content_type = 1;
 
 # Option configures to use or not functionality to remove from DS and ansible file rules for which do not have remediations
 # If set to 1 - rules for which do not have remediations will be removed from DS and ansible file rules for which do not have remediations
 # If set to 0 - no changes done.
 our $remove_rules_missing_fixes = 1;
-
-# If set to 1 - tests will use files from cloned and compiled repository https://github.com/ComplianceAsCode/content
-our $use_cac_master_files = 0;
 
 # Keeps count of reboots to control it
 our $reboot_count = 0;
@@ -231,14 +230,16 @@ sub replace_ds_file {
     my $ds_file_name = $_[1];
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
 
-    if ($use_cac_master_files == 1) {
+    # ComplianceAsCode repository master branch
+    if ($use_content_type == 3) {
         assert_script_run("rm $f_ssg_sle_ds");
         # Copy built file to correct location
         my $ds_local_full_file_path = "$compliance_as_code_path/build/$ds_file_name";
         assert_script_run("cp $ds_local_full_file_path $f_ssg_sle_ds");
         record_info("Copied ds file", "Copied file $ds_local_full_file_path to $f_ssg_sle_ds");
     }
-    else {
+    # compliance-as-code-compiled
+    elsif ($use_content_type == 2){
         download_file_from_https_repo($url, $ds_file_name);
         # Remove original ds file
         assert_script_run("rm $f_ssg_sle_ds");
@@ -253,14 +254,16 @@ sub replace_xccdf_file {
     my $xccdf_file_name = $_[1];
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
 
-    if ($use_cac_master_files == 1) {
+    # ComplianceAsCode repository master branch
+    if ($use_content_type == 3) {
         assert_script_run("rm $f_ssg_sle_xccdf");
         # Copy built file to correct location
         my $xccdf_local_full_file_path = "$compliance_as_code_path/build/$xccdf_file_name";
         assert_script_run("cp $xccdf_local_full_file_path $f_ssg_sle_xccdf");
         record_info("Copied xccdf file", "Copied file $xccdf_local_full_file_path to $f_ssg_sle_xccdf");
     }
-    else {
+    # compliance-as-code-compiled
+    elsif ($use_content_type == 2){
         download_file_from_https_repo($url, $xccdf_file_name);
         # Remove original xccdf file
         assert_script_run("rm $f_ssg_sle_xccdf");
@@ -273,7 +276,8 @@ sub replace_xccdf_file {
 # Replace original ansible file whith built or downloaded from repository
 sub replace_ansible_file {
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/";
-    if ($use_cac_master_files == 1) {
+    # ComplianceAsCode repository master branch
+    if ($use_content_type == 3) {
         # Remove original ansible file
         assert_script_run("rm $full_ansible_file_path");
         my $ansible_local_full_file_path = "$compliance_as_code_path/build/ansible/$ansible_profile_ID";
@@ -282,7 +286,8 @@ sub replace_ansible_file {
         record_info("Copied ansible file", "Copied file $ansible_local_full_file_path to $full_ansible_file_path");
         upload_logs("$full_ansible_file_path") if script_run "! [[ -e $full_ansible_file_path ]]";
     }
-    elsif ($use_production_files == 0){
+    #  compliance-as-code-compiled
+    elsif ($use_content_type == 2){
         download_file_from_https_repo($url, $ansible_profile_ID);
         # Remove original ansible file
         assert_script_run("rm $full_ansible_file_path");
@@ -290,10 +295,11 @@ sub replace_ansible_file {
         assert_script_run("cp $ansible_profile_ID $full_ansible_file_path");
         record_info("Copied ansible file", "Copied file $ansible_profile_ID to $full_ansible_file_path");
     }
-    elsif ($use_production_files == 1){
+    # scap-security-guide
+    elsif ($use_content_type == 1){
         # Remove original ansible file
         assert_script_run("rm $full_ansible_file_path");
-        # Copy downloaded file to correct location
+        # Copy file to correct location
         my $ansible_local_full_file_path = "/root/$ansible_profile_ID";
         assert_script_run("cp $ansible_local_full_file_path $full_ansible_file_path");
         record_info("Copied ansible file", "Copied file $ansible_local_full_file_path to $full_ansible_file_path");
@@ -936,30 +942,29 @@ sub get_cac_code {
 
     record_info("Cloned ComplianceAsCode", "Cloned repo $git_repo to folder: $compliance_as_code_path");
 
-    if ($use_cac_master_files == 1) {
-        zypper_call('in cmake', timeout => 180);
-        zypper_call('in libxslt-tools', timeout => 180);
-
-        assert_script_run("pip3 --quiet install lxml", timeout => 600);
-        assert_script_run("pip3 --quiet install pytest", timeout => 600);
-        assert_script_run("pip3 --quiet install pytest_cov", timeout => 600);
-        assert_script_run("pip3 --quiet install json2html", timeout => 600);
-        assert_script_run("pip3 --quiet install sphinxcontrib-jinjadomain", timeout => 600);
-        assert_script_run("pip3 --quiet install autojinja", timeout => 600);
-        assert_script_run("pip3 --quiet install sphinx_rtd_theme", timeout => 600);
-        assert_script_run("pip3 --quiet install myst_parser", timeout => 600);
-        assert_script_run("pip3 --quiet install prometheus_client", timeout => 600);
-        assert_script_run("pip3 --quiet install mypy", timeout => 600);
-        assert_script_run("pip3 --quiet install openpyxl", timeout => 600);
-        assert_script_run("pip3 --quiet install pandas", timeout => 600);
-        assert_script_run("pip3 --quiet install pcre2", timeout => 600);
-        assert_script_run("pip3 --quiet install cmakelint", timeout => 600);
-        assert_script_run("pip3 --quiet install sphinx", timeout => 600);
+    if ($use_content_type == 3) {
+        zypper_call('in cmake libxslt-tools', timeout => 180);
+        my $py_libs = "lxml pytest pytest_cov json2html sphinxcontrib-jinjadomain autojinja sphinx_rtd_theme myst_parser prometheus_client mypy openpyxl pandas pcre2 cmakelint sphinx";
+        assert_script_run("pip3 --quiet install $py_libs", timeout => 600);
+        # assert_script_run("pip3 --quiet install lxml", timeout => 600);
+        # assert_script_run("pip3 --quiet install pytest", timeout => 600);
+        # assert_script_run("pip3 --quiet install pytest_cov", timeout => 600);
+        # assert_script_run("pip3 --quiet install json2html", timeout => 600);
+        # assert_script_run("pip3 --quiet install sphinxcontrib-jinjadomain", timeout => 600);
+        # assert_script_run("pip3 --quiet install autojinja", timeout => 600);
+        # assert_script_run("pip3 --quiet install sphinx_rtd_theme", timeout => 600);
+        # assert_script_run("pip3 --quiet install myst_parser", timeout => 600);
+        # assert_script_run("pip3 --quiet install prometheus_client", timeout => 600);
+        # assert_script_run("pip3 --quiet install mypy", timeout => 600);
+        # assert_script_run("pip3 --quiet install openpyxl", timeout => 600);
+        # assert_script_run("pip3 --quiet install pandas", timeout => 600);
+        # assert_script_run("pip3 --quiet install pcre2", timeout => 600);
+        # assert_script_run("pip3 --quiet install cmakelint", timeout => 600);
+        # assert_script_run("pip3 --quiet install sphinx", timeout => 600);
 
         # Building CaC content 
         assert_script_run("cd $compliance_as_code_path");
         assert_script_run("sh build_product $sle_version", timeout => 9000);
-        # my $data = script_output("sh build_product $sle_version");
         record_info("build_product", "sh build_product $sle_version");
         assert_script_run("cd /root");
     }
@@ -998,9 +1003,9 @@ sub get_tests_config {
     $config = Config::Tiny->read_string("$data");
     my $err = $config::Tiny::errstr;
     if ($err eq "") {
-        $use_production_files = $config->{tests_config}->{use_production_files};
+        $use_content_type = $config->{tests_config}->{use_content_type};
         $remove_rules_missing_fixes = $config->{tests_config}->{remove_rules_missing_fixes};
-        record_info("Set test configuration", "Set test configuration from file $config_file_path\n use_production_files = $use_production_files\n  remove_rules_missing_fixes = $remove_rules_missing_fixes");
+        record_info("Set test configuration", "Set test configuration from file $config_file_path\n use_content_type = $use_content_type\n  remove_rules_missing_fixes = $remove_rules_missing_fixes");
     }
     else {
         record_info("Tiny->read error", "Config::Tiny->read( $config_file_path )returened error:\n$err");
@@ -1108,7 +1113,7 @@ sub oscap_security_guide_setup {
         #install ansible.posix
         assert_script_run("ansible-galaxy collection install ansible.posix");
 
-        if ($use_production_files == 1) {
+        if ($use_content_type == 2) {
             # Backup ansible playbok for later reuse
             # Copy downloaded file to correct location
             my $ansible_local_full_file_path = "/root/$ansible_profile_ID";
@@ -1116,12 +1121,12 @@ sub oscap_security_guide_setup {
             record_info("Backuped ansible file", "Backuped file $ansible_local_full_file_path to $full_ansible_file_path");
         }
     }
-    if ($remove_rules_missing_fixes == 1 or $use_cac_master_files == 1) {
+    if ($remove_rules_missing_fixes == 1 or $use_content_type == 3) {
         # Get the code for the ComplianceAsCode by cloning its repository
         get_cac_code();
     }
-
-    if ($use_production_files == 0) {
+    # compliance-as-code-compiled or ComplianceAsCode repository master branch
+    if ($use_content_type == 2 or $use_content_type == 3) {
         my $ds_file_name = is_sle ? $ssg_sle_ds : $ssg_tw_ds;
         replace_ds_file(1, $ds_file_name);
 
