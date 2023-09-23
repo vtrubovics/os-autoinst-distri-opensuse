@@ -1225,7 +1225,10 @@ sub oscap_remediate {
             $self->result('fail');
         }
         else {
-            $out_f_stdout = script_output("cat $f_stdout", quiet => 1, timeout => 1200);
+#            $out_f_stdout = script_output("cat $f_stdout", quiet => 1, timeout => 1200);
+            my $grep_cmd = 'grep "TASK\|task path:\|fatal:\|failed:" ' . "$f_stdout";
+            $out_f_stdout = script_output("$grep_cmd", quiet => 1, timeout => 1200);
+            record_info('Grep cmd', "grep cmd: $grep_cmd");
             record_info('Got analysis results', "Ansible playbook.\nPLAY RECAP:\n$full_report");
             if ($failed_number > 0 or $ignored_number >0) {
                 record_info('Found failed tasks', "Found:\nFailed tasks: $failed_number\nIgnored tasks: $ignored_number\nin ansible playbook remediations $f_stdout file");
