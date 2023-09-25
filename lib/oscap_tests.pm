@@ -1068,6 +1068,8 @@ sub oscap_security_guide_setup {
 
     select_console 'root-console';
 
+    # Refresh repositories
+    zypper_call('ref -s', timeout => 180);
     # Install packages
     zypper_call('in openscap-utils scap-security-guide', timeout => 180);
     # Record the pkgs' version for reference
@@ -1112,13 +1114,13 @@ sub oscap_security_guide_setup {
         record_info("$pkgs Pkg_ver", "$pkgs packages' version:\n $out");
         #install ansible.posix
         assert_script_run("ansible-galaxy collection install ansible.posix");
-
-        if ($use_content_type == 2) {
-            # Backup ansible playbok for later reuse
+          
+        if ($use_content_type == 1) {
+            # Backup ansible playbok if using production content for later reuse
             # Copy downloaded file to correct location
             my $ansible_local_full_file_path = "/root/$ansible_profile_ID";
-            assert_script_run("cp $ansible_local_full_file_path $full_ansible_file_path");
-            record_info("Backuped ansible file", "Backuped file $ansible_local_full_file_path to $full_ansible_file_path");
+            assert_script_run("cp $full_ansible_file_path $ansible_local_full_file_path");
+            record_info("Backuped ansible file", "Backuped file $full_ansible_file_path to $ansible_local_full_file_path");
         }
     }
     if ($remove_rules_missing_fixes == 1 or $use_content_type == 3) {
