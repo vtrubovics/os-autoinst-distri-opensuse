@@ -624,6 +624,7 @@ sub find_ansible_cce_by_task_name_vv {
     my @report = ();
     my $task_line_number;
 
+    # Join long task name to one line
     my @lines = split /\n/, $data;
     for ($i = 0; $i <= $#lines;) {
         if ($lines[$i] =~ /- name:/) {
@@ -640,7 +641,7 @@ sub find_ansible_cce_by_task_name_vv {
     foreach $task_line_number (@$tasks_line_numbers) {
         if ($lines[$task_line_number - 1] =~ /- name:/) {
             # looking for task CCE ID
-            while ($found_cce == 0) {
+            while ($found_cce == 0 or $task_line_number + $j == $#lines) {
                 if ($lines[$task_line_number + $j] =~ /CCE-/) {
                     $found_cce = 1;
                 }
@@ -886,14 +887,9 @@ sub generate_mising_rules {
     my $stats_output_file = "stats_profile_missing.txt";
 
     zypper_call("in python3");
+    my $py_libs = "jinja2 PyYAML pytest pytest-cov Jinja2 setuptools ninja";
     assert_script_run('pip3 --quiet install --upgrade pip', timeout => 600);
-    assert_script_run("pip3 --quiet install jinja2", timeout => 600);
-    assert_script_run("pip3 --quiet install PyYAML", timeout => 600);
-    assert_script_run("pip3 --quiet install pytest", timeout => 600);
-    assert_script_run("pip3 --quiet install pytest-cov", timeout => 600);
-    assert_script_run("pip3 --quiet install Jinja2", timeout => 600);
-    assert_script_run("pip3 --quiet install setuptools", timeout => 600);
-    assert_script_run("pip3 --quiet install ninja", timeout => 600);
+    assert_script_run("pip3 --quiet install $py_libs", timeout => 600);
 
     assert_script_run("alias python=python3");
     assert_script_run("cd $compliance_as_code_path");
@@ -946,21 +942,6 @@ sub get_cac_code {
         zypper_call('in cmake libxslt-tools', timeout => 180);
         my $py_libs = "lxml pytest pytest_cov json2html sphinxcontrib-jinjadomain autojinja sphinx_rtd_theme myst_parser prometheus_client mypy openpyxl pandas pcre2 cmakelint sphinx";
         assert_script_run("pip3 --quiet install $py_libs", timeout => 600);
-        # assert_script_run("pip3 --quiet install lxml", timeout => 600);
-        # assert_script_run("pip3 --quiet install pytest", timeout => 600);
-        # assert_script_run("pip3 --quiet install pytest_cov", timeout => 600);
-        # assert_script_run("pip3 --quiet install json2html", timeout => 600);
-        # assert_script_run("pip3 --quiet install sphinxcontrib-jinjadomain", timeout => 600);
-        # assert_script_run("pip3 --quiet install autojinja", timeout => 600);
-        # assert_script_run("pip3 --quiet install sphinx_rtd_theme", timeout => 600);
-        # assert_script_run("pip3 --quiet install myst_parser", timeout => 600);
-        # assert_script_run("pip3 --quiet install prometheus_client", timeout => 600);
-        # assert_script_run("pip3 --quiet install mypy", timeout => 600);
-        # assert_script_run("pip3 --quiet install openpyxl", timeout => 600);
-        # assert_script_run("pip3 --quiet install pandas", timeout => 600);
-        # assert_script_run("pip3 --quiet install pcre2", timeout => 600);
-        # assert_script_run("pip3 --quiet install cmakelint", timeout => 600);
-        # assert_script_run("pip3 --quiet install sphinx", timeout => 600);
 
         # Building CaC content 
         assert_script_run("cd $compliance_as_code_path");
@@ -1194,14 +1175,14 @@ sub oscap_remediate {
             record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook. CMD:\n$insert_cmd");
             $ansible_playbook_modified = 1;
         }
-        my $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1, timeout => 1200);
-
         if ($remediated == 0){
+            my $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1, timeout => 1200);
             $script_cmd = "ansible-playbook -vv -i \"localhost,\" -c local $full_ansible_file_path >> $f_stdout 2>> $f_stderr";
         }
         else {
             # replace modified file to original to verify exclusions
             replace_ansible_file();
+            my $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1, timeout => 1200);
             # $ansible_playbook_modified = 0;
             $script_cmd = "ansible-playbook -vv -i \"localhost,\" -c local $full_ansible_file_path";
             # If found faled tasks for current profile will add tem to command line
