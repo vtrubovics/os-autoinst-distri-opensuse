@@ -1161,6 +1161,7 @@ sub oscap_security_guide_setup {
 
 sub oscap_remediate {
     my ($self) = @_;
+    my $out_ansible_playbook;
     select_console 'root-console';
 
     # Verify mitigation mode
@@ -1176,13 +1177,13 @@ sub oscap_remediate {
             $ansible_playbook_modified = 1;
         }
         if ($remediated == 0){
-            my $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1, timeout => 1200);
+            $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1, timeout => 1200);
             $script_cmd = "ansible-playbook -vv -i \"localhost,\" -c local $full_ansible_file_path >> $f_stdout 2>> $f_stderr";
         }
         else {
             # replace modified file to original to verify exclusions
             replace_ansible_file();
-            my $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1, timeout => 1200);
+            $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1, timeout => 1200);
             # $ansible_playbook_modified = 0;
             $script_cmd = "ansible-playbook -vv -i \"localhost,\" -c local $full_ansible_file_path";
             # If found faled tasks for current profile will add tem to command line
