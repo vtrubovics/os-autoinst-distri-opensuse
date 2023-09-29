@@ -102,7 +102,7 @@ our $f_ssg_ds;
 
 # Profile IDs
 our $profile_ID;
-our $ansible_profile_ID;
+our $ansible_profile_ID = "";
 # Priority High:
 our $profile_ID_sle_stig = 'xccdf_org.ssgproject.content_profile_stig';
 our $profile_ID_sle_cis = 'xccdf_org.ssgproject.content_profile_cis';
@@ -191,6 +191,10 @@ our $evaluate_count = 2;
 # Stores CCE IDs of failed ansible remediation tasks. 
 # Used in second ansible remediation as exclusions.
 our $failed_cce_ids_ref;
+
+# List to collect needed run results
+our @test_run_report = ();
+our $test_run_report_name = "test_run_report.txt";
 
 # Get sle version "sle12" or "sle15"
 our $sle_version = 'sle' . get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
@@ -755,8 +759,7 @@ sub cce_ids_in_file {
 
 sub modify_ds_ansible_files {
     # Removes bash and ansible excluded and not having fixes rules from DS and playbook files
-    my $self = $_[0];
-    my $in_file_path = $_[1];
+    my $in_file_path = $_[0];
     my $bash_pattern = "missing a bash fix";
     my $ansible_pattern = "missing a ansible fix";
     my $data;
@@ -828,7 +831,7 @@ sub modify_ds_ansible_files {
         record_info("Diasble excluded and fix missing rules in ds file", "Command $unselect_cmd");
         upload_logs("$ansible_fix_missing") if script_run "! [[ -e $ansible_fix_missing ]]";
         # Generate new playbook without exclusions and fix_missing rules
-       my $playbook_gen_cmd = "oscap xccdf generate fix --profile $profile_ID --fix-type ansible $f_ssg_sle_ds > playbook.yml";
+        my $playbook_gen_cmd = "oscap xccdf generate fix --profile $profile_ID --fix-type ansible $f_ssg_sle_ds > playbook.yml";
 
         assert_script_run("$playbook_gen_cmd", timeout => 600);
         record_info("Generated playbook", "Command $playbook_gen_cmd");
@@ -878,7 +881,8 @@ sub modify_ds_ansible_files {
     my $bash_file_full_path = "$output_full_path/$bash_fix_missing";
     my $ansible_file_full_path = "$output_full_path/$ansible_fix_missing";
     record_info("Files paths for missing rules ", "Bash file path:\n$bash_file_full_path\nAnsible file path:\n $ansible_file_full_path");
-
+    $_[1] = \@bash_rules;
+    $_[2] = \@ansible_rules
 }
 
 sub generate_mising_rules {
@@ -1063,16 +1067,42 @@ sub oscap_security_guide_setup {
     $f_ssg_ds = is_sle ? $f_ssg_sle_ds : $f_ssg_tw_ds;
     $out = script_output("oscap info $f_ssg_ds", quiet => 1);
     record_info("oscap info", "\"# oscap info $f_ssg_ds\" returns:\n $out");
-
     # Check the oscap version information for reference
     $out = script_output("oscap -V");
     record_info("oscap version", "\"# oscap -V\" returns:\n $out");
 
     # Get the tests configuration file from repository
     get_tests_config();
+    push(@test_run_report, "[configuration]\n");
+    push(@test_run_report, "profile_ID = $profile_ID\n");
+    push(@test_run_report, "ansible_profile_ID = $ansible_profile_ID\n");
+    push(@test_run_report, "use_content_type = $use_content_type\n");
+    push(@test_run_report, "remove_rules_missing_fixes = $remove_rules_missing_fixes\n");
+    push(@test_run_report, "evaluate_count = $evaluate_count\n");
 
     # Replace original ds and xccdf files whith downloaded from local repository
     set_ds_file_name();
+    push(@test_run_report, "sle_version = $sle_version\n");
+    push(@test_run_report, "ssg_sle_ds = $ssg_sle_ds\n");
+    push(@test_run_report, "ssg_sle_xccdf = $ssg_sle_xccdf\n");
+    my $arch = get_var 'ARCH';
+    push(@test_run_report, "os_arch = $arch\n");
+    my $type;
+    if ($ansible_remediation == 1) {
+        $type = 'ansible';
+    }
+    else {
+        $type = 'bash';
+    }
+    push(@test_run_report, "remediation_type = $type\n");
+    my $build_url = get_var 'CASEDIR';
+    push(@test_run_report, "build_url = $build_url\n");
+    my $iso_name = get_var 'ISO';
+    push(@test_run_report, "iso_name = $iso_name\n");
+    my $full_name = get_var 'NAME';
+    push(@test_run_report, "full_name = $full_name\n");
+    my $schedule = get_var 'YAML_SCHEDULE';
+    push(@test_run_report, "schedule = $schedule\n");
 
     unless (is_opensuse) {
         # Some Packages require PackageHub repo is available
@@ -1084,7 +1114,6 @@ sub oscap_security_guide_setup {
 
     # If required ansible remediation
     if ($ansible_remediation == 1) {
-        $full_ansible_file_path = $ansible_file_path . $ansible_profile_ID;
         my $pkgs = 'ansible';
         # Need to update SLES to fix issues with STIG playbook
         record_info("Update", "Updaiting SLES");
@@ -1126,7 +1155,17 @@ sub oscap_security_guide_setup {
         my $mising_rules_full_path = generate_mising_rules();
 
         # Get bash and ansible rules lists from data based on provided
-        modify_ds_ansible_files(1, $mising_rules_full_path);
+        my $ansible_rules_missing_fixes_ref;
+        my $bash_rules_missing_fixes_ref;
+        modify_ds_ansible_files($mising_rules_full_path, $bash_rules_missing_fixes_ref, $ansible_rules_missing_fixes_ref);
+        if ($ansible_remediation == 1) {
+            push(@test_run_report, "ansible_rules_missing_fixes = " . (join ",",
+                @$ansible_rules_missing_fixes_ref) . "\n");
+        }
+        else {
+            push(@test_run_report, "bash_rules_missing_fixes = " . (join ",",
+                @$bash_rules_missing_fixes_ref) . "\n");
+        }
     }
     else {
         record_info("Do not modify DS or Ansible files", "Do not modify DS or Ansible files because remove_rules_missing_fixes = $remove_rules_missing_fixes");
@@ -1165,11 +1204,14 @@ sub oscap_remediate {
     select_console 'root-console';
 
     # Verify mitigation mode
+    # For pkg install rules need to refresh repositories
+    zypper_call('ref -s', timeout => 180);
     # If doing ansible playbook remediation
     if ($ansible_remediation == 1) {
         my $ret;
         my $script_cmd;
-
+        # Modify playbook to ignore possible errors 
+        # and collect CCE IDs for exclusion from second remediation.
         if ($ansible_playbook_modified == 0) {
             my $insert_cmd = "sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $full_ansible_file_path";
             assert_script_run("$insert_cmd");
@@ -1246,6 +1288,11 @@ sub oscap_remediate {
                                 @$cce_id_and_name_ref) . "\n\nCCE IDs ($find_ret):\n" . (join "\n",
                                 @$failed_cce_ids_ref)
                         );
+                        push(@test_run_report, "[tests_results]\n");
+                        push(@test_run_report, "failed_rules_and_cce_ansible_remediation_$remediated = " . (join ";",
+                            @$cce_id_and_name_ref) . "\n");
+                        push(@test_run_report, "failed_cce_ansible_remediation_$remediated = " . (join ",",
+                            @$failed_cce_ids_ref) . "\n");
                     }
                     else {
                         record_info('No failed CCE', "Did not find failed CCE IDs");
@@ -1302,6 +1349,10 @@ sub oscap_evaluate {
         # Note: the system cannot be fully remediated in this test and some rules are verified failing
         my $data = script_output ("cat $f_stdout", quiet => 1);
         # For a new installed OS the first time remediate can permit fail
+        # There are 2 cases:
+        # $evaluate_count == 3 - 2 remediations and 3 evaluations
+        # $evaluate_count == 2 - 1 remediation and 2 evaluations
+        # $evaluate_count is configured fore every test on setup
         if (($remediated <= 1 and $evaluate_count == 3) or ($remediated == 0 and $evaluate_count == 2)) {
             record_info('non remediated', 'before remediation more rules fails are expected');
             $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref, $passed_cce_rules_ref);
@@ -1350,6 +1401,7 @@ sub oscap_evaluate {
                         @$eval_match) . "\n\nSame number $intersection_count rules in expected and failed results:\n" . (join "\n",
                         @intersection)
                 );
+                push(@test_run_report, "final_evaluation_result = pass\n");
             }
             else {
                 record_info(
@@ -1361,6 +1413,11 @@ sub oscap_evaluate {
                     result => 'fail'
                 );
                 $self->result('fail');
+                push(@test_run_report, "final_evaluation_result = fail\n");
+                push(@test_run_report, "failed_rules_and_cce_evaluation = " . (join ";",
+                    @$cce_id_and_name_ref) . "\n");
+                push(@test_run_report, "failed_cce_evaluation = " . (join ",",
+                    @$failed_cce_ids_ref) . "\n");
             }
 
             #record number of passed rules
@@ -1370,24 +1427,17 @@ sub oscap_evaluate {
                 "Pattern $f_pregex count in file $f_stdout is $pass_count. Matched rules:\n" . join "\n",
                 @$passed_rules_ref
             );
-            # if ($pass_count != $n_passed_rules) {
-            # record_info(
-            # "Failed check of passed rules count",
-            # "Pattern $f_pregex count in file $f_stdout is $pass_count, expected $n_passed_rules. Matched rules:\n" . join "\n",
-            # @$passed_rules_ref, result => 'fail'
-            # );
-            # $self->result('fail');
-            # }
-            # else {
-            # record_info(
-            # "Passed check of passed rules count",
-            # "Pattern $f_pregex count in file $f_stdout is $pass_count. Matched rules:\n" . join "\n",
-            # @$passed_rules_ref
-            # );
-            # }
+            # Write collected report to file
+            record_info('Writing report', "Writing test report to file: $test_run_report_name");
+            for ($i = 0; $i <= $#test_run_report;) {
+                system ("printf \"$test_run_report[$i]\" >> \"$test_run_report_name\"");
+                $i++;
+            }           
             # Upload logs & ouputs for reference
+            upload_logs("$test_run_report_name") if script_run "! [[ -e $test_run_report_name ]]";
             upload_logs_reports();
         }
+        # Rebooting after second evaluation
         if ($reboot_count == 0 and $remediated == 1) {
             record_info('Rebooting', "Reboot count: $reboot_count");
             power_action('reboot', textmode => 1, keepconsole => 1);
