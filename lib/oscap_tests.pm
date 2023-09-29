@@ -1291,10 +1291,10 @@ sub oscap_remediate {
                                 @$cce_id_and_name_ref) . "\n\nCCE IDs ($find_ret):\n" . (join "\n",
                                 @$failed_cce_ids_ref)
                         );
-                        push(@test_run_report, "failed_rules_and_cce_ansible_remediation_$remediated = " . (join ";",
-                            @$cce_id_and_name_ref) . "\n");
-                        push(@test_run_report, "failed_cce_ansible_remediation_$remediated = " . (join ",",
-                            @$failed_cce_ids_ref) . "\n");
+                        push(@test_run_report, "failed_rules_and_cce_ansible_remediation_$remediated = \"" . (join ";",
+                            @$cce_id_and_name_ref) . "\"\n");
+                        push(@test_run_report, "failed_cce_ansible_remediation_$remediated = \"" . (join ",",
+                            @$failed_cce_ids_ref) . "\"\n");
                     }
                     else {
                         record_info('No failed CCE', "Did not find failed CCE IDs");
@@ -1416,10 +1416,10 @@ sub oscap_evaluate {
                 );
                 $self->result('fail');
                 push(@test_run_report, "final_evaluation_result = fail\n");
-                push(@test_run_report, "failed_rules_and_cce_evaluation = " . (join ";",
-                    @$failed_rules_ref) . "\n");
-                push(@test_run_report, "failed_cce_evaluation = " . (join ",",
-                    @$failed_cce_rules_ref) . "\n");
+                push(@test_run_report, "failed_rules_and_cce_evaluation = \"" . (join ";",
+                    @$failed_rules_ref) . "\"\n");
+                push(@test_run_report, "failed_cce_evaluation = \"" . (join ",",
+                    @$failed_cce_rules_ref) . "\"\n");
             }
 
             #record number of passed rules
