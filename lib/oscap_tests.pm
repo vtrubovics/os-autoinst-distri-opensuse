@@ -1429,7 +1429,7 @@ sub oscap_evaluate {
             );
             # Write collected report to file
             record_info('Writing report', "Writing test report to file: $test_run_report_name");
-            for ($i = 0; $i <= $#test_run_report;) {
+            for (my $i = 0; $i <= $#test_run_report;) {
                 system ("printf \"$test_run_report[$i]\" >> \"$test_run_report_name\"");
                 $i++;
             }           
