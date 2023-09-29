@@ -1208,6 +1208,7 @@ sub oscap_remediate {
     # Verify mitigation mode
     # For pkg install rules need to refresh repositories
     zypper_call('ref -s', timeout => 180);
+    push(@test_run_report, "[tests_results]\n");
     # If doing ansible playbook remediation
     if ($ansible_remediation == 1) {
         my $ret;
@@ -1290,7 +1291,6 @@ sub oscap_remediate {
                                 @$cce_id_and_name_ref) . "\n\nCCE IDs ($find_ret):\n" . (join "\n",
                                 @$failed_cce_ids_ref)
                         );
-                        push(@test_run_report, "[tests_results]\n");
                         push(@test_run_report, "failed_rules_and_cce_ansible_remediation_$remediated = " . (join ";",
                             @$cce_id_and_name_ref) . "\n");
                         push(@test_run_report, "failed_cce_ansible_remediation_$remediated = " . (join ",",
