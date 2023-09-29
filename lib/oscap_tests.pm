@@ -1075,20 +1075,20 @@ sub oscap_security_guide_setup {
 
     # Get the tests configuration file from repository
     get_tests_config();
-    push(@test_run_report, "[configuration]\n");
-    push(@test_run_report, "profile_ID = $profile_ID\n");
-    push(@test_run_report, "ansible_profile_ID = $ansible_profile_ID\n");
-    push(@test_run_report, "use_content_type = $use_content_type\n");
-    push(@test_run_report, "remove_rules_missing_fixes = $remove_rules_missing_fixes\n");
-    push(@test_run_report, "evaluate_count = $evaluate_count\n");
+    push(@test_run_report, "[configuration]");
+    push(@test_run_report, "profile_ID = $profile_ID");
+    push(@test_run_report, "ansible_profile_ID = $ansible_profile_ID");
+    push(@test_run_report, "use_content_type = $use_content_type");
+    push(@test_run_report, "remove_rules_missing_fixes = $remove_rules_missing_fixes");
+    push(@test_run_report, "evaluate_count = $evaluate_count");
 
     # Replace original ds and xccdf files whith downloaded from local repository
     set_ds_file_name();
-    push(@test_run_report, "sle_version = $sle_version\n");
-    push(@test_run_report, "ssg_sle_ds = $ssg_sle_ds\n");
-    push(@test_run_report, "ssg_sle_xccdf = $ssg_sle_xccdf\n");
+    push(@test_run_report, "sle_version = $sle_version");
+    push(@test_run_report, "ssg_sle_ds = $ssg_sle_ds");
+    push(@test_run_report, "ssg_sle_xccdf = $ssg_sle_xccdf");
     my $arch = get_var 'ARCH';
-    push(@test_run_report, "os_arch = $arch\n");
+    push(@test_run_report, "os_arch = $arch");
     my $type;
     if ($ansible_remediation == 1) {
         $type = 'ansible';
@@ -1096,15 +1096,15 @@ sub oscap_security_guide_setup {
     else {
         $type = 'bash';
     }
-    push(@test_run_report, "remediation_type = $type\n");
+    push(@test_run_report, "remediation_type = $type");
     my $build_url = get_var 'CASEDIR';
-    push(@test_run_report, "build_url = $build_url\n");
+    push(@test_run_report, "build_url = $build_url");
     my $iso_name = get_var 'ISO';
-    push(@test_run_report, "iso_name = $iso_name\n");
+    push(@test_run_report, "iso_name = $iso_name");
     my $full_name = get_var 'NAME';
-    push(@test_run_report, "full_name = $full_name\n");
+    push(@test_run_report, "full_name = $full_name");
     my $schedule = get_var 'YAML_SCHEDULE';
-    push(@test_run_report, "schedule = $schedule\n");
+    push(@test_run_report, "schedule = $schedule");
 
     unless (is_opensuse) {
         # Some Packages require PackageHub repo is available
@@ -1161,12 +1161,12 @@ sub oscap_security_guide_setup {
         my $bash_rules_missing_fixes_ref;
         modify_ds_ansible_files($mising_rules_full_path, $bash_rules_missing_fixes_ref, $ansible_rules_missing_fixes_ref);
         if ($ansible_remediation == 1) {
-            push(@test_run_report, "ansible_rules_missing_fixes = " . (join ",",
-                @$ansible_rules_missing_fixes_ref) . "\n");
+            push(@test_run_report, "ansible_rules_missing_fixes = \"" . (join ",",
+                @$ansible_rules_missing_fixes_ref) . "\"");
         }
         else {
-            push(@test_run_report, "bash_rules_missing_fixes = " . (join ",",
-                @$bash_rules_missing_fixes_ref) . "\n");
+            push(@test_run_report, "bash_rules_missing_fixes = \"" . (join ",",
+                @$bash_rules_missing_fixes_ref) . "\"");
         }
     }
     else {
@@ -1208,7 +1208,7 @@ sub oscap_remediate {
     # Verify mitigation mode
     # For pkg install rules need to refresh repositories
     zypper_call('ref -s', timeout => 180);
-    push(@test_run_report, "[tests_results]\n");
+    push(@test_run_report, "[tests_results]");
     # If doing ansible playbook remediation
     if ($ansible_remediation == 1) {
         my $ret;
@@ -1291,10 +1291,10 @@ sub oscap_remediate {
                                 @$cce_id_and_name_ref) . "\n\nCCE IDs ($find_ret):\n" . (join "\n",
                                 @$failed_cce_ids_ref)
                         );
-                        push(@test_run_report, "failed_rules_and_cce_ansible_remediation_$remediated = \"" . (join ";",
-                            @$cce_id_and_name_ref) . "\"\n");
+                        # push(@test_run_report, "failed_rules_and_cce_ansible_remediation_$remediated = \"" . (join ";",
+                            # @$cce_id_and_name_ref) . "\"");
                         push(@test_run_report, "failed_cce_ansible_remediation_$remediated = \"" . (join ",",
-                            @$failed_cce_ids_ref) . "\"\n");
+                            @$failed_cce_ids_ref) . "\"");
                     }
                     else {
                         record_info('No failed CCE', "Did not find failed CCE IDs");
@@ -1403,7 +1403,7 @@ sub oscap_evaluate {
                         @$eval_match) . "\n\nSame number $intersection_count rules in expected and failed results:\n" . (join "\n",
                         @intersection)
                 );
-                push(@test_run_report, "final_evaluation_result = pass\n");
+                push(@test_run_report, "final_evaluation_result = pass");
             }
             else {
                 record_info(
@@ -1415,11 +1415,11 @@ sub oscap_evaluate {
                     result => 'fail'
                 );
                 $self->result('fail');
-                push(@test_run_report, "final_evaluation_result = fail\n");
+                push(@test_run_report, "final_evaluation_result = fail");
                 push(@test_run_report, "failed_rules_and_cce_evaluation = \"" . (join ";",
-                    @$failed_rules_ref) . "\"\n");
+                    @$failed_rules_ref) . "\"");
                 push(@test_run_report, "failed_cce_evaluation = \"" . (join ",",
-                    @$failed_cce_rules_ref) . "\"\n");
+                    @$failed_cce_rules_ref) . "\"");
             }
 
             #record number of passed rules
@@ -1431,10 +1431,11 @@ sub oscap_evaluate {
             );
             # Write collected report to file
             record_info('Writing report', "Writing test report to file: $test_run_report_name");
-            for (my $i = 0; $i <= $#test_run_report;) {
-                assert_script_run("printf \"$test_run_report[$i]\" >> \"$test_run_report_name\"");
-                $i++;
-            }           
+            # for (my $i = 0; $i <= $#test_run_report;) {
+                # assert_script_run("printf \"$test_run_report[$i]\" >> \"$test_run_report_name\"");
+                # $i++;
+            # }
+            assert_script_run("printf \"" . (join "\n",@test_run_report) . "\" >> \"$test_run_report_name\"");
             # Upload logs & ouputs for reference
             upload_logs("$test_run_report_name") if script_run "! [[ -e $test_run_report_name ]]";
             upload_logs_reports();
