@@ -1415,9 +1415,9 @@ sub oscap_evaluate {
                 $self->result('fail');
                 push(@test_run_report, "final_evaluation_result = fail\n");
                 push(@test_run_report, "failed_rules_and_cce_evaluation = " . (join ";",
-                    @$cce_id_and_name_ref) . "\n");
+                    @$failed_rules_ref) . "\n");
                 push(@test_run_report, "failed_cce_evaluation = " . (join ",",
-                    @$failed_cce_ids_ref) . "\n");
+                    @$failed_cce_rules_ref) . "\n");
             }
 
             #record number of passed rules
