@@ -166,7 +166,7 @@ our $ansible_remediation = 0;
 
 # Directory where ansible playbooks resides on local system
 our $ansible_file_path = "/usr/share/scap-security-guide/ansible/";
-our $full_ansible_file_path = $ansible_file_path . $ansible_profile_ID;
+our $full_ansible_file_path = "";
 
 # Variables $use_content_type and $remove_rules_missing_fixes are fetched from configuration file located in:
 #https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/blob/main/content/openqa_config.conf
@@ -1052,6 +1052,8 @@ sub get_test_expected_results {
 sub oscap_security_guide_setup {
 
     select_console 'root-console';
+    # Setting $full_ansible_file_path aftr got ansible_profile_ID from test
+    $full_ansible_file_path = $ansible_file_path . $ansible_profile_ID;
 
     # Refresh repositories
     zypper_call('ref -s', timeout => 180);
