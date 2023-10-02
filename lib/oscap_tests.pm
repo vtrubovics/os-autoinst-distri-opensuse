@@ -1208,7 +1208,9 @@ sub oscap_remediate {
     # Verify mitigation mode
     # For pkg install rules need to refresh repositories
     zypper_call('ref -s', timeout => 180);
-    push(@test_run_report, "[tests_results]");
+    if ($remediated == 0) {
+        push(@test_run_report, "[tests_results]");
+    }
     # If doing ansible playbook remediation
     if ($ansible_remediation == 1) {
         my $ret;
