@@ -1416,8 +1416,8 @@ sub oscap_evaluate {
                 );
                 $self->result('fail');
                 push(@test_run_report, "final_evaluation_result = fail");
-                push(@test_run_report, "failed_rules_and_cce_evaluation = \"" . (join ";",
-                    @$failed_rules_ref) . "\"");
+                push(@test_run_report, "failed_rules_evaluation = \"" . (join ",",
+                    @$failed_id_rules_ref) . "\"");
                 push(@test_run_report, "failed_cce_evaluation = \"" . (join ",",
                     @$failed_cce_rules_ref) . "\"");
             }
