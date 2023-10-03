@@ -1073,11 +1073,13 @@ sub oscap_security_guide_setup {
     $out = script_output("oscap -V");
     record_info("oscap version", "\"# oscap -V\" returns:\n $out");
 
-    # Get the tests configuration file from repository
+    # Get the tests configuration file from repository and set global configuration varables
     get_tests_config();
     push(@test_run_report, "[configuration]");
+    $out = script_output("date", quiet => 1);
+    push(@test_run_report, "date = $out");
     push(@test_run_report, "profile_ID = $profile_ID");
-    push(@test_run_report, "ansible_profile_ID = $ansible_profile_ID");
+    push(@test_run_report, "ansible_profile_file_name = $ansible_profile_ID");
     push(@test_run_report, "use_content_type = $use_content_type");
     push(@test_run_report, "remove_rules_missing_fixes = $remove_rules_missing_fixes");
     push(@test_run_report, "evaluate_count = $evaluate_count");
@@ -1128,7 +1130,7 @@ sub oscap_security_guide_setup {
         assert_script_run("ansible-galaxy collection install ansible.posix");
           
         if ($use_content_type == 1) {
-            # Backup ansible playbok if using production content for later reuse
+            # Backup ansible playbok if using production content for later reuse in remediation
             # Copy downloaded file to correct location
             my $ansible_local_full_file_path = "/root/$ansible_profile_ID";
             assert_script_run("cp $full_ansible_file_path $ansible_local_full_file_path");
@@ -1151,6 +1153,11 @@ sub oscap_security_guide_setup {
             replace_ansible_file();
         }
     }
+    # Adding benchmark version to report 
+    my $ver_grep_cmd = 'grep "version update=" ' . "$f_ssg_sle_xccdf";
+    $out = script_output("$ver_grep_cmd", quiet => 1);
+    my @lines = split /\<|\>/, $out;
+    push(@test_run_report, "benchmark_version = $lines[2]");
 
    if ($remove_rules_missing_fixes == 1) {
         # Generate text file that contains rules that missing implimentation for profile
