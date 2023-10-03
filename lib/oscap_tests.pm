@@ -425,8 +425,6 @@ sub get_bash_expected_results {
 
 sub ansible_result_analysis {
     #Find count of failed ansible remediations
-    #PLAY RECAP *********************************************************************************************************************
-    #localhost                  : ok=2132 changed=389  unreachable=0    failed=0    skipped=695  rescued=1    ignored=0
     my $data = $_[0];
     my @report = ();
     my $found = 0;
@@ -1291,7 +1289,6 @@ sub oscap_remediate {
                         "\n\nFailed tasks line numbers ($sesrch_ret):\n" . (join "\n",
                             @$tasks_line_numbers_ref)
                     );
-                    # my $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1, timeout => 1200);
                     my $find_ret = find_ansible_cce_by_task_name_vv ($out_ansible_playbook, $failed_tasks_ref, $tasks_line_numbers_ref, $failed_cce_ids_ref, $cce_id_and_name_ref);
                     if ($find_ret > 0) {
                         record_info(
@@ -1300,8 +1297,6 @@ sub oscap_remediate {
                                 @$cce_id_and_name_ref) . "\n\nCCE IDs ($find_ret):\n" . (join "\n",
                                 @$failed_cce_ids_ref)
                         );
-                        # push(@test_run_report, "failed_rules_and_cce_ansible_remediation_$remediated = \"" . (join ";",
-                            # @$cce_id_and_name_ref) . "\"");
                         push(@test_run_report, "failed_cce_ansible_remediation_$remediated = \"" . (join ",",
                             @$failed_cce_ids_ref) . "\"");
                     }
@@ -1348,7 +1343,6 @@ sub oscap_evaluate {
     my $lc;
     my $fail_count;
     my $pass_count;
-    my $expected_pass_count;
     my $expected_eval_match;
     my $ret_expected_results;
 
@@ -1440,10 +1434,6 @@ sub oscap_evaluate {
             );
             # Write collected report to file
             record_info('Writing report', "Writing test report to file: $test_run_report_name");
-            # for (my $i = 0; $i <= $#test_run_report;) {
-                # assert_script_run("printf \"$test_run_report[$i]\" >> \"$test_run_report_name\"");
-                # $i++;
-            # }
             assert_script_run("printf \"" . (join "\n",@test_run_report) . "\" >> \"$test_run_report_name\"");
             # Upload logs & ouputs for reference
             upload_logs("$test_run_report_name") if script_run "! [[ -e $test_run_report_name ]]";
