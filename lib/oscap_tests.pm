@@ -888,12 +888,17 @@ sub generate_mising_rules {
     my $output_file = "missing_rules.txt";
     my $stats_output_file = "stats_profile_missing.txt";
 
-    zypper_call("in python3");
+    zypper_call("in python311");
+    # Set alias persistent 
+    my $alias_cmd = "alias python='/usr/bin/python3.11'";
+    my $bashrc_path = "~/.bashrc";
+    assert_script_run("printf \"" . $alias_cmd . "\" >> \"$bashrc_path\"");
+    
     my $py_libs = "jinja2 PyYAML pytest pytest-cov Jinja2 setuptools ninja";
     assert_script_run('pip3 --quiet install --upgrade pip', timeout => 600);
     assert_script_run("pip3 --quiet install $py_libs", timeout => 600);
 
-    assert_script_run("alias python=python3");
+    assert_script_run("alias python=python3.11");
     assert_script_run("cd $compliance_as_code_path");
     assert_script_run("source .pyenv.sh");
     my $env = script_output("env | grep PYTHONPATH", quiet => 1);
@@ -1110,6 +1115,8 @@ sub oscap_security_guide_setup {
         # Some Packages require PackageHub repo is available
         return unless is_phub_ready();
         add_suseconnect_product(get_addon_fullname('phub'));
+        # Need to use pyython3.1x
+        add_suseconnect_product(get_addon_fullname('python3'));
         # On SLES 12 ansible packages require depencies located in sle-module-public-cloud
         add_suseconnect_product(get_addon_fullname('pcm'), (is_sle('<15') ? '12' : undef)) if is_sle('<15');
     }
