@@ -1232,7 +1232,7 @@ sub oscap_remediate {
         if ($ansible_playbook_modified == 0) {
             my $insert_cmd = "sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $full_ansible_file_path";
             assert_script_run("$insert_cmd");
-            record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook. CMD:\n$insert_cmd");
+            record_info("Inserted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook. CMD:\n$insert_cmd");
             $ansible_playbook_modified = 1;
         }
         if ($remediated == 0){
