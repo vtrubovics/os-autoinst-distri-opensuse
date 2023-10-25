@@ -891,7 +891,7 @@ sub generate_mising_rules {
     zypper_call("in python311");
     # Set alias persistent 
     my $alias_cmd = "alias python='/usr/bin/python3.11'";
-    my $bashrc_path = "~/.bashrc";
+    my $bashrc_path = "/root/.bashrc";
     assert_script_run("printf \"" . $alias_cmd . "\" >> \"$bashrc_path\"");
     
     my $py_libs = "jinja2 PyYAML pytest pytest-cov Jinja2 setuptools ninja";
