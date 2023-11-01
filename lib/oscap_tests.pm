@@ -57,20 +57,6 @@ our @EXPORT = qw(
   bash_expected_rules
   bash_miss_rem_pattern
   bash_rem_pattern
-  bash_script_stig
-  bash_script_stig
-  bash_script_cis
-  bash_script_pci_dss
-  bash_script_pci_dss_4
-  bash_script_hipaa
-  bash_script_anssi_bp28_high
-  bash_script_anssi_bp28_enhanced
-  bash_script_cis_server_l1
-  bash_script_cis_workstation_l2
-  bash_script_anssi_bp28_intermediary
-  bash_script_anssi_bp28_minimal
-  bash_script_cis_workstation_l1
-  bash_script_standart
   get_bash_expected_results
   profile_id_to_bash_script
 );
@@ -106,59 +92,32 @@ our $ansible_profile_ID = "";
 # Priority High:
 our $profile_ID_sle_stig = 'xccdf_org.ssgproject.content_profile_stig';
 our $profile_ID_sle_cis = 'xccdf_org.ssgproject.content_profile_cis';
-our $profile_ID_sle_pci_dss = 'xccdf_org.ssgproject.content_profile_pci-dss';
 our $profile_ID_sle_pci_dss_4 = 'xccdf_org.ssgproject.content_profile_pci-dss-4';
 our $profile_ID_sle_hipaa = 'xccdf_org.ssgproject.content_profile_hipaa';
 our $profile_ID_sle_anssi_bp28_high = 'xccdf_org.ssgproject.content_profile_anssi_bp28_high';
-# Priority Medium:
-our $profile_ID_sle_anssi_bp28_enhanced = 'xccdf_org.ssgproject.content_profile_anssi_bp28_enhanced';
-our $profile_ID_sle_cis_server_l1 = 'xccdf_org.ssgproject.content_profile_cis_server_l1';
-our $profile_ID_sle_cis_workstation_l2 = 'xccdf_org.ssgproject.content_profile_cis_workstation_l2';
-# Priority Low:
-our $profile_ID_sle_anssi_bp28_intermediary = 'xccdf_org.ssgproject.content_profile_anssi_bp28_intermediary';
-our $profile_ID_sle_anssi_bp28_minimal = 'xccdf_org.ssgproject.content_profile_anssi_bp28_minimal';
-our $profile_ID_sle_cis_workstation_l1 = 'xccdf_org.ssgproject.content_profile_cis_workstation_l1';
+
 our $profile_ID_tw = 'xccdf_org.ssgproject.content_profile_standard';
 
 # Ansible playbooks
 our $ansible_playbook_sle_stig = "-playbook-stig.yml";
 our $ansible_playbook_sle_cis = "-playbook-cis.yml";
-our $ansible_playbook_sle_pci_dss = "-playbook-pci-dss.yml";
 our $ansible_playbook_sle_pci_dss_4 = "-playbook-pci-dss-4.yml";
 # Only sle-15
 our $ansible_playbook_sle_hipaa = "-playbook-hipaa.yml";
-
 our $ansible_playbook_sle_anssi_bp28_high = "-playbook-anssi_bp28_high.yml";
-# Priority Medium:
-our $ansible_playbook_sle_anssi_bp28_enhanced = "-playbook-anssi_bp28_enhanced.yml";
-our $ansible_playbook_sle_cis_server_l1 = "-playbook-cis_server_l1.yml";
-our $ansible_playbook_sle_cis_workstation_l2 = "-playbook-cis_workstation_l2.yml";
-# Priority Low:
-our $ansible_playbook_sle_anssi_bp28_intermediary = "-playbook-anssi_bp28_intermediary.yml";
-our $ansible_playbook_sle_anssi_bp28_minimal = "-playbook-anssi_bp28_minimal.yml";
-our $ansible_playbook_sle_cis_workstation_l1 = "-playbook-cis_workstation_l1.yml";
+
 our $ansible_playbook_standart = "opensuse-playbook-standard.yml";
 
 # BASH scripts
 our $bash_script_stig = "-script-stig.sh";
 our $bash_script_cis = "-script-cis.sh";
-our $bash_script_pci_dss = "-script-pci-dss.sh";
 our $bash_script_pci_dss_4 = "-script-pci-dss-4.sh";
 # Only sle-15
 our $bash_script_hipaa = "-script-hipaa.sh";
-
 our $bash_script_anssi_bp28_high = "-script-anssi_bp28_high.sh";
-# Priority Medium:
-our $bash_script_anssi_bp28_enhanced = "-script-anssi_bp28_enhanced.sh";
-our $bash_script_cis_server_l1 = "-script-cis_server_l1.sh";
-our $bash_script_cis_workstation_l2 = "-script-cis_workstation_l2.sh";
-# Priority Low:
-our $bash_script_anssi_bp28_intermediary = "-script-anssi_bp28_intermediary.sh";
-our $bash_script_anssi_bp28_minimal = "-script-anssi_bp28_minimal.sh";
-our $bash_script_cis_workstation_l1 = "-script-cis_workstation_l1.sh";
 our $bash_script_standart = "opensuse-script-standard.sh";
 
-# The OS status of remediation: '0', not remediated; '1', remediated
+# The OS status of remediation: '0', not remediated; '>=1', remediated
 our $remediated = 0;
 
 # Is it ansible remediation: '0', bash remediation; '1' ansible remediation
