@@ -574,6 +574,19 @@ sub modify_ds_ansible_files {
         # Write rules to file
         assert_script_run("printf \"$ansible_f\" > \"$ansible_fix_missing\"");
 
+        my $ret_get_ansible_exclusions = 0;
+        my $ansible_exclusions;
+
+        Get rule exclusions for ansible playbook
+        $ret_get_ansible_exclusions
+          = get_ansible_exclusions(1, $ansible_exclusions);
+        # Write exclusions to the file
+        if ($ret_get_ansible_exclusions == 1) {
+            $ansible_exclusions =~ s/\,/\n/g;
+            assert_script_run("printf \"\n$ansible_exclusions\" >> \"$ansible_fix_missing\"");
+            record_info("Writing ansible exceptions to file", "Writing ansible exclusions:\n$ansible_exclusions\n\nto file: $ansible_fix_missing");
+        }
+
         # Diasble excluded and fix missing rules in ds file
         my $unselect_cmd = "sh $compliance_as_code_path/tests/$ds_unselect_rules_script $f_ssg_sle_ds $ansible_fix_missing";
         assert_script_run("$unselect_cmd", timeout => 600);
