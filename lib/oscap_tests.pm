@@ -577,7 +577,7 @@ sub modify_ds_ansible_files {
         my $ret_get_ansible_exclusions = 0;
         my $ansible_exclusions;
 
-        Get rule exclusions for ansible playbook
+        # Get rule exclusions for ansible playbook
         $ret_get_ansible_exclusions
           = get_ansible_exclusions(1, $ansible_exclusions);
         # Write exclusions to the file
