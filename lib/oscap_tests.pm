@@ -20,12 +20,9 @@ use Utils::Backends 'is_pvm';
 use Utils::Architectures;
 use registration qw(add_suseconnect_product get_addon_fullname is_phub_ready);
 use List::MoreUtils qw(uniq);
-use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 use List::Compare;
 use Config::Tiny;
-# use Module::Runtime qw(use_module use_package_optimistically);
 use YAML::PP;
-
 
 our @EXPORT = qw(
   $profile_ID
@@ -49,16 +46,10 @@ our @EXPORT = qw(
   set_ds_file_name
   upload_logs_reports
   pattern_count_in_file
-  cce_ids_in_file
   oscap_security_guide_setup
   oscap_remediate
   oscap_evaluate
   oscap_evaluate_remote
-  bash_expected_rules
-  bash_miss_rem_pattern
-  bash_rem_pattern
-  get_bash_expected_results
-  profile_id_to_bash_script
 );
 
 # The file names of scap logs and reports
@@ -68,8 +59,6 @@ our $f_vlevel = 'ERROR';
 our $f_report = 'report.html';
 our $f_pregex = '\\bpass\\b';
 our $f_fregex = '\\bfail\\b';
-our $bash_miss_rem_pattern = 'FIX FOR THIS RULE.+IS MISSING';
-our $bash_rem_pattern = 'Remediating rule';
 our $ansible_exclusions;
 our $ansible_playbook_modified = 0;
 our $compliance_as_code_path;
@@ -89,7 +78,7 @@ our $f_ssg_ds;
 # Profile IDs
 our $profile_ID;
 our $ansible_profile_ID = "";
-# Priority High:
+# Profile names:
 our $profile_ID_sle_stig = 'xccdf_org.ssgproject.content_profile_stig';
 our $profile_ID_sle_cis = 'xccdf_org.ssgproject.content_profile_cis';
 our $profile_ID_sle_pci_dss_4 = 'xccdf_org.ssgproject.content_profile_pci-dss-4';
@@ -107,15 +96,6 @@ our $ansible_playbook_sle_hipaa = "-playbook-hipaa.yml";
 our $ansible_playbook_sle_anssi_bp28_high = "-playbook-anssi_bp28_high.yml";
 
 our $ansible_playbook_standart = "opensuse-playbook-standard.yml";
-
-# BASH scripts
-our $bash_script_stig = "-script-stig.sh";
-our $bash_script_cis = "-script-cis.sh";
-our $bash_script_pci_dss_4 = "-script-pci-dss-4.sh";
-# Only sle-15
-our $bash_script_hipaa = "-script-hipaa.sh";
-our $bash_script_anssi_bp28_high = "-script-anssi_bp28_high.sh";
-our $bash_script_standart = "opensuse-script-standard.sh";
 
 # The OS status of remediation: '0', not remediated; '>=1', remediated
 our $remediated = 0;
@@ -337,53 +317,9 @@ sub get_bash_exclusions {
     $_[1] = $exclusions;
     return $found;
 }
-# Convert Profile ID to bash remediation script name
-sub profile_id_to_bash_script {
-    my $self = $_[0];
-    my $profile_id = $_[1];
-
-    my @lines = split /_profile_/, $profile_id;
-    my $os = is_sle ? $sle_version : "opensuse";
-    my $profile = is_sle ? $lines[1] : "standard";
-    my $bash_name = $os . "-script-" . $profile . ".sh";
-
-    return $bash_name;
-}
-# Download and pharse bash remediation file from repository and returns expected results
-sub get_bash_expected_results {
-    my $self = $_[0];
-    my $pattern = $_[1];
-    my $rem_pattern = $_[2];
-    my $bash_rem_script = $_[3];
-    my @rules = ();
-    my @rem_rules = ();
-    my @strings = ();
-    my $data;
-    my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/";
-
-    download_file_from_https_repo($url, $bash_rem_script);
-
-    my @lines = split /\n|\r/, $data;
-
-    for my $i (0 .. $#lines) {
-        if ($lines[$i] =~ /$pattern/) {
-            @strings = split /\'|\./, $lines[$i];
-            push(@rules, $strings[3]);
-        }
-        if ($lines[$i] =~ /$rem_pattern/) {
-            @strings = split /\'|\./, $lines[$i];
-            push(@rem_rules, $strings[3]);
-        }
-    }
-    # Returning by reference expected data
-    record_info("List of expected failed rules", "List of expected failed rules:\n" . join "\n", @rules);
-
-    $_[4] = \@rules;
-    $_[5] = \@rem_rules;
-}
 
 sub ansible_result_analysis {
-    #Find count of failed ansible remediations
+    #Find count of failed or ignored ansible remediations
     my $data = $_[0];
     my @report = ();
     my $found = 0;
@@ -420,114 +356,6 @@ sub ansible_result_analysis {
     return $found;
 }
 
-sub ansible_failed_tasks_search {
-    #Find ansible failed tasks in the stdout
-    my $data = $_[0];
-    my @report = ();
-    my $found = 0;
-    my $full_report = "";
-    my $i;
-    my $j = 1;
-    my @failed_tasks = ();
-    my $found_task = 0;
-
-    my @lines = split /\n|\r/, $data;
-    for ($i = 0; $i <= $#lines;) {
-        if ($lines[$i] =~ /^fatal:/ or $lines[$i] =~ /^failed:/) {
-            $found++;
-            # looking for TASK name in upper lines
-            unless ($found_task == 1) {
-                if ($lines[$i - $j] =~ /TASK/) {
-                    $found_task = 1;
-                }
-                else{$j++;}
-            }
-            $full_report = $lines[$i - $j];
-            @report = (split /\[/, $full_report, 2);
-            $report[1] =~ s/\]\s\*+|\n//g;
-            push(@failed_tasks, $report[1]);
-            $j = 1;
-            $found_task = 0
-        }
-        $i++;
-    }
-    @failed_tasks = uniq @failed_tasks;
-    $_[1] = \@failed_tasks;
-    my $failed_tasks_size = @failed_tasks;
-
-    return $failed_tasks_size;
-}
-
-sub find_ansible_cce_by_task_name {
-    #Find task CCE ID using task name
-    my $data = $_[0];
-    my $failed_tasks = $_[1];
-    my $task_name;
-    my $j = 1;
-    my $i;
-    my $cce_id;
-    my $cce_id_raw;
-    my @cce_ids = ();
-    my @cce_id_and_name = ();
-    my $found = 0;
-    my $found_task = 0;
-    my $line;
-    my @report = ();
-    my $index;
-
-    # Preparing data
-    my @lines = split /\n|\r/, $data;
-    for ($i = 0; $i <= $#lines;) {
-        # Looking for tasks names which need to be joined to one line and joining if found
-        # example:
-        #        - name: Set Lockout Time for Failed Password Attempts using pam_tally2 - Ensure
-        #            the correct control for the required PAM module line in /etc/pam.d/common-account
-        if ($lines[$i] =~ /- name:/) {
-            $index = index($lines[$i], "me: ");
-            if ($lines[$i + 1] =~ /^\s{$index}/) {
-                $lines[$i] =~ s/\r|\n//g;
-                $lines[$i + 1] =~ s/^\s{$index}//g;
-                $lines[$i] .= " " . $lines[$i + 1];
-            }
-        }
-        $i++;
-    }
-    foreach $task_name (@$failed_tasks) {
-        for ($i = 0; $i <= $#lines;) {
-            if ($lines[$i] =~ /$task_name/) {
-                $found++;
-                # looking for task CCE ID
-                while ($found_task == 0) {
-                    # if ($lines[$i + $j] =~ /CCE-/ or $lines[$i + $j] =~ /- name:/) {
-                    if ($lines[$i + $j] =~ /CCE-/) {
-                        $found_task = 1;
-                        $cce_id_raw = $lines[$i + $j];
-                        # if did not found CCE - set not_found
-                        # if ($lines[$i + $j] =~ /- name:/) {
-                            # $cce_id_raw = "- not_found\n";
-                        # }
-                    }
-                    else{$j++;}
-                }
-                @report = split /\-\s+/, $cce_id_raw;
-                $report[1] =~ s/\r|\n//g;
-                $cce_id = $report[1];
-                push(@cce_ids, $report[1]);
-                $line = "$cce_id, $task_name";
-                push(@cce_id_and_name, $line);
-                $j = 1;
-                $found_task = 0;
-            }
-            $i++;
-        }
-    }
-    @cce_ids = uniq @cce_ids;
-    @cce_id_and_name = uniq @cce_id_and_name;
-    my $cce_ids_size = @cce_ids;
-    $_[2] = \@cce_ids;
-    $_[3] = \@cce_id_and_name;
-    return $cce_ids_size;
-}
 sub ansible_failed_tasks_search_vv {
     #Find count and rules names of matched pattern
     my $data = $_[0];
@@ -545,6 +373,7 @@ sub ansible_failed_tasks_search_vv {
             # looking for TASK name in upper lines
             unless ($found_task == 1 or $i - $j == 0) {
                 if ($lines[$i - $j] =~ /task path:/) {
+                    # recording task line number in palybook
                     @report = (split /:/, $lines[$i - $j]);
                     $report[2] =~ s/\r|\n//g;
                     push(@tasks_line_numbers, $report[2]);
@@ -572,6 +401,7 @@ sub ansible_failed_tasks_search_vv {
 }
 
 sub find_ansible_cce_by_task_name_vv {
+    # Finding CCE IDs for failed or ignored rules in ansible playbook
     my $data = $_[0];
     my $failed_tasks = $_[1];
     my $tasks_line_numbers = $_[2];
@@ -627,19 +457,19 @@ sub find_ansible_cce_by_task_name_vv {
 }
 sub upload_logs_reports {
     # Upload logs & ouputs for reference
-    # my $files;
-    # if (is_sle) {
-    # $files = script_output('ls | grep "^ssg-sle.*.xml"');
-    # }
-    # else {
-    # $files = script_output('ls | grep "^ssg-opensuse.*.xml"');
-    # }
-    # # Check if list of files returned correctly
-    # if (defined $files) {
-    # foreach my $file (split("\n", $files)) {
-    # upload_logs("$file") if script_run "! [[ -e $file ]]";
-    # }
-    # }
+=comment No need for xml files
+    my $files;
+    if (is_sle) {
+        $files = script_output('ls | grep "^ssg-sle.*.xml"');
+    }
+    else {
+        $files = script_output('ls | grep "^ssg-opensuse.*.xml"');
+    }
+    foreach my $file (split("\n", $files)) {
+        upload_logs("$file");
+    }
+=cut
+
     upload_logs("$f_stdout") if script_run "! [[ -e $f_stdout ]]";
     upload_logs("$f_stderr") if script_run "! [[ -e $f_stderr ]]";
 
@@ -661,7 +491,6 @@ sub download_file_from_https_repo {
     record_info("Downloaded file", "Downloaded file $file_name from $FULL_URL");
 }
 sub pattern_count_in_file {
-
     #Find count and rules names of matched pattern
     my $self = $_[0];
     my $data = $_[1];
@@ -685,33 +514,10 @@ sub pattern_count_in_file {
         }
     }
     #Returning by reference array of matched rules
-    $_[3] = \@rules;
-    $_[4] = \@rules_cce;
-    $_[5] = \@rules_ids;
+    $_[3] = \@rules;    # rule id and rule cce id
+    $_[4] = \@rules_cce;    # cce IDs
+    $_[5] = \@rules_ids;    # rule IDs
     return $count;
-}
-
-sub cce_ids_in_file {
-
-    #Find all unique CCE IDs by provided pattern
-    my $self = $_[0];
-    my $data = $_[1];
-    my $pattern = $_[2];
-    my @cces;
-    my $cce;
-
-    my @lines = split /\n|\r/, $data;
-    for my $i (0 .. $#lines) {
-        if ($lines[$i] =~ /($pattern)/) {
-            $cce = $1;
-            push(@cces, $cce);
-        }
-    }
-    # Saving only unique CCE IDs
-    my @unique_cces = uniq @cces;
-    # Returning by reference array of CCE IDs
-    $_[3] = \@unique_cces;
-    return $#unique_cces + 1;
 }
 
 sub modify_ds_ansible_files {
@@ -730,7 +536,7 @@ sub modify_ds_ansible_files {
     $data = script_output("cat $in_file_path", quiet => 1);
 
     my @lines = split /\n|\r/, $data;
-
+    # Find ansible and bash rules and write them to the list
     for ($i = 0; $i <= $#lines;) {    #(0 .. $#lines)
         if ($lines[$i] =~ /$bash_pattern/) {
             $i++;
@@ -765,20 +571,8 @@ sub modify_ds_ansible_files {
 
     if ($ansible_remediation == 1) {
         my $ansible_f = join "\n", @ansible_rules;
+        # Write rules to file
         assert_script_run("printf \"$ansible_f\" > \"$ansible_fix_missing\"");
-
-        # my $ret_get_ansible_exclusions = 0;
-        # my $ansible_exclusions;
-
-        # Get rule exclusions for ansible playbook
-        # $ret_get_ansible_exclusions
-          # = get_ansible_exclusions(1, $ansible_exclusions);
-        # # Write exclusions to the file
-        # if ($ret_get_ansible_exclusions == 1) {
-            # $ansible_exclusions =~ s/\,/\n/g;
-            # assert_script_run("printf \"\n$ansible_exclusions\" >> \"$ansible_fix_missing\"");
-            # record_info("Writing ansible exceptions to file", "Writing ansible exclusions:\n$ansible_exclusions\n\nto file: $ansible_fix_missing");
-        # }
 
         # Diasble excluded and fix missing rules in ds file
         my $unselect_cmd = "sh $compliance_as_code_path/tests/$ds_unselect_rules_script $f_ssg_sle_ds $ansible_fix_missing";
@@ -787,11 +581,13 @@ sub modify_ds_ansible_files {
         assert_script_run("cp /tmp/$ssg_sle_ds $f_ssg_sle_ds");
         record_info("Diasble excluded and fix missing rules in ds file", "Command $unselect_cmd");
         upload_logs("$ansible_fix_missing") if script_run "! [[ -e $ansible_fix_missing ]]";
+
         # Generate new playbook without exclusions and fix_missing rules
         my $playbook_gen_cmd = "oscap xccdf generate fix --profile $profile_ID --fix-type ansible $f_ssg_sle_ds > playbook.yml";
 
         assert_script_run("$playbook_gen_cmd", timeout => 600);
         record_info("Generated playbook", "Command $playbook_gen_cmd");
+        # Replace original paybook to generated one
         assert_script_run("rm $full_ansible_file_path");
         assert_script_run("cp playbook.yml $full_ansible_file_path");
         record_info("Replaced playbook", "Replaced playbook $full_ansible_file_path with generated playbook.yml");
@@ -802,13 +598,12 @@ sub modify_ds_ansible_files {
             record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook. CMD:\n$insert_cmd");
             $ansible_playbook_modified = 1;
         }
-        
+        # Upload generated playbook for evidence
         upload_logs("$full_ansible_file_path") if script_run "! [[ -e $full_ansible_file_path ]]";
-        # After playbook is regenereates need to modify it on next get_ansible_exclusions call
-        # $ansible_playbook_modified = 0;
     }
     else {
         my $bash_f = join "\n", @bash_rules;
+        # Write rules to file
         assert_script_run("printf \"$bash_f\" > \"$bash_fix_missing\"");
 
         my $ret_get_bash_exclusions = 0;
@@ -838,6 +633,7 @@ sub modify_ds_ansible_files {
     my $bash_file_full_path = "$output_full_path/$bash_fix_missing";
     my $ansible_file_full_path = "$output_full_path/$ansible_fix_missing";
     record_info("Files paths for missing rules ", "Bash file path:\n$bash_file_full_path\nAnsible file path:\n $ansible_file_full_path");
+    # Return bash and ansible rules missing fix
     $_[1] = \@bash_rules;
     $_[2] = \@ansible_rules
 }
@@ -853,6 +649,7 @@ sub generate_mising_rules {
     my $bashrc_path = "/root/.bashrc";
     assert_script_run("printf \"" . $alias_cmd . "\" >> \"$bashrc_path\"");
     
+    # Installing python libs to be able to run profile_tool.py
     my $py_libs = "jinja2 PyYAML pytest pytest-cov Jinja2 setuptools ninja";
     assert_script_run('pip3 --quiet install --upgrade pip', timeout => 600);
     assert_script_run("pip3 --quiet install $py_libs", timeout => 600);
@@ -862,6 +659,7 @@ sub generate_mising_rules {
     assert_script_run("source .pyenv.sh");
     my $env = script_output("env | grep PYTHONPATH", quiet => 1);
     record_info("exported PYTHONPATH", "export $env");
+    # Running script that generates file containing rules missing fixes
     my $cmd = "python3 build-scripts/profile_tool.py stats --missing --skip-stats --profile $profile_ID --benchmark $f_ssg_sle_xccdf --format plain > $output_file";
     my $stats_cmd = "python3 build-scripts/profile_tool.py stats --missing --profile $profile_ID --benchmark $f_ssg_sle_xccdf --format plain > $stats_output_file";
 
@@ -903,7 +701,7 @@ sub get_cac_code {
     $compliance_as_code_path .= "/$cac_dir";
 
     record_info("Cloned ComplianceAsCode", "Cloned repo $git_repo to folder: $compliance_as_code_path");
-
+    # In case of use CaC master as source - building content 
     if ($use_content_type == 3) {
         zypper_call('in cmake libxslt-tools', timeout => 180);
         my $py_libs = "lxml pytest pytest_cov json2html sphinxcontrib-jinjadomain autojinja sphinx_rtd_theme myst_parser prometheus_client mypy openpyxl pandas pcre2 cmakelint sphinx";
@@ -959,8 +757,9 @@ sub get_tests_config {
     }
     return $config_file_path;
 }
-# Get efpected results from remote file
+
 sub get_test_expected_results {
+# Get efpected results from remote file
     my $eval_match = ();
     my $found = -1;
     my $type = "";
