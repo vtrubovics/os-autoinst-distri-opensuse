@@ -279,7 +279,7 @@ sub get_ansible_exclusions {
         record_info("Did not found exclusions", "Did not found exclusions for profile $profile_ID");
         my $insert_cmd = "sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $full_ansible_file_path";
         assert_script_run("$insert_cmd");
-        record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook. CMD:\n$insert_cmd");
+        record_info("Inserted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook. CMD:\n$insert_cmd");
         $ansible_playbook_modified = 1;
     }
     #Returning by reference exclusions string
@@ -595,7 +595,7 @@ sub modify_ds_ansible_files {
         if ($ansible_playbook_modified == 0) {
             my $insert_cmd = "sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $full_ansible_file_path";
             assert_script_run("$insert_cmd");
-            record_info("Insеrted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook. CMD:\n$insert_cmd");
+            record_info("Inserted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook. CMD:\n$insert_cmd");
             $ansible_playbook_modified = 1;
         }
         # Upload generated playbook for evidence
