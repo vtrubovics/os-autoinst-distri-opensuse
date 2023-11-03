@@ -660,8 +660,8 @@ sub generate_mising_rules {
     my $env = script_output("env | grep PYTHONPATH", quiet => 1);
     record_info("exported PYTHONPATH", "export $env");
     # Running script that generates file containing rules missing fixes
-    my $cmd = "python3 build-scripts/profile_tool.py stats --missing --skip-stats --profile $profile_ID --benchmark $f_ssg_sle_xccdf --format plain > $output_file";
-    my $stats_cmd = "python3 build-scripts/profile_tool.py stats --missing --profile $profile_ID --benchmark $f_ssg_sle_xccdf --format plain > $stats_output_file";
+    my $cmd = "python build-scripts/profile_tool.py stats --missing --skip-stats --profile $profile_ID --benchmark $f_ssg_sle_xccdf --format plain > $output_file";
+    my $stats_cmd = "python build-scripts/profile_tool.py stats --missing --profile $profile_ID --benchmark $f_ssg_sle_xccdf --format plain > $stats_output_file";
 
     assert_script_run("$cmd");
     record_info("Generated file $output_file", "generate_mising_rules Input file $f_ssg_sle_xccdf\n Command:\n$cmd");
