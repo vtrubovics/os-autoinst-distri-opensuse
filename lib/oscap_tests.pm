@@ -250,7 +250,7 @@ sub replace_ansible_file {
 }
 sub modify_ansible_playbook {
 # Modify and backup ansible playbok for later reuse in remediation
-    if (ansible_playbook_modified == 0) {
+    if ($ansible_playbook_modified == 0) {
         my $ansible_local_full_file_path = "/root/$ansible_profile_ID";
         
         # Copy downloaded file to correct location
