@@ -248,9 +248,24 @@ sub replace_ansible_file {
         record_info("Copied ansible file", "Copied file $ansible_local_full_file_path to $full_ansible_file_path");
     }
 }
+sub modify_ansible_playbook {
+# Modify and backup ansible playbok for later reuse in remediation
+    if (ansible_playbook_modified == 0) {
+        my $ansible_local_full_file_path = "/root/$ansible_profile_ID";
+        
+        # Copy downloaded file to correct location
+        assert_script_run("cp $full_ansible_file_path $ansible_local_full_file_path");
+        record_info("Backuped ansible file", "Backuped file $full_ansible_file_path to $ansible_local_full_file_path");
 
-# Download and pharse ansible exclusions file from repository
+        my $insert_cmd = "sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $full_ansible_file_path";
+        assert_script_run("$insert_cmd");
+        record_info("Inserted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook. CMD:\n$insert_cmd");
+        $ansible_playbook_modified = 1;
+    }
+}
+
 sub get_ansible_exclusions {
+# Download and pharse ansible exclusions file from repository
     my $self = $_[0];
     my $ansible_exclusions_file_name = "ansible_exclusions.txt";
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/";
@@ -277,10 +292,7 @@ sub get_ansible_exclusions {
     # If exclusion are not found for playbook - ignore_errors: true are added to all tasks in playbook
     if ($found == 0 and $ansible_playbook_modified == 0) {
         record_info("Did not found exclusions", "Did not found exclusions for profile $profile_ID");
-        my $insert_cmd = "sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $full_ansible_file_path";
-        assert_script_run("$insert_cmd");
-        record_info("Inserted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook. CMD:\n$insert_cmd");
-        $ansible_playbook_modified = 1;
+        modify_ansible_playbook();
     }
     #Returning by reference exclusions string
     $_[1] = $exclusions;
@@ -604,13 +616,9 @@ sub modify_ds_ansible_files {
         assert_script_run("rm $full_ansible_file_path");
         assert_script_run("cp playbook.yml $full_ansible_file_path");
         record_info("Replaced playbook", "Replaced playbook $full_ansible_file_path with generated playbook.yml");
-        # Modify ansible playbook
-        if ($ansible_playbook_modified == 0) {
-            my $insert_cmd = "sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $full_ansible_file_path";
-            assert_script_run("$insert_cmd");
-            record_info("Inserted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook. CMD:\n$insert_cmd");
-            $ansible_playbook_modified = 1;
-        }
+
+        # Modify and backup ansible playbook
+        modify_ansible_playbook();
         # Upload generated playbook for evidence
         upload_logs("$full_ansible_file_path") if script_run "! [[ -e $full_ansible_file_path ]]";
     }
@@ -904,14 +912,6 @@ sub oscap_security_guide_setup {
         record_info("$pkgs Pkg_ver", "$pkgs packages' version:\n $out");
         #install ansible.posix
         assert_script_run("ansible-galaxy collection install ansible.posix");
-          
-        if ($use_content_type == 1) {
-            # Backup ansible playbok if using production content for later reuse in remediation
-            # Copy downloaded file to correct location
-            my $ansible_local_full_file_path = "/root/$ansible_profile_ID";
-            assert_script_run("cp $full_ansible_file_path $ansible_local_full_file_path");
-            record_info("Backuped ansible file", "Backuped file $full_ansible_file_path to $ansible_local_full_file_path");
-        }
     }
     if ($remove_rules_missing_fixes == 1 or $use_content_type == 3) {
         # Get the code for the ComplianceAsCode by cloning its repository
@@ -998,23 +998,23 @@ sub oscap_remediate {
     if ($ansible_remediation == 1) {
         my $ret;
         my $script_cmd;
+        my $ansible_local_full_file_path = "/root/$ansible_profile_ID";
         # Modify playbook to ignore possible errors 
         # and collect CCE IDs for exclusion from second remediation.
-        if ($ansible_playbook_modified == 0) {
-            my $insert_cmd = "sed -i \'s/      tags:/      ignore_errors: true\\n      tags:/g\' $full_ansible_file_path";
-            assert_script_run("$insert_cmd");
-            record_info("Inserted ignore_errors", "Inserted \"ignore_errors: true\" for every tag in playbook. CMD:\n$insert_cmd");
-            $ansible_playbook_modified = 1;
-        }
+        modify_ansible_playbook();
         if ($remediated == 0){
             $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1, timeout => 1200);
             $script_cmd = "ansible-playbook -vv -i \"localhost,\" -c local $full_ansible_file_path >> $f_stdout 2>> $f_stderr";
         }
         else {
-            # replace modified file to original to verify exclusions
-            replace_ansible_file();
+            # Restore original playbook to verify exclusions
+            # Remove original ansible file
+            assert_script_run("rm $full_ansible_file_path");
+            # Copy file to correct location
+            assert_script_run("cp $ansible_local_full_file_path $full_ansible_file_path");
+            record_info("Copied ansible file", "Copied file $ansible_local_full_file_path to $full_ansible_file_path");
+            
             $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1, timeout => 1200);
-            # $ansible_playbook_modified = 0;
             $script_cmd = "ansible-playbook -vv -i \"localhost,\" -c local $full_ansible_file_path";
             # If found faled tasks for current profile will add tem to command line
             if (defined $failed_cce_ids_ref) {
@@ -1046,7 +1046,6 @@ sub oscap_remediate {
             $self->result('fail');
         }
         else {
-#            $out_f_stdout = script_output("cat $f_stdout", quiet => 1, timeout => 1200);
             my $grep_cmd = 'grep "TASK\|task path:\|fatal:\|failed:" ' . "$f_stdout";
             $out_f_stdout = script_output("$grep_cmd", quiet => 1, timeout => 1200);
             record_info('Grep cmd', "grep cmd: $grep_cmd");
