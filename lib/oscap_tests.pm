@@ -272,7 +272,7 @@ sub backup_ds_file {
 
 sub restore_ds_file {
 # Restore ds file
-    assert_script_run("rm $full_ansible_file_path");
+    assert_script_run("rm $f_ssg_ds");
     assert_script_run("cp /root/$ssg_sle_ds $f_ssg_ds");
     record_info("Restored ds file", "Restored file /root/$ssg_sle_ds to $f_ssg_ds");
 }
