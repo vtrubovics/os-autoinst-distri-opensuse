@@ -264,6 +264,19 @@ sub modify_ansible_playbook {
     }
 }
 
+sub backup_ds_file {
+# Backup ds file for later reuse
+    assert_script_run("cp $f_ssg_ds /root/$ssg_sle_ds");
+    record_info("Backuped ds file", "Backuped file $f_ssg_ds to /root/$ssg_sle_ds");
+}
+
+sub restore_ds_file {
+# Restore ds file
+    assert_script_run("rm $full_ansible_file_path");
+    assert_script_run("cp /root/$ssg_sle_ds $f_ssg_ds");
+    record_info("Restored ds file", "Restored file /root/$ssg_sle_ds to $f_ssg_ds");
+}
+
 sub get_ansible_exclusions {
 # Download and pharse ansible exclusions file from repository
     my $self = $_[0];
@@ -955,6 +968,7 @@ sub oscap_security_guide_setup {
     else {
         record_info("Do not modify DS or Ansible files", "Do not modify DS or Ansible files because remove_rules_missing_fixes = $remove_rules_missing_fixes");
     }
+    backup_ds_file();
 }
 
 =ansible return codes
@@ -990,7 +1004,7 @@ sub oscap_remediate {
 
     # Verify mitigation mode
     # For pkg install rules need to refresh repositories
-    zypper_call('ref -s', timeout => 180);
+    # zypper_call('ref -s', timeout => 180);
     if ($remediated == 0) {
         push(@test_run_report, "[tests_results]");
     }
@@ -1124,6 +1138,7 @@ sub oscap_evaluate {
     my $ret_expected_results;
 
     # Verify detection mode
+    restore_ds_file();
     upload_logs("$f_ssg_ds") if script_run "! [[ -e $f_ssg_ds ]]";
     my $eval_cmd = "oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr";
     my $ret = script_run("$eval_cmd", timeout => 600);
