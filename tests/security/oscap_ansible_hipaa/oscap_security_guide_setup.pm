@@ -25,7 +25,7 @@ sub run {
 }
 
 sub test_flags {
-    return {milestone => 1, fatal => 1};
+    return {milestone => 0, always_rollback => 1, fatal => 1};
 }
 
 1;
