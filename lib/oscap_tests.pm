@@ -1107,6 +1107,7 @@ sub oscap_remediate {
     }
     # If doing bash remediation
     else {
+        restore_ds_file();
         my $remediate_cmd = "oscap xccdf eval --profile $profile_ID --remediate --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr";
         my $ret
           = script_run("$remediate_cmd", timeout => 3200);
