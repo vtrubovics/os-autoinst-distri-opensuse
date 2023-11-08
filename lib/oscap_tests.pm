@@ -1124,6 +1124,7 @@ sub oscap_evaluate {
     my $ret_expected_results;
 
     # Verify detection mode
+    upload_logs("$f_ssg_ds") if script_run "! [[ -e $f_ssg_ds ]]";
     my $eval_cmd = "oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr";
     my $ret = script_run("$eval_cmd", timeout => 600);
     if ($ret == 0 || $ret == 2) {
