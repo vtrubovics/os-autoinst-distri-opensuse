@@ -24,8 +24,4 @@ sub run {
     $self->oscap_evaluate_remote($f_ssg_ds, $profile_ID);
 }
 
-sub test_flags {
-    return {always_rollback => 1};
-}
-
 1;

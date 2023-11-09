@@ -30,8 +30,4 @@ sub run {
     $self->oscap_evaluate($n_passed_rules, $n_failed_rules, \@eval_match);
 }
 
-sub test_flags {
-    return {always_rollback => 1};
-}
-
 1;
