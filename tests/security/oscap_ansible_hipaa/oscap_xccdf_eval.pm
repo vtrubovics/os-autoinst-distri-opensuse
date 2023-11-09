@@ -30,4 +30,8 @@ sub run {
     $self->oscap_evaluate($n_passed_rules, $n_failed_rules, \@eval_match);
 }
 
+sub test_flags {
+    return {fatal => 0};
+}
+
 1;

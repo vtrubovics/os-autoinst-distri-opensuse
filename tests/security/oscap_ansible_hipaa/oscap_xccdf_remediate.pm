@@ -17,4 +17,8 @@ sub run {
     $self->oscap_remediate();
 }
 
+sub test_flags {
+    return {fatal => 0};
+}
+
 1;
