@@ -620,12 +620,12 @@ sub modify_ds_ansible_files {
 
         # Get rule exclusions for ansible playbook
         $ret_get_ansible_exclusions
-          = get_ansible_exclusions($ansible_exclusions);
+          = get_test_exclusions($ansible_exclusions);
         # Write exclusions to the file
         if ($ret_get_ansible_exclusions == 1) {
-            $ansible_exclusions =~ s/\,/\n/g;
-            assert_script_run("printf \"\n$ansible_exclusions\" >> \"$ansible_fix_missing\"");
-            record_info("Writing ansible exceptions to file", "Writing ansible exclusions:\n$ansible_exclusions\n\nto file: $ansible_fix_missing");
+            my $exclusions = (join "\n", @$ansible_exclusions);
+            assert_script_run("printf \"\n$exclusions\" >> \"$ansible_fix_missing\"");
+            record_info("Writing ansible exceptions to file", "Writing ansible exclusions:\n$exclusions\n\nto file: $ansible_fix_missing");
         }
 
         # Diasble excluded and fix missing rules in ds file
@@ -661,13 +661,14 @@ sub modify_ds_ansible_files {
 
         # Get rule exclusions for bash playbook
         $ret_get_bash_exclusions
-          = get_bash_exclusions( $bash_exclusions);
+          = get_test_exclusions($bash_exclusions);
         # Write exclusions to the file
         if ($ret_get_bash_exclusions == 1) {
-            $bash_exclusions =~ s/\,/\n/g;
-            assert_script_run("printf \"\n$bash_exclusions\" >> \"$bash_fix_missing\"");
-            record_info("Writing bash exceptions to file", "Writing bash exclusions:\n$bash_exclusions\n\nto file: $bash_fix_missing");
+            my $exclusions = (join "\n", @$bash_exclusions);
+            assert_script_run("printf \"\n$exclusions\" >> \"$bash_fix_missing\"");
+            record_info("Writing bash exceptions to file", "Writing bash exclusions:\n$exclusions\n\nto file: $bash_fix_missing");
         }
+
         # Diasble excluded and fix missing rules in ds file
         my $unselect_cmd = "sh $compliance_as_code_path/tests/$ds_unselect_rules_script $f_ssg_sle_ds $bash_fix_missing";
         assert_script_run("$unselect_cmd", timeout => 600);
@@ -860,9 +861,61 @@ sub get_test_expected_results {
     }
     return $found;
 }
-# Main test setup function
-sub oscap_security_guide_setup {
 
+sub get_test_exclusions {
+# Get exclusions from remote file
+    my $exclusions = ();
+    my $found = -1;
+    my $type = "";
+    my $arch = "";
+
+    if ($ansible_remediation == 1) {
+        $type = 'ansible';
+    }
+    else {
+        $type = 'bash';
+    }
+    if (is_s390x) { $arch = "s390x"; }
+    if (is_aarch64 or is_arm) { $arch = "aarch64"; }
+    if (is_ppc64le) { $arch = "ppc"; }
+    if (is_x86_64) { $arch = "x86_64"; }
+    # $sle_version and $profile_ID are global varables
+    my $exclusions_list_name = $sle_version . "-exclusions_list";
+    my $exclusions_file_name = "openqa_tests_exclusions.yaml";
+    my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
+
+    download_file_from_https_repo($url, $exclusions_file_name);
+    upload_logs("$exclusions_file_name") if script_run "! [[ -e $exclusions_file_name ]]";
+    my $data = script_output("cat $exclusions_file_name", quiet => 1);
+
+    # Pharse the expected results
+    my $exclusions_data = YAML::PP::Load($data);
+    record_info("Looking exclusions", "Looking exclusions for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch");
+
+    $exclusions = $exclusions_data->{$profile_ID}->{$type}->{$arch}->{$exclusions_list_name};
+    # If results defined
+    if (defined $exclusions) {
+        $found = 1;
+        if (not defined $$exclusions[0]) {
+            my @exclusions = ();
+            $_[0] = \@exclusions;
+            record_info("Got exclusions", "Got exclusions for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nList excluded rules:\n @exclusions");
+        }
+        else {
+            $_[0] = $exclusions;
+            record_info("Got exclusions", "Got exclusions for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nList of excluded rules:\n @$exclusions");
+        }
+    }
+    else {
+        record_info("No exclusions", "No exclusions found in \nfile: $exclusions_file_name\n for profile_ID: $profile_ID\ntype: $type\narch: $arch");
+        my @exclusions = ();
+        $_[0] = \@exclusions;
+    }
+    return $found;
+}
+
+sub oscap_security_guide_setup {
+# Main test setup function
     select_console 'root-console';
     # Setting $full_ansible_file_path aftr got ansible_profile_ID from test
     $full_ansible_file_path = $ansible_file_path . $ansible_profile_ID;
