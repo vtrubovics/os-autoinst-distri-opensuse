@@ -851,7 +851,7 @@ sub get_test_expected_results {
         }
         else {
             $_[0] = $eval_match;
-            record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nList of expected to fail rules:\n @$eval_match");
+            record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nList of expected to fail rules:\n" . (join "\n", @$eval_match));
         }
     }
     else {
@@ -903,7 +903,7 @@ sub get_test_exclusions {
         }
         else {
             $_[0] = $exclusions;
-            record_info("Got exclusions", "Got exclusions for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nList of excluded rules:\n @$exclusions");
+            record_info("Got exclusions", "Got exclusions for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nList of excluded rules:\n" . (join "\n", @$exclusions));
         }
     }
     else {
