@@ -120,6 +120,13 @@ our $use_content_type = 1;
 # If set to 0 - no changes done.
 our $remove_rules_missing_fixes = 1;
 
+# Option configures to use or not functionality to exclude rules for profiles defined in files:
+# https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/blob/main/ansible/ansible_exclusions.txt
+# https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/blob/main/bash/bash_exclusions.txt
+# If set to 1 - rules defined in exclusions files are excluded for remediation and evaluation
+# If set to 0 - rules defined in exclusions files are not used
+our $use_rules_from_exclusions_files = 1;
+
 # Keeps count of reboots to control it
 our $reboot_count = 0;
 
@@ -279,68 +286,77 @@ sub restore_ds_file {
 
 sub get_ansible_exclusions {
 # Download and pharse ansible exclusions file from repository
-    my $self = $_[0];
-    my $ansible_exclusions_file_name = "ansible_exclusions.txt";
-    my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/";
+    if ($remove_rules_missing_fixes == 0) {
+        return 0;
+    }
+    else {
+        my $ansible_exclusions_file_name = "ansible_exclusions.txt";
+        my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/";
 
-    download_file_from_https_repo($url, $ansible_exclusions_file_name);
-    my $data = script_output ("cat $ansible_exclusions_file_name", quiet => 1);
-    my @lines = split /\n|\r/, $data;
-    my $found = 0;
-    my @strings;
-    my $exclusions;
-    my $fprofile_ID = $profile_ID . " ";    # Fix for profile names having extensions
+        download_file_from_https_repo($url, $ansible_exclusions_file_name);
+        my $data = script_output ("cat $ansible_exclusions_file_name", quiet => 1);
+        my @lines = split /\n|\r/, $data;
+        my $found = 0;
+        my @strings;
+        my $exclusions = "";
+        my $fprofile_ID = $profile_ID . " ";    # Fix for profile names having extensions
 
-    record_info("Looking for exclusions", "Looking for exclusions for profile $profile_ID");
-    for my $i (0 .. $#lines) {
-        if ($lines[$i] =~ /$fprofile_ID/) {
-            @strings = split /\s+/, $lines[$i];
-            $exclusions = $strings[1];
-            $exclusions =~ s/\"//g;
-            $found = 1;
-            record_info("Found exclusions", "Found exclusions:\n$exclusions\nfor profile $strings[0]");
-            last;
+        record_info("Looking for exclusions", "Looking for exclusions for profile $profile_ID");
+        for my $i (0 .. $#lines) {
+            if ($lines[$i] =~ /$fprofile_ID/) {
+                @strings = split /\s+/, $lines[$i];
+                $exclusions = $strings[1];
+                $exclusions =~ s/\"//g;
+                $found = 1;
+                record_info("Found exclusions", "Found exclusions:\n$exclusions\nfor profile $strings[0]");
+                last;
+            }
         }
+        # If exclusion are not found for playbook - ignore_errors: true are added to all tasks in playbook
+        if ($found == 0 and $ansible_playbook_modified == 0) {
+            record_info("Did not found exclusions", "Did not found exclusions for profile $profile_ID");
+            modify_ansible_playbook();
+        }
+        #Returning by reference exclusions string
+        $_[0] = $exclusions;
+        return $found;
     }
-    # If exclusion are not found for playbook - ignore_errors: true are added to all tasks in playbook
-    if ($found == 0 and $ansible_playbook_modified == 0) {
-        record_info("Did not found exclusions", "Did not found exclusions for profile $profile_ID");
-        modify_ansible_playbook();
-    }
-    #Returning by reference exclusions string
-    $_[1] = $exclusions;
-    return $found;
 }
-# Download and pharse bash exclusions file from repository
 sub get_bash_exclusions {
-    my $self = $_[0];
-    my $bash_exclusions_file_name = "bash_exclusions.txt";
-    my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/";
+# Download and pharse bash exclusions file from repository
+    if ($remove_rules_missing_fixes == 0) {
+        return 0;
+    }
+    else {
+        my $bash_exclusions_file_name = "bash_exclusions.txt";
+        my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/bash/";
 
-    download_file_from_https_repo($url, $bash_exclusions_file_name);
+        download_file_from_https_repo($url, $bash_exclusions_file_name);
 
-    my $data = script_output ("cat $bash_exclusions_file_name", quiet => 1);
-    my @lines = split /\n|\r/, $data;
-    my $found = 0;
-    my @strings;
-    my $exclusions;
-    record_info("Looking for bash exclusions", "Looking for exclusions for profile $profile_ID");
-    for my $i (0 .. $#lines) {
-        if ($lines[$i] =~ /$profile_ID/) {
-            @strings = split /\s+/, $lines[$i];
-            $exclusions = $strings[1];
-            $exclusions =~ s/\"//g;
-            $found = 1;
-            record_info("Found exclusions", "Found exclusions $exclusions for profile $profile_ID");
-            last;
+        my $data = script_output ("cat $bash_exclusions_file_name", quiet => 1);
+        my @lines = split /\n|\r/, $data;
+        my $found = 0;
+        my @strings;
+        my $exclusions = "";
+        my $fprofile_ID = $profile_ID . " ";    # Fix for profile names having extensions
+        record_info("Looking for bash exclusions", "Looking for exclusions for profile $profile_ID");
+        for my $i (0 .. $#lines) {
+            if ($lines[$i] =~ /$fprofile_ID/) {
+                @strings = split /\s+/, $lines[$i];
+                $exclusions = $strings[1];
+                $exclusions =~ s/\"//g;
+                $found = 1;
+                record_info("Found exclusions", "Found exclusions $exclusions for profile $profile_ID");
+                last;
+            }
         }
+        if ($found == 0) {
+            record_info("Did not found exclusions", "Did not found bash exclusions for profile $profile_ID");
+        }
+        #Returning by reference exclusions string
+        $_[0] = $exclusions;
+        return $found;
     }
-    if ($found == 0) {
-        record_info("Did not found exclusions", "Did not found bash exclusions for profile $profile_ID");
-    }
-    #Returning by reference exclusions string
-    $_[1] = $exclusions;
-    return $found;
 }
 
 sub ansible_result_analysis {
@@ -604,7 +620,7 @@ sub modify_ds_ansible_files {
 
         # Get rule exclusions for ansible playbook
         $ret_get_ansible_exclusions
-          = get_ansible_exclusions(1, $ansible_exclusions);
+          = get_ansible_exclusions($ansible_exclusions);
         # Write exclusions to the file
         if ($ret_get_ansible_exclusions == 1) {
             $ansible_exclusions =~ s/\,/\n/g;
@@ -645,7 +661,7 @@ sub modify_ds_ansible_files {
 
         # Get rule exclusions for bash playbook
         $ret_get_bash_exclusions
-          = get_bash_exclusions(1, $bash_exclusions);
+          = get_bash_exclusions( $bash_exclusions);
         # Write exclusions to the file
         if ($ret_get_bash_exclusions == 1) {
             $bash_exclusions =~ s/\,/\n/g;
@@ -784,6 +800,7 @@ sub get_tests_config {
     if ($err eq "") {
         $use_content_type = $config->{tests_config}->{use_content_type};
         $remove_rules_missing_fixes = $config->{tests_config}->{remove_rules_missing_fixes};
+        $use_rules_from_exclusions_files = $config->{tests_config}->{use_rules_from_exclusions_files};
         record_info("Set test configuration", "Set test configuration from file $config_file_path\n use_content_type = $use_content_type\n  remove_rules_missing_fixes = $remove_rules_missing_fixes");
     }
     else {
@@ -1026,7 +1043,7 @@ sub oscap_remediate {
             assert_script_run("rm $full_ansible_file_path");
             # Copy file to correct location
             assert_script_run("cp $ansible_local_full_file_path $full_ansible_file_path");
-            record_info("Copied ansible file", "Copied file $ansible_local_full_file_path to $full_ansible_file_path");
+            record_info("Restored ansible file", "Copied file $ansible_local_full_file_path to $full_ansible_file_path");
             
             $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1, timeout => 1200);
             $script_cmd = "ansible-playbook -vv -i \"localhost,\" -c local $full_ansible_file_path";
@@ -1062,8 +1079,9 @@ sub oscap_remediate {
         else {
             my $grep_cmd = 'grep "TASK\|task path:\|fatal:\|failed:" ' . "$f_stdout";
             $out_f_stdout = script_output("$grep_cmd", quiet => 1, timeout => 1200);
-            record_info('Grep cmd', "grep cmd: $grep_cmd");
+            record_info('Collected output', "grep cmd: $grep_cmd");
             record_info('Got analysis results', "Ansible playbook.\nPLAY RECAP:\n$full_report");
+            # If found failed or ignored tesks in ansible execution output
             if ($failed_number > 0 or $ignored_number >0) {
                 record_info('Found failed tasks', "Found:\nFailed tasks: $failed_number\nIgnored tasks: $ignored_number\nin ansible playbook remediations $f_stdout file");
                 $self->result('fail');
@@ -1140,7 +1158,6 @@ sub oscap_evaluate {
 
     # Verify detection mode
     restore_ds_file();
-    upload_logs("$f_ssg_ds") if script_run "! [[ -e $f_ssg_ds ]]";
     my $eval_cmd = "oscap xccdf eval --profile $profile_ID --oval-results --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr";
     my $ret = script_run("$eval_cmd", timeout => 600);
     if ($ret == 0 || $ret == 2) {
