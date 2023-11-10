@@ -149,7 +149,6 @@ set_var('UPLOAD_REPORT_HTML', 1);
 
 # Set value for 'scap-security-guide' ds file
 sub set_ds_file {
-
     # Set the ds file for separate product, e.g.,
     # for SLE15 the ds file is "ssg-sle15-ds.xml";
     # for SLE12 the ds file is "ssg-sle12-ds.xml";
@@ -161,7 +160,6 @@ sub set_ds_file {
       '/usr/share/xml/scap/ssg/content/ssg-sle' . "$version" . '-xccdf.xml';
 }
 sub set_ds_file_name {
-
     # Set the ds file for separate product, e.g.,
     # for SLE15 the ds file is "ssg-sle15-ds.xml";
     # for SLE12 the ds file is "ssg-sle12-ds.xml";
@@ -173,8 +171,8 @@ sub set_ds_file_name {
       'ssg-sle' . "$version" . '-xccdf.xml';
 }
 
-# Replace original ds file whith built or downloaded from repository
 sub replace_ds_file {
+    # Replace original ds file whith built or downloaded from repository
     my $self = $_[0];
     my $ds_file_name = $_[1];
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
@@ -197,8 +195,8 @@ sub replace_ds_file {
         record_info("Copied ds file", "Copied file $ds_file_name to $f_ssg_sle_ds");
     }
 }
-# Replace original xccdf file whith built or downloaded from repository
 sub replace_xccdf_file {
+    # Replace original xccdf file whith built or downloaded from repository
     my $self = $_[0];
     my $xccdf_file_name = $_[1];
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
@@ -222,8 +220,8 @@ sub replace_xccdf_file {
     }
 }
 
-# Replace original ansible file whith built or downloaded from repository
 sub replace_ansible_file {
+    # Replace original ansible file whith built or downloaded from repository
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/ansible/";
     # ComplianceAsCode repository master branch
     if ($use_content_type == 3) {
@@ -255,7 +253,7 @@ sub replace_ansible_file {
     }
 }
 sub modify_ansible_playbook {
-# Modify and backup ansible playbok for later reuse in remediation
+    # Modify and backup ansible playbok for later reuse in remediation
     if ($ansible_playbook_modified == 0) {
         my $ansible_local_full_file_path = "/root/$ansible_profile_ID";
         
@@ -271,20 +269,20 @@ sub modify_ansible_playbook {
 }
 
 sub backup_ds_file {
-# Backup ds file for later reuse
+    # Backup ds file for later reuse
     assert_script_run("cp $f_ssg_ds /root/$ssg_sle_ds");
     record_info("Backuped ds file", "Backuped file $f_ssg_ds to /root/$ssg_sle_ds");
 }
 
 sub restore_ds_file {
-# Restore ds file
+    # Restore ds file
     assert_script_run("rm $f_ssg_ds");
     assert_script_run("cp /root/$ssg_sle_ds $f_ssg_ds");
     record_info("Restored ds file", "Restored file /root/$ssg_sle_ds to $f_ssg_ds");
 }
 
 sub ansible_result_analysis {
-#Find count of failed or ignored ansible remediations
+    #Find count of failed or ignored ansible remediations
     my $data = $_[0];
     my @report = ();
     my $found = 0;
@@ -322,7 +320,7 @@ sub ansible_result_analysis {
 }
 
 sub ansible_failed_tasks_search_vv {
-#Find count and rules names of matched pattern
+    #Find count and rules names of matched pattern
     my $data = $_[0];
     my @report = ();
     my $full_report = "";
@@ -366,7 +364,7 @@ sub ansible_failed_tasks_search_vv {
 }
 
 sub find_ansible_cce_by_task_name_vv {
-# Finding CCE IDs for failed or ignored rules in ansible playbook
+    # Finding CCE IDs for failed or ignored rules in ansible playbook
     my $data = $_[0];
     my $failed_tasks = $_[1];
     my $tasks_line_numbers = $_[2];
@@ -421,7 +419,7 @@ sub find_ansible_cce_by_task_name_vv {
     return $cce_ids_size;
 }
 sub upload_logs_reports {
-# Upload logs & ouputs for reference
+    # Upload logs & ouputs for reference
 =comment No need for xml files
     my $files;
     if (is_sle) {
@@ -444,7 +442,7 @@ sub upload_logs_reports {
     }
 }
 sub download_file_from_https_repo {
-# downloads file from provided url
+    # downloads file from provided url
     my $url = $_[0];
     my $file_name = $_[1];
     my $full_url = "$url" . "$file_name";
@@ -456,37 +454,49 @@ sub download_file_from_https_repo {
     record_info("Downloaded file", "Downloaded file $file_name from $FULL_URL");
 }
 sub pattern_count_in_file {
-#Find count and rules names of matched pattern
-    my $self = $_[0];
-    my $data = $_[1];
-    my $pattern = $_[2];
+    #Find count and rules names of matched pattern
+    my $data = $_[0];
+    my $pattern = $_[1];
     my @rules = ();
     my @rules_cce = ();
     my @rules_ids = ();
     my $count = 0;
     my @nlines;
+    my $j;
+    my $rule_name = "";
+    my $cce_id = "";
+
     my @lines = split /\n|\r/, $data;
     for my $i (0 .. $#lines) {
         if ($lines[$i] =~ /$pattern/) {
             $count++;
-            $lines[$i - 2] =~ s/\s+//g;    # remove whitespace from cce_id
-            $lines[$i - 4] =~ s/\s+//g;    # remove whitespace from rule id
-            @nlines = split /\./, $lines[$i - 4];
-            push(@rules_ids, $nlines[2]);    # push rule id to list
-            $nlines[2] .= ", " . $lines[$i - 2];    # add cce id
-            push(@rules_cce, $lines[$i - 2]);    # push rule cce id to list
-            push(@rules, $nlines[2]) if ($i >= 4);    # push rule id and rule cce id to list
+            for ($j = 1; $j <= 5;) {                            # Looking in upper lines
+                if ($lines[$i - $j] =~ /Rule/) {                # Found rule
+                    $lines[$i - $j + 1] =~ s/\s+//g;            # Remove whitespace from rule id
+                    $rule_name = $lines[$i - $j + 1];
+                    push(@rules_ids, $rule_name);               # Push rule id to list
+                }
+                if ($lines[$i - $j] =~ /Ident/) {               # Found CCE ID
+                    $lines[$i - $j + 1] =~ s/\s+//g;            # Remove whitespace from CCE id
+                    $cce_id = $lines[$i - $j + 1];
+                    push(@rules_cce, $cce_id);                  # Push rule id to list
+                }
+                $j++;
+            }
+            $rule_name .= ", " . $cce_id;                       # Add CCE ID to rule name
+            push(@rules, $rule_name);                           # Push rule id and rule cce id to list
+            $cce_id = "";
         }
     }
     #Returning by reference array of matched rules
-    $_[3] = \@rules;    # rule id and rule cce id
-    $_[4] = \@rules_cce;    # cce IDs
-    $_[5] = \@rules_ids;    # rule IDs
+    $_[2] = \@rules;        # rule id and rule cce id
+    $_[3] = \@rules_cce;    # cce IDs
+    $_[4] = \@rules_ids;    # rule IDs
     return $count;
 }
 
 sub modify_ds_ansible_files {
-# Removes bash and ansible excluded and not having fixes rules from DS and playbook files
+    # Removes bash and ansible excluded and not having fixes rules from DS and playbook files
     my $in_file_path = $_[0];
     my $bash_pattern = "missing a bash fix";
     my $ansible_pattern = "missing a ansible fix";
@@ -614,7 +624,7 @@ sub modify_ds_ansible_files {
 }
 
 sub generate_mising_rules {
-# Generate text file that contains rules that missing implimentation for profile
+    # Generate text file that contains rules that missing implimentation for profile
     my $output_file = "missing_rules.txt";
     my $stats_output_file = "stats_profile_missing.txt";
 
@@ -660,7 +670,7 @@ sub generate_mising_rules {
 }
 
 sub get_cac_code {
-# Get the code for the ComplianceAsCode by cloning its repository
+    # Get the code for the ComplianceAsCode by cloning its repository
     my $cac_dir = "src/content";
     my $git_repo = "https://github.com/ComplianceAsCode/content.git";
     my $git_clone_cmd = "git clone " . $git_repo . " $cac_dir";
@@ -735,7 +745,7 @@ sub get_tests_config {
 }
 
 sub get_test_expected_results {
-# Get efpected results from remote file
+    # Get efpected results from remote file
     my $eval_match = ();
     my $found = -1;
     my $type = "";
@@ -787,7 +797,7 @@ sub get_test_expected_results {
 }
 
 sub get_test_exclusions {
-# Get exclusions from remote file
+    # Get exclusions from remote file
     my $exclusions = ();
     my $found = -1;
     my $type = "";
@@ -845,7 +855,7 @@ sub get_test_exclusions {
 }
 
 sub oscap_security_guide_setup {
-# Main test setup function
+    # Main test setup function
     select_console 'root-console';
     # Setting $full_ansible_file_path aftr got ansible_profile_ID from test
     $full_ansible_file_path = $ansible_file_path . $ansible_profile_ID;
@@ -1155,13 +1165,13 @@ sub oscap_evaluate {
         # $evaluate_count is configured fore every test on setup
         if (($remediated <= 1 and $evaluate_count == 3) or ($remediated == 0 and $evaluate_count == 2)) {
             record_info('non remediated', 'before remediation more rules fails are expected');
-            $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref, $passed_cce_rules_ref);
+            $pass_count = pattern_count_in_file($data, $f_pregex, $passed_rules_ref, $passed_cce_rules_ref);
             record_info(
                 "Passed rules count=$pass_count",
                 "Pattern $f_pregex count in file $f_stdout is $pass_count. Matched rules:\n " . join "\n",
                 @$passed_rules_ref
             );
-            $fail_count = pattern_count_in_file(1, $data, $f_fregex, $failed_rules_ref, $failed_cce_rules_ref);
+            $fail_count = pattern_count_in_file($data, $f_fregex, $failed_rules_ref, $failed_cce_rules_ref);
             record_info(
                 "Failed rules count=$fail_count",
                 "Pattern $f_fregex count in file $f_stdout is $fail_count. Matched rules:\n" . join "\n",
@@ -1180,7 +1190,7 @@ sub oscap_evaluate {
             }
             record_info('remediated', 'after remediation less rules are failing');
             #Verify failed rules
-            $fail_count = pattern_count_in_file(1, $data, $f_fregex, $failed_rules_ref, $failed_cce_rules_ref, $failed_id_rules_ref);
+            $fail_count = pattern_count_in_file($data, $f_fregex, $failed_rules_ref, $failed_cce_rules_ref, $failed_id_rules_ref);
 
             $lc = List::Compare->new('-u', \@$failed_id_rules_ref, \@$eval_match);
             my @intersection = $lc->get_intersection;    # list of rules found in both lists
@@ -1215,7 +1225,7 @@ sub oscap_evaluate {
             }
 
             #record number of passed rules
-            $pass_count = pattern_count_in_file(1, $data, $f_pregex, $passed_rules_ref, $passed_cce_rules_ref);
+            $pass_count = pattern_count_in_file($data, $f_pregex, $passed_rules_ref, $passed_cce_rules_ref);
             record_info(
                 "Passed check of passed rules count",
                 "Pattern $f_pregex count in file $f_stdout is $pass_count. Matched rules:\n" . join "\n",
