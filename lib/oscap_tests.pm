@@ -1165,13 +1165,13 @@ sub oscap_evaluate {
         # $evaluate_count is configured fore every test on setup
         if (($remediated <= 1 and $evaluate_count == 3) or ($remediated == 0 and $evaluate_count == 2)) {
             record_info('non remediated', 'before remediation more rules fails are expected');
-            $pass_count = pattern_count_in_file($data, $f_pregex, $passed_rules_ref, $passed_cce_rules_ref);
+            $pass_count = pattern_count_in_file($data, $f_pregex, $passed_rules_ref);
             record_info(
                 "Passed rules count=$pass_count",
                 "Pattern $f_pregex count in file $f_stdout is $pass_count. Matched rules:\n " . join "\n",
                 @$passed_rules_ref
             );
-            $fail_count = pattern_count_in_file($data, $f_fregex, $failed_rules_ref, $failed_cce_rules_ref);
+            $fail_count = pattern_count_in_file($data, $f_fregex, $failed_rules_ref);
             record_info(
                 "Failed rules count=$fail_count",
                 "Pattern $f_fregex count in file $f_stdout is $fail_count. Matched rules:\n" . join "\n",
@@ -1194,23 +1194,34 @@ sub oscap_evaluate {
 
             $lc = List::Compare->new('-u', \@$failed_id_rules_ref, \@$eval_match);
             my @intersection = $lc->get_intersection;    # list of rules found in both lists
-            my @lonly = $lc->get_Lonly;    # list of rules found only in left list (actual results)
-            my $intersection_count = @intersection;
-            # if count of rules in intesection  equal to expected rules and equal count of failed rules
-            if ($#intersection == $#$eval_match and $#intersection == $#$failed_id_rules_ref) {
-                record_info(
-                    "Passed check of failed rules",
-                    "Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules. Matched rules:\n" . (join "\n",
-                        @$failed_rules_ref) . "\n\nExpected rules to fail:\n" . (join "\n",
-                        @$eval_match) . "\n\nSame number $intersection_count rules in expected and failed results:\n" . (join "\n",
-                        @intersection)
-                );
+            my @lonly = $lc->get_Lonly;    # list of rules found in expected results
+            my @ronly = $lc->get_Ronly;    # list of rules NOT found in expected results
+            if (@lonly == 0) # Not found unexpected failed rules
+                if (@ronly == 0) { # All failed rules found in expected results
+                    record_info(
+                        "Passed fail rules check",
+                        "Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules or LESS. Failed rules:\n" . (join "\n",
+                            @intersection) . "\n\nExpected rules to fail:\n" . (join "\n",
+                            @$eval_match)
+                    );
+                }
+                else { # some expected to fail rules are passing
+                    record_info(
+                        "Passed fail rules check",
+                        "Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules or LESS. Failed rules:\n" . (join "\n",
+                            @intersection) . "\n\nExpected rules to fail:\n" . (join "\n",
+                            @$eval_match) . "\n\nRULES PASSED, but are in expected to fail list:\n" . (join "\n",
+                            @ronly)
+                    );
+                    push(@test_run_report, "passing_but_expected_to_fail_rules = \"" . (join ",",
+                    @ronly) . "\"");
+                }
                 push(@test_run_report, "final_evaluation_result = pass");
             }
-            else {
+            else { # found rules NOT in expected results
                 record_info(
-                    "Failed check of failed rules",
-                    "#Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules. Matched rules:\n" . (join "\n",
+                    "Failed fail rules check",
+                    "#Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules. Failed rules:\n" . (join "\n",
                         @$failed_rules_ref) . "\n\n#Expected $n_failed_rules rules to fail:\n" . (join "\n",
                         @$eval_match) . "\n\n#Rules failed (not in expected list):\n" . (join "\n",
                         @lonly),
@@ -1225,7 +1236,7 @@ sub oscap_evaluate {
             }
 
             #record number of passed rules
-            $pass_count = pattern_count_in_file($data, $f_pregex, $passed_rules_ref, $passed_cce_rules_ref);
+            $pass_count = pattern_count_in_file($data, $f_pregex, $passed_rules_ref);
             record_info(
                 "Passed check of passed rules count",
                 "Pattern $f_pregex count in file $f_stdout is $pass_count. Matched rules:\n" . join "\n",
@@ -1233,7 +1244,7 @@ sub oscap_evaluate {
             );
             # Write collected report to file
             record_info('Writing report', "Writing test report to file: $test_run_report_name");
-            assert_script_run("printf \"" . (join "\n",@test_run_report) . "\" >> \"$test_run_report_name\"");
+            assert_script_run("printf \"" . (join "\n", @test_run_report) . "\" >> \"$test_run_report_name\"");
             # Upload logs & ouputs for reference
             upload_logs("$test_run_report_name") if script_run "! [[ -e $test_run_report_name ]]";
             upload_logs_reports();
@@ -1264,17 +1275,12 @@ sub oscap_evaluate_remote {
     select_console 'root-console';
 
     # Verify detection mode with remote
-    my $ret = script_run(
-        "oscap xccdf eval --profile $profile_ID --oval-results --fetch-remote-resources --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr",
-        timeout => 3000
-    );
-    record_info("Return=$ret",
-        "# oscap xccdf eval --fetch-remote-resources --profile $profile_ID\" returns: $ret"
-    );
+    my $cmd = "oscap xccdf eval --profile $profile_ID --oval-results --fetch-remote-resources --report $f_report $f_ssg_ds > $f_stdout 2> $f_stderr";
+    my $ret = script_run("$cmd", timeout => 3000);
+    record_info("Return=$ret", "$cmd");
     if ($ret == 137) {
         record_info('bsc#1194724', "eval returned $ret", result => 'fail');
     }
-
     # Upload logs & ouputs for reference
     upload_logs_reports();
 }
