@@ -1196,7 +1196,7 @@ sub oscap_evaluate {
             my @intersection = $lc->get_intersection;    # list of rules found in both lists
             my @lonly = $lc->get_Lonly;    # list of rules found in expected results
             my @ronly = $lc->get_Ronly;    # list of rules NOT found in expected results
-            if (@lonly == 0) # Not found unexpected failed rules
+            if (@lonly == 0) { # Not found unexpected failed rules
                 if (@ronly == 0) { # All failed rules found in expected results
                     record_info(
                         "Passed fail rules check",
