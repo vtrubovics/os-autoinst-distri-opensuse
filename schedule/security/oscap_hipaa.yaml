@@ -13,7 +13,6 @@ schedule:
     - security/oscap_hipaa/oscap_xccdf_remediate
     # Do evaluate again after remediate
     - security/oscap_hipaa/oscap_xccdf_eval
-    # - security/oscap_hipaa/baseline_comparison
 conditional_schedule:
     bootloader:
         ARCH:

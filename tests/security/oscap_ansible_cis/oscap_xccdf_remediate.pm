@@ -19,7 +19,7 @@ sub run {
 
 sub test_flags {
     # Do not rollback as next test module will be run on this test environments
-    return {milestone => 1, always_rollback => 0};
+    return {fatal => 0};
 
 }
 

@@ -14,14 +14,11 @@ use utils;
 sub run {
     my ($self) = @_;
 
-
     $self->oscap_remediate();
 }
 
 sub test_flags {
-    # Do not rollback as next test module will be run on this test environments
-    return {milestone => 1, always_rollback => 0};
-
+    return {fatal => 0};
 }
 
 1;

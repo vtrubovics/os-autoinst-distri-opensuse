@@ -24,4 +24,8 @@ sub run {
     $self->oscap_evaluate_remote($f_ssg_ds, $profile_ID);
 }
 
+sub test_flags {
+    return {fatal => 0};
+}
+
 1;

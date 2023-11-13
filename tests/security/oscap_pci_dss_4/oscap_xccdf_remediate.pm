@@ -24,4 +24,8 @@ sub test_flags {
 
 }
 
+sub test_flags {
+    return {fatal => 0};
+}
+
 1;

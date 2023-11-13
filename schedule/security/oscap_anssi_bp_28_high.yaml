@@ -13,7 +13,6 @@ schedule:
     - security/oscap_anssi_bp_28_high/oscap_xccdf_remediate
     # Do evaluate again after remediate
     - security/oscap_anssi_bp_28_high/oscap_xccdf_eval
-    # - security/oscap_anssi_bp_28_high/baseline_comparison
 conditional_schedule:
     bootloader:
         ARCH:
