@@ -17,6 +17,7 @@ sub run {
     select_console 'root-console';
 
     $self->oscap_evaluate_remote();
+}
 
 sub test_flags {
     return {fatal => 0};
