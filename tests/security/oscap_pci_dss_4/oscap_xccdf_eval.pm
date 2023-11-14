@@ -16,11 +16,10 @@ sub run {
     my ($self) = @_;
     select_console 'root-console';
 
-    my $n_passed_rules = 0;
-    my $n_failed_rules = 0;
+    # Set expected results
     my @eval_match = ('');
 
-    $self->oscap_evaluate($n_passed_rules, $n_failed_rules, \@eval_match);
+    $self->oscap_evaluate(\@eval_match);
 }
 
 sub test_flags {

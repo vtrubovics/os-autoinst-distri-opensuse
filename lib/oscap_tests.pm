@@ -395,7 +395,7 @@ sub find_ansible_cce_by_task_name_vv {
     foreach $task_line_number (@$tasks_line_numbers) {
         if ($lines[$task_line_number - 1] =~ /- name:/) {
             # looking for task CCE ID
-            while ($found_cce == 0 or $task_line_number + $j == $#lines) {
+            while (($found_cce == 0) or ($task_line_number + $j == $#lines)) {
                 if ($lines[$task_line_number + $j] =~ /CCE-/) {
                     $found_cce = 1;
                 }
@@ -442,7 +442,7 @@ sub upload_logs_reports {
     }
 }
 sub download_file_from_https_repo {
-    # downloads file from provided url
+    # Downloads file from provided url
     my $url = $_[0];
     my $file_name = $_[1];
     my $full_url = "$url" . "$file_name";
@@ -626,8 +626,8 @@ sub modify_ds_ansible_files {
 sub generate_mising_rules {
     # Generate text file that contains rules that missing implimentation for profile
     my $output_file = "missing_rules.txt";
-    my $stats_output_file = "stats_profile_missing.txt";
 
+    # Install python 3.11 needed for script execution
     zypper_call("in python311");
     # Set alias persistent 
     my $alias_cmd = "alias python='/usr/bin/python3.11'";
@@ -642,24 +642,19 @@ sub generate_mising_rules {
     assert_script_run("alias python=python3.11");
     assert_script_run("cd $compliance_as_code_path");
     assert_script_run("source .pyenv.sh");
-    my $env = script_output("env | grep PYTHONPATH", quiet => 1);
-    record_info("exported PYTHONPATH", "export $env");
     # Running script that generates file containing rules missing fixes
     my $cmd = "python build-scripts/profile_tool.py stats --missing --skip-stats --profile $profile_ID --benchmark $f_ssg_sle_xccdf --format plain > $output_file";
-    my $stats_cmd = "python build-scripts/profile_tool.py stats --missing --profile $profile_ID --benchmark $f_ssg_sle_xccdf --format plain > $stats_output_file";
 
     assert_script_run("$cmd");
     record_info("Generated file $output_file", "generate_mising_rules Input file $f_ssg_sle_xccdf\n Command:\n$cmd");
     assert_script_run("cp $output_file /root");
 
     # Getting and showing profile statistics
-    assert_script_run("$stats_cmd");
-    record_info("Generated file $stats_output_file", "generate_mising_rules statistics. Input file $f_ssg_sle_xccdf\n Command:\n$stats_cmd");
-    my $data = script_output("cat $stats_output_file", quiet => 1);
+    my $data = script_output("cat $output_file", quiet => 1);
     record_info("Profile missing stat", "Profile missing stat:\n $data");
 
     #Uplaod file to logs
-    upload_logs("$stats_output_file") if script_run "! [[ -e $stats_output_file ]]";
+    upload_logs("$output_file") if script_run "! [[ -e $output_file ]]";
 
     assert_script_run("cd /root");
     my $output_full_path = script_output("pwd", quiet => 1);
@@ -1136,17 +1131,15 @@ sub oscap_remediate {
 }
 
 sub oscap_evaluate {
-    my ($self, $n_passed_rules, $n_failed_rules, $eval_match) = @_;
+    # Does evaluation and result analysis 
+    my ($self, $eval_match) = @_;
     select_console 'root-console';
 
-    my $passed_rules_ref;
-    my $failed_rules_ref;
-    my $passed_cce_rules_ref;
-    my $failed_cce_rules_ref;
-    my $failed_id_rules_ref;
+    my $n_failed_rules = @$eval_match;
+    my ($failed_rules_ref,$passed_rules_ref);
+    my ($failed_cce_rules_ref, $failed_id_rules_ref);
     my $lc;
-    my $fail_count;
-    my $pass_count;
+    my ($fail_count, $pass_count);
     my $expected_eval_match;
     my $ret_expected_results;
 
@@ -1263,7 +1256,7 @@ sub oscap_evaluate {
 }
 
 sub oscap_evaluate_remote {
-    my ($self, $f_ssg_ds, $profile_ID) = @_;
+    my ($self) = @_;
 
     select_console 'root-console';
 
