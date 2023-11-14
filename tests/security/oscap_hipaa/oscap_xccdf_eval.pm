@@ -20,6 +20,7 @@ sub run {
     my @eval_match = ('');
 
     $self->oscap_evaluate(\@eval_match);
+}
 
 sub test_flags {
     return {fatal => 0};
