@@ -1242,12 +1242,6 @@ sub oscap_evaluate {
             upload_logs("$test_run_report_name") if script_run "! [[ -e $test_run_report_name ]]";
             upload_logs_reports();
         }
-        # # Rebooting after second evaluation
-        # if ($reboot_count == 0 and $remediated == 1) {
-            # record_info('Rebooting', "Reboot count: $reboot_count");
-            # power_action('reboot', textmode => 1, keepconsole => 1);
-            # $reboot_count++;
-        # }
     }
     else {
         record_info("errno=$ret", "# oscap xccdf eval --profile \"$profile_ID\" returns: $ret", result => 'fail');
