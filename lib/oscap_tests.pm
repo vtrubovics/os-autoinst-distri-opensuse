@@ -111,8 +111,8 @@ our $full_ansible_file_path = "";
 #https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/blob/main/content/openqa_config.conf
 # Configuration for the contenyt type (source of ds, ansible and xccdf files):
 # If set to 1 - tests will use files from scap-security-guide package
-# If set to 2 - tests will use files from compliance-as-code-compiled repository - https://gitlab.suse.de/seccert-public/compliance-as-code-compiled 
-# If set to 3 - tests will use files cloned and built from ComplianceAsCode repository master branch - https://github.com/ComplianceAsCode/content.git 
+# If set to 2 - tests will use files from compliance-as-code-compiled repository - https://gitlab.suse.de/seccert-public/compliance-as-code-compiled
+# If set to 3 - tests will use files cloned and built from ComplianceAsCode repository master branch - https://github.com/ComplianceAsCode/content.git
 our $use_content_type = 1;
 
 # Option configures to use or not functionality to remove from DS and ansible file rules for which do not have remediations
@@ -121,7 +121,7 @@ our $use_content_type = 1;
 our $remove_rules_missing_fixes = 1;
 
 # Option configures to use or not functionality to exclude rules for profiles defined in file:
-# https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/blob/main/content/openqa_tests_exclusions.yaml 
+# https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/blob/main/content/openqa_tests_exclusions.yaml
 # If set to 1 - rules defined in exclusions files are excluded for remediation and evaluation
 # If set to 0 - rules defined in exclusions files are not used
 our $use_exclusions = 1;
@@ -133,7 +133,7 @@ our $reboot_count = 0;
 # and "security/oscap_stig/oscap_xccdf_eval" need to be set in the schedule yaml file accordingly
 our $evaluate_count = 2;
 
-# Stores CCE IDs of failed ansible remediation tasks. 
+# Stores CCE IDs of failed ansible remediation tasks.
 # Used in second ansible remediation as exclusions.
 our $failed_cce_ids_ref;
 
@@ -186,7 +186,7 @@ sub replace_ds_file {
         record_info("Copied ds file", "Copied file $ds_local_full_file_path to $f_ssg_sle_ds");
     }
     # compliance-as-code-compiled
-    elsif ($use_content_type == 2){
+    elsif ($use_content_type == 2) {
         download_file_from_https_repo($url, $ds_file_name);
         # Remove original ds file
         assert_script_run("rm $f_ssg_sle_ds");
@@ -210,7 +210,7 @@ sub replace_xccdf_file {
         record_info("Copied xccdf file", "Copied file $xccdf_local_full_file_path to $f_ssg_sle_xccdf");
     }
     # compliance-as-code-compiled
-    elsif ($use_content_type == 2){
+    elsif ($use_content_type == 2) {
         download_file_from_https_repo($url, $xccdf_file_name);
         # Remove original xccdf file
         assert_script_run("rm $f_ssg_sle_xccdf");
@@ -234,7 +234,7 @@ sub replace_ansible_file {
         upload_logs("$full_ansible_file_path") if script_run "! [[ -e $full_ansible_file_path ]]";
     }
     #  compliance-as-code-compiled
-    elsif ($use_content_type == 2){
+    elsif ($use_content_type == 2) {
         download_file_from_https_repo($url, $ansible_profile_ID);
         # Remove original ansible file
         assert_script_run("rm $full_ansible_file_path");
@@ -243,7 +243,7 @@ sub replace_ansible_file {
         record_info("Copied ansible file", "Copied file $ansible_profile_ID to $full_ansible_file_path");
     }
     # scap-security-guide
-    elsif ($use_content_type == 1){
+    elsif ($use_content_type == 1) {
         # Remove original ansible file
         assert_script_run("rm $full_ansible_file_path");
         # Copy file to correct location
@@ -256,7 +256,7 @@ sub modify_ansible_playbook {
     # Modify and backup ansible playbok for later reuse in remediation
     if ($ansible_playbook_modified == 0) {
         my $ansible_local_full_file_path = "/root/$ansible_profile_ID";
-        
+
         # Copy downloaded file to correct location
         assert_script_run("cp $full_ansible_file_path $ansible_local_full_file_path");
         record_info("Backuped ansible file", "Backuped file $full_ansible_file_path to $ansible_local_full_file_path");
@@ -344,14 +344,14 @@ sub ansible_failed_tasks_search_vv {
                 if ($lines[$i - $j] =~ /TASK/) {
                     $found_task = 1;
                 }
-                else{$j++;}
+                else { $j++; }
             }
             $full_report = $lines[$i - $j];
             @report = (split /\[/, $full_report, 2);
             $report[1] =~ s/\]\s\*+|\n//g;
             push(@failed_tasks, $report[1]);
             $j = 1;
-            $found_task = 0
+            $found_task = 0;
         }
         $i++;
     }
@@ -399,7 +399,7 @@ sub find_ansible_cce_by_task_name_vv {
                 if ($lines[$task_line_number + $j] =~ /CCE-/) {
                     $found_cce = 1;
                 }
-                else{$j++;}
+                else { $j++; }
             }
             @report = split /\-\s+/, $lines[$task_line_number + $j];
             $report[1] =~ s/\r|\n//g;
@@ -470,26 +470,26 @@ sub pattern_count_in_file {
     for my $i (0 .. $#lines) {
         if ($lines[$i] =~ /$pattern/) {
             $count++;
-            for ($j = 1; $j <= 5;) {                            # Looking in upper lines
-                if ($lines[$i - $j] =~ /Rule/) {                # Found rule
-                    $lines[$i - $j + 1] =~ s/\s+//g;            # Remove whitespace from rule id
+            for ($j = 1; $j <= 5;) {    # Looking in upper lines
+                if ($lines[$i - $j] =~ /Rule/) {    # Found rule
+                    $lines[$i - $j + 1] =~ s/\s+//g;    # Remove whitespace from rule id
                     $rule_name = $lines[$i - $j + 1];
-                    push(@rules_ids, $rule_name);               # Push rule id to list
+                    push(@rules_ids, $rule_name);    # Push rule id to list
                 }
-                if ($lines[$i - $j] =~ /Ident/) {               # Found CCE ID
-                    $lines[$i - $j + 1] =~ s/\s+//g;            # Remove whitespace from CCE id
+                if ($lines[$i - $j] =~ /Ident/) {    # Found CCE ID
+                    $lines[$i - $j + 1] =~ s/\s+//g;    # Remove whitespace from CCE id
                     $cce_id = $lines[$i - $j + 1];
-                    push(@rules_cce, $cce_id);                  # Push rule id to list
+                    push(@rules_cce, $cce_id);    # Push rule id to list
                 }
                 $j++;
             }
-            $rule_name .= ", " . $cce_id;                       # Add CCE ID to rule name
-            push(@rules, $rule_name);                           # Push rule id and rule cce id to list
+            $rule_name .= ", " . $cce_id;    # Add CCE ID to rule name
+            push(@rules, $rule_name);    # Push rule id and rule cce id to list
             $cce_id = "";
         }
     }
     #Returning by reference array of matched rules
-    $_[2] = \@rules;        # rule id and rule cce id
+    $_[2] = \@rules;    # rule id and rule cce id
     $_[3] = \@rules_cce;    # cce IDs
     $_[4] = \@rules_ids;    # rule IDs
     return $count;
@@ -620,7 +620,7 @@ sub modify_ds_ansible_files {
     record_info("Files paths for missing rules ", "Bash file path:\n$bash_file_full_path\nAnsible file path:\n $ansible_file_full_path");
     # Return bash and ansible rules missing fix
     $_[1] = \@bash_rules;
-    $_[2] = \@ansible_rules
+    $_[2] = \@ansible_rules;
 }
 
 sub generate_mising_rules {
@@ -629,11 +629,11 @@ sub generate_mising_rules {
 
     # Install python 3.11 needed for script execution
     zypper_call("in python311");
-    # Set alias persistent 
+    # Set alias persistent
     my $alias_cmd = "alias python='/usr/bin/python3.11'";
     my $bashrc_path = "/root/.bashrc";
     assert_script_run("printf \"" . $alias_cmd . "\" >> \"$bashrc_path\"");
-    
+
     # Installing python libs to be able to run profile_tool.py
     my $py_libs = "jinja2 PyYAML pytest pytest-cov Jinja2 setuptools ninja";
     assert_script_run('pip3 --quiet install --upgrade pip', timeout => 600);
@@ -681,13 +681,13 @@ sub get_cac_code {
     $compliance_as_code_path .= "/$cac_dir";
 
     record_info("Cloned ComplianceAsCode", "Cloned repo $git_repo to folder: $compliance_as_code_path");
-    # In case of use CaC master as source - building content 
+    # In case of use CaC master as source - building content
     if ($use_content_type == 3) {
         zypper_call('in cmake libxslt-tools', timeout => 180);
         my $py_libs = "lxml pytest pytest_cov json2html sphinxcontrib-jinjadomain autojinja sphinx_rtd_theme myst_parser prometheus_client mypy openpyxl pandas pcre2 cmakelint sphinx";
         assert_script_run("pip3 --quiet install $py_libs", timeout => 600);
 
-        # Building CaC content 
+        # Building CaC content
         assert_script_run("cd $compliance_as_code_path");
         assert_script_run("sh build_product $sle_version", timeout => 9000);
         record_info("build_product", "sh build_product $sle_version");
@@ -943,18 +943,18 @@ sub oscap_security_guide_setup {
 
         my $xccdf_file_name = is_sle ? $ssg_sle_xccdf : $ssg_tw_xccdf;
         replace_xccdf_file(1, $xccdf_file_name);
-        
+
         if ($ansible_remediation == 1) {
             replace_ansible_file();
         }
     }
-    # Adding benchmark version to report 
+    # Adding benchmark version to report
     my $ver_grep_cmd = 'grep "version update=" ' . "$f_ssg_sle_xccdf";
     $out = script_output("$ver_grep_cmd", quiet => 1);
     my @lines = split /\<|\>/, $out;
     push(@test_run_report, "benchmark_version = $lines[2]");
 
-   if ($remove_rules_missing_fixes == 1) {
+    if ($remove_rules_missing_fixes == 1) {
         # Generate text file that contains rules that missing implimentation for profile
         my $mising_rules_full_path = generate_mising_rules();
 
@@ -964,11 +964,11 @@ sub oscap_security_guide_setup {
         modify_ds_ansible_files($mising_rules_full_path, $bash_rules_missing_fixes_ref, $ansible_rules_missing_fixes_ref);
         if ($ansible_remediation == 1) {
             push(@test_run_report, "ansible_rules_missing_fixes = \"" . (join ",",
-                @$ansible_rules_missing_fixes_ref) . "\"");
+                    @$ansible_rules_missing_fixes_ref) . "\"");
         }
         else {
             push(@test_run_report, "bash_rules_missing_fixes = \"" . (join ",",
-                @$bash_rules_missing_fixes_ref) . "\"");
+                    @$bash_rules_missing_fixes_ref) . "\"");
         }
     }
     else {
@@ -1019,10 +1019,10 @@ sub oscap_remediate {
         my $ret;
         my $script_cmd;
         my $ansible_local_full_file_path = "/root/$ansible_profile_ID";
-        # Modify playbook to ignore possible errors 
+        # Modify playbook to ignore possible errors
         # and collect CCE IDs for exclusion from second remediation.
         modify_ansible_playbook();
-        if ($remediated == 0){
+        if ($remediated == 0) {
             $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1, timeout => 1200);
             $script_cmd = "ansible-playbook -vv -i \"localhost,\" -c local $full_ansible_file_path >> $f_stdout 2>> $f_stderr";
         }
@@ -1033,7 +1033,7 @@ sub oscap_remediate {
             # Copy file to correct location
             assert_script_run("cp $ansible_local_full_file_path $full_ansible_file_path");
             record_info("Restored ansible file", "Copied file $ansible_local_full_file_path to $full_ansible_file_path");
-            
+
             $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1, timeout => 1200);
             $script_cmd = "ansible-playbook -vv -i \"localhost,\" -c local $full_ansible_file_path";
             # If found faled tasks for current profile will add tem to command line
@@ -1071,7 +1071,7 @@ sub oscap_remediate {
             record_info('Collected output', "grep cmd: $grep_cmd");
             record_info('Got analysis results', "Ansible playbook.\nPLAY RECAP:\n$full_report");
             # If found failed or ignored tesks in ansible execution output
-            if ($failed_number > 0 or $ignored_number >0) {
+            if ($failed_number > 0 or $ignored_number > 0) {
                 record_info('Found failed tasks', "Found:\nFailed tasks: $failed_number\nIgnored tasks: $ignored_number\nin ansible playbook remediations $f_stdout file");
                 $self->result('fail');
 
@@ -1083,11 +1083,11 @@ sub oscap_remediate {
                     record_info(
                         "Found failed tasks names",
                         "Failed tasks unique names ($sesrch_ret):\n" . (join "\n",
-                            @$failed_tasks_ref) . 
-                        "\n\nFailed tasks line numbers ($sesrch_ret):\n" . (join "\n",
+                            @$failed_tasks_ref) .
+                          "\n\nFailed tasks line numbers ($sesrch_ret):\n" . (join "\n",
                             @$tasks_line_numbers_ref)
                     );
-                    my $find_ret = find_ansible_cce_by_task_name_vv ($out_ansible_playbook, $failed_tasks_ref, $tasks_line_numbers_ref, $failed_cce_ids_ref, $cce_id_and_name_ref);
+                    my $find_ret = find_ansible_cce_by_task_name_vv($out_ansible_playbook, $failed_tasks_ref, $tasks_line_numbers_ref, $failed_cce_ids_ref, $cce_id_and_name_ref);
                     if ($find_ret > 0) {
                         record_info(
                             "Found CCE IDs for failed tasks",
@@ -1096,7 +1096,7 @@ sub oscap_remediate {
                                 @$failed_cce_ids_ref)
                         );
                         push(@test_run_report, "failed_cce_ansible_remediation_$remediated = \"" . (join ",",
-                            @$failed_cce_ids_ref) . "\"");
+                                @$failed_cce_ids_ref) . "\"");
                     }
                     else {
                         record_info('No failed CCE', "Did not find failed CCE IDs");
@@ -1131,12 +1131,12 @@ sub oscap_remediate {
 }
 
 sub oscap_evaluate {
-    # Does evaluation and result analysis 
+    # Does evaluation and result analysis
     my ($self, $eval_match) = @_;
     select_console 'root-console';
 
     my $n_failed_rules = @$eval_match;
-    my ($failed_rules_ref,$passed_rules_ref);
+    my ($failed_rules_ref, $passed_rules_ref);
     my ($failed_cce_rules_ref, $failed_id_rules_ref);
     my $lc;
     my ($fail_count, $pass_count);
@@ -1150,7 +1150,7 @@ sub oscap_evaluate {
     if ($ret == 0 || $ret == 2) {
         record_info("Returned $ret", "$eval_cmd");
         # Note: the system cannot be fully remediated in this test and some rules are verified failing
-        my $data = script_output ("cat $f_stdout", quiet => 1);
+        my $data = script_output("cat $f_stdout", quiet => 1);
         # For a new installed OS the first time remediate can permit fail
         # There are 2 cases:
         # $evaluate_count == 3 - 2 remediations and 3 evaluations
@@ -1189,8 +1189,8 @@ sub oscap_evaluate {
             my @intersection = $lc->get_intersection;    # list of rules found in both lists
             my @lonly = $lc->get_Lonly;    # list of rules found in expected results
             my @ronly = $lc->get_Ronly;    # list of rules NOT found in expected results
-            if (@lonly == 0) { # Not found unexpected failed rules
-                if (@ronly == 0) { # All failed rules found in expected results
+            if (@lonly == 0) {    # Not found unexpected failed rules
+                if (@ronly == 0) {    # All failed rules found in expected results
                     record_info(
                         "Passed fail rules check",
                         "Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules or LESS. Failed rules:\n" . (join "\n",
@@ -1198,7 +1198,7 @@ sub oscap_evaluate {
                             @$eval_match)
                     );
                 }
-                else { # some expected to fail rules are passing
+                else {    # some expected to fail rules are passing
                     record_info(
                         "Passed fail rules check",
                         "Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules or LESS. Failed rules:\n" . (join "\n",
@@ -1207,11 +1207,11 @@ sub oscap_evaluate {
                             @ronly)
                     );
                     push(@test_run_report, "passing_but_expected_to_fail_rules = \"" . (join ",",
-                    @ronly) . "\"");
+                            @ronly) . "\"");
                 }
                 push(@test_run_report, "final_evaluation_result = pass");
             }
-            else { # found rules NOT in expected results
+            else {    # found rules NOT in expected results
                 record_info(
                     "Failed fail rules check",
                     "#Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules. Failed rules:\n" . (join "\n",
@@ -1223,9 +1223,9 @@ sub oscap_evaluate {
                 $self->result('fail');
                 push(@test_run_report, "final_evaluation_result = fail");
                 push(@test_run_report, "failed_rules_evaluation = \"" . (join ",",
-                    @$failed_id_rules_ref) . "\"");
+                        @$failed_id_rules_ref) . "\"");
                 push(@test_run_report, "failed_cce_evaluation = \"" . (join ",",
-                    @$failed_cce_rules_ref) . "\"");
+                        @$failed_cce_rules_ref) . "\"");
             }
 
             #record number of passed rules
