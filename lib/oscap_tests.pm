@@ -142,7 +142,7 @@ our @test_run_report = ();
 our $test_run_report_name = "test_run_report.txt";
 
 # Get sle version "sle12" or "sle15"
-our $sle_version = 'sle' . get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
+our $sle_version = '';
 
 # Upload HTML report by default
 set_var('UPLOAD_REPORT_HTML', 1);
@@ -154,6 +154,7 @@ sub set_ds_file {
     # for SLE12 the ds file is "ssg-sle12-ds.xml";
     # for Tumbleweed the ds file is "ssg-opensuse-ds.xml"
     my $version = get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
+    $sle_version = 'sle' . get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
     $f_ssg_sle_ds =
       '/usr/share/xml/scap/ssg/content/ssg-sle' . "$version" . '-ds.xml';
     $f_ssg_sle_xccdf =
@@ -725,7 +726,7 @@ sub get_tests_config {
     my $data = script_output("cat $config_file_path", quiet => 1);
     my $config = Config::Tiny->new;
     $config = Config::Tiny->read_string("$data");
-    my $err = $config::Tiny::errstr;
+    my $err = Config::Tiny::errstr;
     if ($err eq "") {
         $use_content_type = $config->{tests_config}->{use_content_type};
         $remove_rules_missing_fixes = $config->{tests_config}->{remove_rules_missing_fixes};
@@ -1060,50 +1061,46 @@ sub oscap_remediate {
 
         my $out_f_stdout = script_output("tail -n 10 $f_stdout", quiet => 1);
         $res_ret = ansible_result_analysis($out_f_stdout, $full_report, $failed_number, $ignored_number);
-        if ($res_ret == -1 or $res_ret == 0) {
-            record_info('Failed to get results', "Failed to get results ansible playbook remediation results.\nansible_result_analysis returned: $res_ret");
+        record_info('Got analysis results', "Ansible playbook.\nPLAY RECAP:\n$full_report");
+
+        # If found failed or ignored tesks in ansible execution output
+        if ($failed_number > 0 or $ignored_number > 0) {
+            record_info('Found failed tasks', "Found:\nFailed tasks: $failed_number\nIgnored tasks: $ignored_number\nin ansible playbook remediations $f_stdout file");
             $self->result('fail');
-        }
-        else {
+
             my $grep_cmd = 'grep "TASK\|task path:\|fatal:\|failed:" ' . "$f_stdout";
             $out_f_stdout = script_output("$grep_cmd", quiet => 1, timeout => 1200);
             record_info('Collected output', "grep cmd: $grep_cmd");
-            record_info('Got analysis results', "Ansible playbook.\nPLAY RECAP:\n$full_report");
-            # If found failed or ignored tesks in ansible execution output
-            if ($failed_number > 0 or $ignored_number > 0) {
-                record_info('Found failed tasks', "Found:\nFailed tasks: $failed_number\nIgnored tasks: $ignored_number\nin ansible playbook remediations $f_stdout file");
-                $self->result('fail');
 
-                my $failed_tasks_ref;
-                my $cce_id_and_name_ref;
-                my $tasks_line_numbers_ref;
-                my $sesrch_ret = ansible_failed_tasks_search_vv($out_f_stdout, $failed_tasks_ref, $tasks_line_numbers_ref);
-                if ($sesrch_ret > 0) {
+            my $failed_tasks_ref;
+            my $cce_id_and_name_ref;
+            my $tasks_line_numbers_ref;
+            my $sesrch_ret = ansible_failed_tasks_search_vv($out_f_stdout, $failed_tasks_ref, $tasks_line_numbers_ref);
+            if ($sesrch_ret > 0) {
+                record_info(
+                    "Found failed tasks names",
+                    "Failed tasks unique names ($sesrch_ret):\n" . (join "\n",
+                        @$failed_tasks_ref) .
+                      "\n\nFailed tasks line numbers ($sesrch_ret):\n" . (join "\n",
+                        @$tasks_line_numbers_ref)
+                );
+                my $find_ret = find_ansible_cce_by_task_name_vv($out_ansible_playbook, $failed_tasks_ref, $tasks_line_numbers_ref, $failed_cce_ids_ref, $cce_id_and_name_ref);
+                if ($find_ret > 0) {
                     record_info(
-                        "Found failed tasks names",
-                        "Failed tasks unique names ($sesrch_ret):\n" . (join "\n",
-                            @$failed_tasks_ref) .
-                          "\n\nFailed tasks line numbers ($sesrch_ret):\n" . (join "\n",
-                            @$tasks_line_numbers_ref)
+                        "Found CCE IDs for failed tasks",
+                        "CCE IDs and tasks names ($find_ret):\n" . (join "\n",
+                            @$cce_id_and_name_ref) . "\n\nCCE IDs ($find_ret):\n" . (join "\n",
+                            @$failed_cce_ids_ref)
                     );
-                    my $find_ret = find_ansible_cce_by_task_name_vv($out_ansible_playbook, $failed_tasks_ref, $tasks_line_numbers_ref, $failed_cce_ids_ref, $cce_id_and_name_ref);
-                    if ($find_ret > 0) {
-                        record_info(
-                            "Found CCE IDs for failed tasks",
-                            "CCE IDs and tasks names ($find_ret):\n" . (join "\n",
-                                @$cce_id_and_name_ref) . "\n\nCCE IDs ($find_ret):\n" . (join "\n",
-                                @$failed_cce_ids_ref)
-                        );
-                        push(@test_run_report, "failed_cce_ansible_remediation_$remediated = \"" . (join ",",
-                                @$failed_cce_ids_ref) . "\"");
-                    }
-                    else {
-                        record_info('No failed CCE', "Did not find failed CCE IDs");
-                    }
+                    push(@test_run_report, "failed_cce_ansible_remediation_$remediated = \"" . (join ",",
+                            @$failed_cce_ids_ref) . "\"");
                 }
                 else {
-                    record_info('No failed tasks', "Did not find failed tasks");
+                    record_info('No failed CCE', "Did not find failed CCE IDs");
                 }
+            }
+            else {
+                record_info('No failed tasks', "Did not find failed tasks");
             }
         }
 
