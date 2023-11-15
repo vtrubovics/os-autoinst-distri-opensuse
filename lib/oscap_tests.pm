@@ -376,7 +376,6 @@ sub find_ansible_cce_by_task_name_vv {
     my $index;
     my $line;
     my @report = ();
-    my $task_line_number;
 
     # Join long task name to one line
     my @lines = split /\n/, $data;
@@ -392,7 +391,7 @@ sub find_ansible_cce_by_task_name_vv {
         $i++;
     }
     $i = 0;
-    for $task_line_number (@$tasks_line_numbers) {
+    for my $task_line_number (@$tasks_line_numbers) {
         if ($lines[$task_line_number - 1] =~ /- name:/) {
             # looking for task CCE ID
             while (($found_cce == 0) or ($task_line_number + $j == $#lines)) {
