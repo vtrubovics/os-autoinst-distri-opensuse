@@ -854,6 +854,14 @@ sub oscap_security_guide_setup {
     # Setting $full_ansible_file_path aftr got ansible_profile_ID from test
     $full_ansible_file_path = $ansible_file_path . $ansible_profile_ID;
 
+    record_info("$profile_ID", "Profile $profile_ID");
+    if (ansible_remediation == 0) {
+        record_info("BASH", "BASH remediation used");
+    }
+    else {
+        record_info("Ansible", "Ansible remediation used");
+    }
+
     # Refresh repositories
     zypper_call('ref -s', timeout => 180);
     # Install packages
