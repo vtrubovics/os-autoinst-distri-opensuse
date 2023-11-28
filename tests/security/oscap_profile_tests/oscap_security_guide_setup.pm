@@ -14,6 +14,8 @@ use version_utils qw(is_sle);
 
 sub run {
     my ($self) = @_;
+    select_console 'root-console';
+
     $oscap_tests::sle_version = 'sle' . get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
     $oscap_tests::evaluate_count = get_required_var('OSCAP_EVAL_COUNT');
     $oscap_tests::ansible_remediation = get_required_var('OSCAP_ANSIBLE_REMEDIATION');
@@ -21,7 +23,6 @@ sub run {
     if ($oscap_tests::ansible_remediation == 1) {
         $oscap_tests::ansible_profile_ID = is_sle ? $oscap_tests::sle_version . '-' . get_required_var('OSCAP_ANSIBLE_PROFILE_ID') : $oscap_tests::ansible_playbook_standart;
     }
-    select_console 'root-console';
 
     $self->oscap_security_guide_setup();
 }

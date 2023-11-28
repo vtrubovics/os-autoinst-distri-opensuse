@@ -13,7 +13,6 @@ use utils;
 
 sub run {
     my ($self) = @_;
-    select_console 'root-console';
 
     $self->oscap_remediate();
 }
@@ -21,7 +20,6 @@ sub run {
 sub test_flags {
     # Do not rollback as next test module will be run on this test environments
     return {fatal => 0};
-
 }
 
 1;
