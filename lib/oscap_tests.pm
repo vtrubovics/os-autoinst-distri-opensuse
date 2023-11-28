@@ -76,7 +76,7 @@ our $ssg_tw_xccdf = 'ssg-opensuse-xccdf.xml';
 our $f_ssg_ds;
 
 # Profile IDs
-our $profile_ID;
+our $profile_ID = "";
 our $ansible_profile_ID = "";
 # Profile names:
 our $profile_ID_sle_stig = 'xccdf_org.ssgproject.content_profile_stig';
@@ -88,12 +88,12 @@ our $profile_ID_sle_anssi_bp28_high = 'xccdf_org.ssgproject.content_profile_anss
 our $profile_ID_tw = 'xccdf_org.ssgproject.content_profile_standard';
 
 # Ansible playbooks
-our $ansible_playbook_sle_stig = "-playbook-stig.yml";
-our $ansible_playbook_sle_cis = "-playbook-cis.yml";
-our $ansible_playbook_sle_pci_dss_4 = "-playbook-pci-dss-4.yml";
+our $ansible_playbook_sle_stig = "playbook-stig.yml";
+our $ansible_playbook_sle_cis = "playbook-cis.yml";
+our $ansible_playbook_sle_pci_dss_4 = "playbook-pci-dss-4.yml";
 # Only sle-15
-our $ansible_playbook_sle_hipaa = "-playbook-hipaa.yml";
-our $ansible_playbook_sle_anssi_bp28_high = "-playbook-anssi_bp28_high.yml";
+our $ansible_playbook_sle_hipaa = "playbook-hipaa.yml";
+our $ansible_playbook_sle_anssi_bp28_high = "playbook-anssi_bp28_high.yml";
 
 our $ansible_playbook_standart = "opensuse-playbook-standard.yml";
 
@@ -154,7 +154,6 @@ sub set_ds_file {
     # for SLE12 the ds file is "ssg-sle12-ds.xml";
     # for Tumbleweed the ds file is "ssg-opensuse-ds.xml"
     my $version = get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
-    $sle_version = 'sle' . get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
     $f_ssg_sle_ds =
       '/usr/share/xml/scap/ssg/content/ssg-sle' . "$version" . '-ds.xml';
     $f_ssg_sle_xccdf =
@@ -1128,10 +1127,11 @@ sub oscap_remediate {
 
 sub oscap_evaluate {
     # Does evaluation and result analysis
-    my ($self, $eval_match) = @_;
+    my ($self) = @;
     select_console 'root-console';
 
-    my $n_failed_rules = @$eval_match;
+    my $n_failed_rules = 0;
+    my $eval_match;
     my ($failed_rules_ref, $passed_rules_ref);
     my ($failed_cce_rules_ref, $failed_id_rules_ref);
     my $lc;
