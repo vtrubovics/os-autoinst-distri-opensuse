@@ -1127,7 +1127,7 @@ sub oscap_remediate {
 
 sub oscap_evaluate {
     # Does evaluation and result analysis
-    my ($self) = @;
+    my ($self) = @_;
     select_console 'root-console';
 
     my $n_failed_rules = 0;
