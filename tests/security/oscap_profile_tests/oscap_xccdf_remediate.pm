@@ -3,7 +3,6 @@
 #
 # Summary: Generic test for hardening profile in the 'scap-security-guide': mitigation mode
 # Maintainer: QE Security
-# Tags: poo#93886, poo#104943
 
 use base 'oscap_tests';
 use strict;

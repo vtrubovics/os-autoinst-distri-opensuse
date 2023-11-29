@@ -1,9 +1,8 @@
-# Copyright 2022 SUSE LLC
+# Copyright 2023 SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
 # Summary: Generic test for hardening profile in the 'scap-security-guide': setup environment
 # Maintainer: QE Security
-# Tags: poo#93886, poo#104943
 
 use base 'oscap_tests';
 use strict;

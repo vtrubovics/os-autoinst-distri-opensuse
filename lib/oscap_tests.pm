@@ -147,7 +147,6 @@ our $sle_version = '';
 # Upload HTML report by default
 set_var('UPLOAD_REPORT_HTML', 1);
 
-# Set value for 'scap-security-guide' ds file
 sub set_ds_file {
     # Set the ds file for separate product, e.g.,
     # for SLE15 the ds file is "ssg-sle15-ds.xml";
@@ -159,8 +158,9 @@ sub set_ds_file {
     $f_ssg_sle_xccdf =
       '/usr/share/xml/scap/ssg/content/ssg-sle' . "$version" . '-xccdf.xml';
 }
+
 sub set_ds_file_name {
-    # Set the ds file for separate product, e.g.,
+    # Set the ds file name for separate product, e.g.,
     # for SLE15 the ds file is "ssg-sle15-ds.xml";
     # for SLE12 the ds file is "ssg-sle12-ds.xml";
     # for Tumbleweed the ds file is "ssg-opensuse-ds.xml"
@@ -850,7 +850,6 @@ sub get_test_exclusions {
 
 sub oscap_security_guide_setup {
     # Main test setup function
-    select_console 'root-console';
     # Setting $full_ansible_file_path aftr got ansible_profile_ID from test
     $full_ansible_file_path = $ansible_file_path . $ansible_profile_ID;
 
