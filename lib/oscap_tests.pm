@@ -771,6 +771,7 @@ sub get_test_expected_results {
     my $exp_fail_list_name = $sle_version . "-exp_fail_list";
     my $expected_results_file_name = "openqa_tests_expected_results.yaml";
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
+    my @eval_match = ();
 
     download_file_from_https_repo($url, $expected_results_file_name);
     upload_logs("$expected_results_file_name") if script_run "! [[ -e $expected_results_file_name ]]";
@@ -782,13 +783,11 @@ sub get_test_expected_results {
 
     $eval_match = $expected_results->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name};
     if (defined $eval_match) {
-        $_[0] = $eval_match;
+        @eval_match = @$eval_match;
     }
-    else {
-        my @eval_match = ();
-        $_[0] = \@eval_match;
-    }
-    record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nList of expected to fail rules:\n" . (join "\n", @$eval_match));
+    record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nList of expected to fail rules:\n" . (join "\n", @eval_match));
+    
+    $_[0] = \@eval_match;
     return 1;
 }
 
@@ -818,6 +817,7 @@ sub get_test_exclusions {
         my $exclusions_list_name = $sle_version . "-exclusions_list";
         my $exclusions_file_name = "openqa_tests_exclusions.yaml";
         my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
+        my @exclusions = ();
 
         download_file_from_https_repo($url, $exclusions_file_name);
         upload_logs("$exclusions_file_name") if script_run "! [[ -e $exclusions_file_name ]]";
@@ -830,15 +830,12 @@ sub get_test_exclusions {
         $exclusions = $exclusions_data->{$profile_ID}->{$type}->{$arch}->{$exclusions_list_name};
         # If results defined
         if (defined $exclusions) {
-            $_[0] = $exclusions;
+            @exclusions = @$exclusions;
+            $found = 1;
         }
-        else {
-            my @exclusions = ();
-            $_[0] = \@exclusions;
-        }
+        record_info("Got exclusions", "Got exclusions for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nList of excluded rules:\n" . (join "\n", @exclusions));
         
-        record_info("Got exclusions", "Got exclusions for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nList of excluded rules:\n" . (join "\n", @$exclusions));
-        $found = 1;
+        $_[0] = \@exclusions;
         return $found;
     }
 }
