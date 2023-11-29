@@ -17,9 +17,9 @@ sub run {
 
     $oscap_tests::sle_version = 'sle' . get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
     $oscap_tests::evaluate_count = get_required_var('OSCAP_EVAL_COUNT');
-    $oscap_tests::ansible_remediation = get_required_var('OSCAP_ANSIBLE_REMEDIATION');
     $oscap_tests::profile_ID = is_sle ? get_required_var('OSCAP_PROFILE_ID') : $oscap_tests::profile_ID_tw;
-    if ($oscap_tests::ansible_remediation == 1) {
+    if (get_required_var('OSCAP_ANSIBLE_REMEDIATION')) {
+        $oscap_tests::ansible_remediation = get_required_var('OSCAP_ANSIBLE_REMEDIATION');
         $oscap_tests::ansible_profile_ID = is_sle ? $oscap_tests::sle_version . '-' . get_required_var('OSCAP_ANSIBLE_PROFILE_ID') : $oscap_tests::ansible_playbook_standart;
     }
 
