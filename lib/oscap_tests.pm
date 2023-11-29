@@ -848,7 +848,7 @@ sub oscap_security_guide_setup {
     $full_ansible_file_path = $ansible_file_path . $ansible_profile_ID;
 
     record_info("$profile_ID", "Profile $profile_ID");
-    if (ansible_remediation == 0) {
+    if ($ansible_remediation == 0) {
         record_info("BASH", "BASH remediation used");
     }
     else {
