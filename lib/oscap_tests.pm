@@ -7,10 +7,9 @@
 # Maintainer: QE Security <none@suse.de>
 
 package oscap_tests;
-
+use testapi;
 use strict;
 use warnings;
-use testapi;
 use utils;
 use base 'opensusebasetest';
 use version_utils qw(is_sle is_opensuse);
@@ -178,7 +177,7 @@ sub replace_ds_file {
 
     # ComplianceAsCode repository master branch
     if ($use_content_type == 3) {
-        assert_script_run("rm $f_ssg_sle_ds");
+        assert_script_run("rm $f_ssg_sle_ds") if script_run "! [[ -e $f_ssg_sle_ds ]]";
         # Copy built file to correct location
         my $ds_local_full_file_path = "$compliance_as_code_path/build/$ds_file_name";
         assert_script_run("cp $ds_local_full_file_path $f_ssg_sle_ds");
@@ -188,7 +187,7 @@ sub replace_ds_file {
     elsif ($use_content_type == 2) {
         download_file_from_https_repo($url, $ds_file_name);
         # Remove original ds file
-        assert_script_run("rm $f_ssg_sle_ds");
+        assert_script_run("rm $f_ssg_sle_ds") if script_run "! [[ -e $f_ssg_sle_ds ]]";
         # Copy downloaded file to correct location
         assert_script_run("cp $ds_file_name $f_ssg_sle_ds");
         record_info("Copied ds file", "Copied file $ds_file_name to $f_ssg_sle_ds");
@@ -202,7 +201,7 @@ sub replace_xccdf_file {
 
     # ComplianceAsCode repository master branch
     if ($use_content_type == 3) {
-        assert_script_run("rm $f_ssg_sle_xccdf");
+        assert_script_run("rm $f_ssg_sle_xccdf") if script_run "! [[ -e $f_ssg_sle_xccdf ]]";
         # Copy built file to correct location
         my $xccdf_local_full_file_path = "$compliance_as_code_path/build/$xccdf_file_name";
         assert_script_run("cp $xccdf_local_full_file_path $f_ssg_sle_xccdf");
@@ -212,7 +211,7 @@ sub replace_xccdf_file {
     elsif ($use_content_type == 2) {
         download_file_from_https_repo($url, $xccdf_file_name);
         # Remove original xccdf file
-        assert_script_run("rm $f_ssg_sle_xccdf");
+        assert_script_run("rm $f_ssg_sle_xccdf") if script_run "! [[ -e $f_ssg_sle_xccdf ]]";
         # Copy downloaded file to correct location
         assert_script_run("cp $xccdf_file_name $f_ssg_sle_xccdf");
         record_info("Copied xccdf file", "Copied file $xccdf_file_name to $f_ssg_sle_xccdf");
@@ -740,9 +739,14 @@ sub get_tests_config {
     $config = Config::Tiny->read_string("$data");
     my $err = Config::Tiny::errstr;
     if ($err eq "") {
-        $use_content_type = $config->{tests_config}->{use_content_type};
-        $remove_rules_missing_fixes = $config->{tests_config}->{remove_rules_missing_fixes};
-        $use_exclusions = $config->{tests_config}->{use_exclusions};
+        # Configuration can be overridden by OpenQA variables
+        $use_content_type = (get_var('OSCAP_USE_CONTENT_TYPE', '') eq '' ? $config->{tests_config}->{use_content_type} : get_required_var('OSCAP_USE_CONTENT_TYPE'));
+        $remove_rules_missing_fixes = (get_var('OSCAP_REMOVE_RULES_MISSING_FIXES', '') eq '' ? $config->{tests_config}->{remove_rules_missing_fixes} : get_required_var('OSCAP_REMOVE_RULES_MISSING_FIXES'));
+        $use_exclusions = (get_var('OSCAP_USE_EXCLUSIONS', '') eq '' ? $config->{tests_config}->{use_content_type} : get_required_var('OSCAP_USE_EXCLUSIONS'));
+
+        # $use_content_type = $config->{tests_config}->{use_content_type};
+        # $remove_rules_missing_fixes = $config->{tests_config}->{remove_rules_missing_fixes};
+        # $use_exclusions = $config->{tests_config}->{use_exclusions};
         record_info("Set test configuration", "Set test configuration from file $config_file_path\n use_content_type = $use_content_type\n  remove_rules_missing_fixes = $remove_rules_missing_fixes\n use_exclusions = $use_exclusions");
     }
     else {
@@ -995,8 +999,6 @@ sub oscap_remediate {
     select_console 'root-console';
 
     # Verify mitigation mode
-    # For pkg install rules need to refresh repositories
-    # zypper_call('ref -s', timeout => 180);
     if ($remediated == 0) {
         push(@test_run_report, "[tests_results]");
     }
