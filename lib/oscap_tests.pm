@@ -269,7 +269,7 @@ sub modify_ansible_playbook {
 sub backup_ds_file {
     # Backup ds file for later reuse
     assert_script_run("cp $f_ssg_ds /root/$ssg_sle_ds");
-    record_info("Backuped ds file", "Backuped file $f_ssg_ds to /root/$ssg_sle_ds");
+    record_info("Backed up ds file", "Backuped file $f_ssg_ds to /root/$ssg_sle_ds");
 }
 
 sub restore_ds_file {
@@ -634,7 +634,7 @@ sub modify_ds_ansible_files {
     $_[2] = \@ansible_rules;
 }
 
-sub generate_mising_rules {
+sub generate_missing_rules {
     # Generate text file that contains rules that missing implimentation for profile
     my $output_file = "missing_rules.txt";
 
@@ -657,7 +657,7 @@ sub generate_mising_rules {
     my $cmd = "python build-scripts/profile_tool.py stats --missing --skip-stats --profile $profile_ID --benchmark $f_ssg_sle_xccdf --format plain > $output_file";
 
     assert_script_run("$cmd");
-    record_info("Generated file $output_file", "generate_mising_rules Input file $f_ssg_sle_xccdf\n Command:\n$cmd");
+    record_info("Generated file $output_file", "generate_missing_rules Input file $f_ssg_sle_xccdf\n Command:\n$cmd");
     assert_script_run("cp $output_file /root");
 
     # Getting and showing profile statistics
@@ -946,12 +946,12 @@ sub oscap_security_guide_setup {
 
     if ($remove_rules_missing_fixes == 1) {
         # Generate text file that contains rules that missing implimentation for profile
-        my $mising_rules_full_path = generate_mising_rules();
+        my $missing_rules_full_path = generate_missing_rules();
 
         # Get bash and ansible rules lists from data based on provided
         my $ansible_rules_missing_fixes_ref;
         my $bash_rules_missing_fixes_ref;
-        modify_ds_ansible_files($mising_rules_full_path, $bash_rules_missing_fixes_ref, $ansible_rules_missing_fixes_ref);
+        modify_ds_ansible_files($missing_rules_full_path, $bash_rules_missing_fixes_ref, $ansible_rules_missing_fixes_ref);
         if ($ansible_remediation == 1) {
             push(@test_run_report, "ansible_rules_missing_fixes = \"" . (join ",",
                     @$ansible_rules_missing_fixes_ref) . "\"");
@@ -1031,7 +1031,7 @@ sub oscap_remediate {
                     $script_cmd .= " --skip-tags " . (join ",", @$failed_cce_ids_ref);
                 }
             }
-            $script_cmd .= " >> $f_stdout 2>> $f_stderr";
+            $script_cmd .= " > $f_stdout 2>> $f_stderr";
         }
         $ret
           = script_run($script_cmd, timeout => 3200);

@@ -1,4 +1,4 @@
-# Copyright 2023 SUSE LLC
+# Copyright 2024 SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
 # Summary: Generic test for hardening profile in the 'scap-security-guide': detection mode
