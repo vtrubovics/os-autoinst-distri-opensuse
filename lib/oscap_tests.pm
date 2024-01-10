@@ -967,8 +967,8 @@ sub oscap_security_guide_setup {
     backup_ds_file();
 
     # Record the source pkgs' versions for reference
-    my $si_out = script_output("zypper se -s fonts-config");
-    record_info("Source Pkg_ver", "Installed source packages versions:\n $si_out");
+    my $si_out = script_output("zypper se -si");
+    record_info("Installed Pkgs", "List of installed packages:\n $si_out");
 }
 
 =ansible return codes
