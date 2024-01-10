@@ -965,6 +965,10 @@ sub oscap_security_guide_setup {
         record_info("Do not modify DS or Ansible files", "Do not modify DS or Ansible files because remove_rules_missing_fixes = $remove_rules_missing_fixes");
     }
     backup_ds_file();
+
+    # Record the source pkgs' versions for reference
+    my $si_out = script_output("zypper se si");
+    record_info("Source Pkg_ver", "Source packages' version:\n $si_out");
 }
 
 =ansible return codes
