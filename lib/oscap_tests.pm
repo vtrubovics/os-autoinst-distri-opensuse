@@ -1232,6 +1232,9 @@ sub oscap_evaluate {
             upload_logs("$test_run_report_name") if script_run "! [[ -e $test_run_report_name ]]";
             upload_logs_reports();
         }
+    # Record the source pkgs' versions for reference
+    my $si_out = script_output("zypper se -si");
+    record_info("Installed Pkgs", "List of installed packages:\n $si_out");
     }
     else {
         record_info("errno=$ret", "# oscap xccdf eval --profile \"$profile_ID\" returns: $ret", result => 'fail');
