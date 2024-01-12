@@ -790,7 +790,7 @@ sub get_test_expected_results {
         @eval_match = @$eval_match;
     }
     record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nList of expected to fail rules:\n" . (join "\n", @eval_match));
-    
+
     $_[0] = \@eval_match;
     return 1;
 }
@@ -838,7 +838,7 @@ sub get_test_exclusions {
             $found = 1;
         }
         record_info("Got exclusions", "Got exclusions for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nList of excluded rules:\n" . (join "\n", @exclusions));
-        
+
         $_[0] = \@exclusions;
         return $found;
     }
@@ -859,7 +859,7 @@ sub oscap_security_guide_setup {
     zypper_call('ref -s', timeout => 180);
     zypper_call('in openscap-utils scap-security-guide', timeout => 180);
     set_ds_file();
-    
+
     $f_ssg_ds = is_sle ? $f_ssg_sle_ds : $f_ssg_tw_ds;
     display_oscap_information();
 
@@ -906,7 +906,7 @@ sub oscap_security_guide_setup {
         add_suseconnect_product(get_addon_fullname('phub'));
         # Need to use pyython3.1x
         add_suseconnect_product(get_addon_fullname('python3'));
-         # On SLES 12 ansible packages require dependencies located in sle-module-public-cloud
+        # On SLES 12 ansible packages require dependencies located in sle-module-public-cloud
         add_suseconnect_product(get_addon_fullname('pcm'), (is_sle('<15') ? '12' : undef)) if is_sle;
     }
 
@@ -1232,9 +1232,9 @@ sub oscap_evaluate {
             upload_logs("$test_run_report_name") if script_run "! [[ -e $test_run_report_name ]]";
             upload_logs_reports();
         }
-    # Record the source pkgs' versions for reference
-    my $si_out = script_output("zypper se -si");
-    record_info("Installed Pkgs", "List of installed packages:\n $si_out");
+        # Record the source pkgs' versions for reference
+        my $si_out = script_output("zypper se -si");
+        record_info("Installed Pkgs", "List of installed packages:\n $si_out");
     }
     else {
         record_info("errno=$ret", "# oscap xccdf eval --profile \"$profile_ID\" returns: $ret", result => 'fail');
