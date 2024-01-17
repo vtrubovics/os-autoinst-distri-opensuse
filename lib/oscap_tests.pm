@@ -695,12 +695,14 @@ sub get_cac_code {
     # In case of use CaC master as source - building content
     if ($use_content_type == 3) {
         zypper_call('in cmake libxslt-tools', timeout => 180);
+        my $py_libs = "lxml pytest pytest_cov json2html sphinxcontrib-jinjadomain autojinja sphinx_rtd_theme myst_parser prometheus_client mypy openpyxl pandas pcre2 cmakelint sphinx";
         if (is_s390x) {
             zypper_call('in ninja clang15 libxslt-devel libxml2-devel', timeout => 180);
+            assert_script_run("pip3 -v install $py_libs", timeout => 600);
         }
-        my $py_libs = "lxml pytest pytest_cov json2html sphinxcontrib-jinjadomain autojinja sphinx_rtd_theme myst_parser prometheus_client mypy openpyxl pandas pcre2 cmakelint sphinx";
-        assert_script_run("pip3 --quiet install $py_libs", timeout => 600);
-
+        else {
+            assert_script_run("pip3 --quiet install $py_libs", timeout => 600);
+        }
         # Building CaC content
         assert_script_run("cd $compliance_as_code_path");
         assert_script_run("sh build_product $sle_version", timeout => 9000);
