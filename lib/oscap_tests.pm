@@ -639,8 +639,8 @@ sub install_python311 {
     # Set alias persistent
     my $alias_cmd = "alias python='/usr/bin/python3.11'";
     my $bashrc_path = "/root/.bashrc";
-    assert_script_run("rm /usr/bin/python3")
-    assert_script_run("ln -s python3.11 /usr/bin/python3")
+    assert_script_run("rm /usr/bin/python3");
+    assert_script_run("ln -s python3.11 /usr/bin/python3");
     assert_script_run("printf \"" . $alias_cmd . "\" >> \"$bashrc_path\"");
     assert_script_run("alias python=python3.11");
 }
