@@ -919,7 +919,7 @@ sub oscap_security_guide_setup {
 
     # If required ansible remediation
     if ($ansible_remediation == 1) {
-        my $pkg = 'ansible';
+        my $pkg = 'ansible python311-pyOpenSSL';
         zypper_call "in $pkg sudo";
         # Record the pkg' version for reference
         my $out = script_output("zypper se -s $pkg", quiet => 1);
