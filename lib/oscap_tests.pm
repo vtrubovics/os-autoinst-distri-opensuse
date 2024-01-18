@@ -701,7 +701,8 @@ sub get_cac_code {
         my $py_libs = "lxml pytest pytest_cov json2html sphinxcontrib-jinjadomain autojinja sphinx_rtd_theme myst_parser prometheus_client mypy openpyxl pandas pcre2 cmakelint sphinx";
         # On s390x pip requires packages to build modules
         if (is_s390x) {
-            zypper_call('in ninja clang15 libxslt-devel libxml2-devel python311-devel', timeout => 180);
+            # zypper_call('in ninja clang15 libxslt-devel libxml2-devel python311-devel', timeout => 180);
+            zypper_call('in ninja clang15 libxslt-devel libxml2-devel python3-devel', timeout => 180);
             $py_libs = "lxml pytest pytest_cov json2html sphinxcontrib-jinjadomain autojinja sphinx_rtd_theme myst_parser prometheus_client mypy openpyxl pcre2 cmakelint sphinx";
             assert_script_run("pip3 --quiet install $py_libs", timeout => 600);
         }
@@ -914,12 +915,13 @@ sub oscap_security_guide_setup {
         add_suseconnect_product(get_addon_fullname('python3'));
         # On SLES 12 ansible packages require dependencies located in sle-module-public-cloud
         add_suseconnect_product(get_addon_fullname('pcm'), (is_sle('<15') ? '12' : undef)) if is_sle;
-        install_python311();
+        # install_python311();
     }
 
     # If required ansible remediation
     if ($ansible_remediation == 1) {
-        my $pkg = 'ansible python311-pyOpenSSL';
+        # my $pkg = 'ansible python311-pyOpenSSL';
+        my $pkg = 'ansible python3-pyOpenSSL';
         zypper_call "in $pkg sudo";
         # Record the pkg' version for reference
         my $out = script_output("zypper se -s $pkg", quiet => 1);
