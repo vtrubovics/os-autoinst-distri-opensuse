@@ -645,6 +645,16 @@ sub install_python311 {
     assert_script_run("alias python=python3.11");
 }
 
+sub install_python3 {
+    # Install python 3 needed for script execution
+    zypper_call("in python3");
+    # Set alias persistent
+    my $alias_cmd = "alias python='/usr/bin/python3.6'";
+    my $bashrc_path = "/root/.bashrc";
+    assert_script_run("printf \"" . $alias_cmd . "\" >> \"$bashrc_path\"");
+    assert_script_run("alias python=python3.6");
+}
+
 sub generate_missing_rules {
     # Generate text file that contains rules that missing implimentation for profile
     my $output_file = "missing_rules.txt";
@@ -915,7 +925,7 @@ sub oscap_security_guide_setup {
         add_suseconnect_product(get_addon_fullname('python3'));
         # On SLES 12 ansible packages require dependencies located in sle-module-public-cloud
         add_suseconnect_product(get_addon_fullname('pcm'), (is_sle('<15') ? '12' : undef)) if is_sle;
-        # install_python311();
+        install_python3();
     }
 
     # If required ansible remediation
