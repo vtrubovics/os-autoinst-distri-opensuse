@@ -702,7 +702,7 @@ sub get_cac_code {
         if (is_s390x) {
             zypper_call('in ninja clang15 libxslt-devel libxml2-devel python311-devel', timeout => 180);
             $py_libs = "lxml pytest pytest_cov json2html sphinxcontrib-jinjadomain autojinja sphinx_rtd_theme myst_parser prometheus_client mypy openpyxl pcre2 cmakelint sphinx";
-           assert_script_run("pip3 --quiet install $py_libs", timeout => 600);
+            assert_script_run("pip3 --quiet install $py_libs", timeout => 600);
         }
         else {
             assert_script_run("pip3 --quiet install $py_libs", timeout => 600);
