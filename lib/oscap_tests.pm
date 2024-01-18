@@ -926,6 +926,7 @@ sub oscap_security_guide_setup {
         record_info("$pkg Pkg_ver", "$pkg packages' version:\n $out");
         $out = "";
         #install ansible.posix
+        assert_script_run("pip3 install ansible");
         assert_script_run("ansible-galaxy collection install ansible.posix");
     }
     if (($remove_rules_missing_fixes == 1) or ($use_content_type == 3)) {
