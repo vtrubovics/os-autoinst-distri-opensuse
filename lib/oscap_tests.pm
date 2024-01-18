@@ -699,6 +699,7 @@ sub get_cac_code {
     if ($use_content_type == 3) {
         zypper_call('in cmake libxslt-tools', timeout => 180);
         my $py_libs = "lxml pytest pytest_cov json2html sphinxcontrib-jinjadomain autojinja sphinx_rtd_theme myst_parser prometheus_client mypy openpyxl pandas pcre2 cmakelint sphinx";
+        # On s390x pip requires packages to build modules                                                         
         if (is_s390x) {
             zypper_call('in ninja clang15 libxslt-devel libxml2-devel python311-devel', timeout => 180);
             $py_libs = "lxml pytest pytest_cov json2html sphinxcontrib-jinjadomain autojinja sphinx_rtd_theme myst_parser prometheus_client mypy openpyxl pcre2 cmakelint sphinx";
@@ -752,10 +753,6 @@ sub get_tests_config {
         $use_content_type = (get_var('OSCAP_USE_CONTENT_TYPE', '') eq '' ? $config->{tests_config}->{use_content_type} : get_required_var('OSCAP_USE_CONTENT_TYPE'));
         $remove_rules_missing_fixes = (get_var('OSCAP_REMOVE_RULES_MISSING_FIXES', '') eq '' ? $config->{tests_config}->{remove_rules_missing_fixes} : get_required_var('OSCAP_REMOVE_RULES_MISSING_FIXES'));
         $use_exclusions = (get_var('OSCAP_USE_EXCLUSIONS', '') eq '' ? $config->{tests_config}->{use_content_type} : get_required_var('OSCAP_USE_EXCLUSIONS'));
-
-        # $use_content_type = $config->{tests_config}->{use_content_type};
-        # $remove_rules_missing_fixes = $config->{tests_config}->{remove_rules_missing_fixes};
-        # $use_exclusions = $config->{tests_config}->{use_exclusions};
         record_info("Set test configuration", "Set test configuration from file $config_file_path\n use_content_type = $use_content_type\n  remove_rules_missing_fixes = $remove_rules_missing_fixes\n use_exclusions = $use_exclusions");
     }
     else {
@@ -765,7 +762,7 @@ sub get_tests_config {
 }
 
 sub get_test_expected_results {
-    # Get efpected results from remote file
+    # Get expected results from remote file
     my $eval_match = ();
     my $type = "";
     my $arch = "";
