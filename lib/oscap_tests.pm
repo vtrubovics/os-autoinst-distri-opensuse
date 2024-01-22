@@ -988,6 +988,18 @@ sub oscap_security_guide_setup {
     # Record the source pkgs' versions for reference
     my $si_out = script_output("zypper se -si");
     record_info("Installed Pkgs", "List of installed packages:\n $si_out");
+    # Record python modules versions for reference
+    my $pip_out = script_output("pip freeze --local");
+    record_info("python modules", "List of installed python modules:\n $pip_out");
+    # Record Ansible version for reference
+    my $ansible_version = script_output("ansible --version");
+    record_info("ansible version", "Ansible version:\n $ansible_version");
+    # Record python3 version for reference
+    my $python3_version = script_output("python3 -VV");
+    record_info("python3 version", "python3 version:\n $python3_version");
+    # Record pip version for reference
+    my $pip_version = script_output("pip -V");
+    record_info("pip version", "pip version:\n $pip_version");
 }
 
 =ansible return codes
@@ -1035,7 +1047,7 @@ sub oscap_remediate {
         modify_ansible_playbook();
         if ($remediated == 0) {
             $out_ansible_playbook = script_output("cat $full_ansible_file_path", quiet => 1, timeout => 1200);
-            $script_cmd = "ansible-playbook -vv -i \"localhost,\" -c local $full_ansible_file_path >> $f_stdout 2>> $f_stderr";
+            $script_cmd = "ansible-playbook -vv -i \"localhost,\" -c local $full_ansible_file_path > $f_stdout 2> $f_stderr";
         }
         else {
             # Restore original playbook to verify exclusions
@@ -1054,7 +1066,7 @@ sub oscap_remediate {
                     $script_cmd .= " --skip-tags " . (join ",", @$failed_cce_ids_ref);
                 }
             }
-            $script_cmd .= " > $f_stdout 2>> $f_stderr";
+            $script_cmd .= " > $f_stdout 2> $f_stderr";
         }
         $ret
           = script_run($script_cmd, timeout => 3200);
@@ -1225,7 +1237,8 @@ sub oscap_evaluate {
                     "#Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules. Failed rules:\n" . (join "\n",
                         @$failed_rules_ref) . "\n\n#Expected $n_failed_rules rules to fail:\n" . (join "\n",
                         @$eval_match) . "\n\n#Rules failed (not in expected list):\n" . (join "\n",
-                        @lonly),
+                        @lonly) . "\n\nRULES PASSED, but are in expected to fail list:\n" . (join "\n",
+                        @ronly),
                     result => 'fail'
                 );
                 $self->result('fail');
