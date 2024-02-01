@@ -777,9 +777,11 @@ sub get_test_expected_results {
     if (is_aarch64 or is_arm) { $arch = "aarch64"; }
     if (is_ppc64le) { $arch = "ppc"; }
     if (is_x86_64) { $arch = "x86_64"; }
+    my $version = get_var('VERSION');
+    my $sles_sp = (split('-', $version))[1];
 
     my $exp_fail_list_name = $sle_version . "-exp_fail_list";
-    my $expected_results_file_name = "openqa_tests_expected_results.yaml";
+    my $expected_results_file_name = "openqa_tests_expected_results_sp.yaml";
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
     my @eval_match = ();
 
@@ -789,9 +791,9 @@ sub get_test_expected_results {
 
     # Phrase the expected results
     my $expected_results = YAML::PP::Load($data);
-    record_info("Looking expected results", "Looking expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch");
+    record_info("Looking expected results", "Looking expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nname: $exp_fail_list_name\nService Pack: $sles_sp");
 
-    $eval_match = $expected_results->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name};
+    $eval_match = $expected_results->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name}->{$sles_sp};
     if (defined $eval_match) {
         @eval_match = @$eval_match;
     }
@@ -823,9 +825,11 @@ sub get_test_exclusions {
         if (is_aarch64 or is_arm) { $arch = "aarch64"; }
         if (is_ppc64le) { $arch = "ppc"; }
         if (is_x86_64) { $arch = "x86_64"; }
+        my $version = get_var('VERSION');
+        my $sles_sp = (split('-', $version))[1];
 
         my $exclusions_list_name = $sle_version . "-exclusions_list";
-        my $exclusions_file_name = "openqa_tests_exclusions.yaml";
+        my $exclusions_file_name = "openqa_tests_exclusions_sp.yaml";
         my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
         my @exclusions = ();
 
@@ -835,9 +839,9 @@ sub get_test_exclusions {
 
         # Phrase the expected results
         my $exclusions_data = YAML::PP::Load($data);
-        record_info("Looking exclusions", "Looking exclusions for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch");
+        record_info("Looking exclusions", "Looking exclusions for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nname: $exclusions_list_name\nService Pack: $sles_sp");
 
-        $exclusions = $exclusions_data->{$profile_ID}->{$type}->{$arch}->{$exclusions_list_name};
+        $exclusions = $exclusions_data->{$profile_ID}->{$type}->{$arch}->{$exclusions_list_name}->{$sles_sp};
         # If results defined
         if (defined $exclusions) {
             @exclusions = @$exclusions;
