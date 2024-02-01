@@ -797,7 +797,7 @@ sub get_test_expected_results {
     if (defined $eval_match) {
         @eval_match = @$eval_match;
     }
-    record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nList of expected to fail rules:\n" . (join "\n", @eval_match));
+    record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nname: $exp_fail_list_name\nService Pack: $sles_sp\nList of expected to fail rules:\n" . (join "\n", @eval_match));
 
     $_[0] = \@eval_match;
     return 1;
@@ -847,7 +847,7 @@ sub get_test_exclusions {
             @exclusions = @$exclusions;
             $found = 1;
         }
-        record_info("Got exclusions", "Got exclusions for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nList of excluded rules:\n" . (join "\n", @exclusions));
+        record_info("Got exclusions", "Got exclusions for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nname: $exclusions_list_name\nService Pack: $sles_sp\nList of excluded rules:\n" . (join "\n", @exclusions));
 
         $_[0] = \@exclusions;
         return $found;
