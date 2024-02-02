@@ -796,8 +796,11 @@ sub get_test_expected_results {
     $eval_match = $expected_results->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name}->{$sles_sp};
     if (defined $eval_match) {
         @eval_match = @$eval_match;
+        record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nname: $exp_fail_list_name\nService Pack: $sles_sp\nList of expected to fail rules:\n" . (join "\n", @eval_match));
     }
-    record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nname: $exp_fail_list_name\nService Pack: $sles_sp\nList of expected to fail rules:\n" . (join "\n", @eval_match));
+    else {
+        record_info("No expected results", "Expected results are not defined.");
+    }
 
     $_[0] = \@eval_match;
     return 1;
@@ -846,8 +849,11 @@ sub get_test_exclusions {
         if (defined $exclusions) {
             @exclusions = @$exclusions;
             $found = 1;
+            record_info("Got exclusions", "Got exclusions for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nname: $exclusions_list_name\nService Pack: $sles_sp\nList of excluded rules:\n" . (join "\n", @exclusions));
         }
-        record_info("Got exclusions", "Got exclusions for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nname: $exclusions_list_name\nService Pack: $sles_sp\nList of excluded rules:\n" . (join "\n", @exclusions));
+        else {
+            record_info("No exclusions", "Exclusions are not defined.");
+        }
 
         $_[0] = \@exclusions;
         return $found;
