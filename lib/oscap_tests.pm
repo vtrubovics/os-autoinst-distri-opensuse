@@ -1071,6 +1071,8 @@ sub oscap_remediate {
         }
         $ret
           = script_run($script_cmd, timeout => 3200);
+        select_console 'root-console'; # In case if STIG rules switches console to GUI
+
         record_info("Return=$ret", "$script_cmd  returned: $ret");
         if ($ret != 0 and $ret != 2 and $ret != 4) {
             record_info("Returened $ret", 'remediation should be succeeded', result => 'fail');
