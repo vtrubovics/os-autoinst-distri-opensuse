@@ -1032,8 +1032,7 @@ sub oscap_security_guide_setup {
 sub oscap_remediate {
     my ($self) = @_;
     my $out_ansible_playbook;
-#    select_console 'root-console';
-    select_console("root-ssh");
+    select_console 'root-console';
 
     # Verify mitigation mode
     if ($remediated == 0) {
