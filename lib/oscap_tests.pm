@@ -781,7 +781,7 @@ sub get_test_expected_results {
     my $sles_sp = (split('-', $version))[1];
 
     my $exp_fail_list_name = $sle_version . "-exp_fail_list";
-    my $expected_results_file_name = "openqa_tests_expected_results_sp.yaml";
+    my $expected_results_file_name = "openqa_tests_expected_results_sp_gui.yaml";
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
     my @eval_match = ();
 
