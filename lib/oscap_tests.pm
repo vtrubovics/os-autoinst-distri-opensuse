@@ -1069,8 +1069,8 @@ sub oscap_remediate {
         }
         $ret
           = script_run($script_cmd, timeout => 3200);
-
-        if ($profile_ID =~ /stig/) { # In case if STIG rules switches console to GUI
+        # In case if STIG rules switches console to GUI need to switch it back
+        if ($profile_ID =~ /stig/) {
             select_console 'root-console';
         }
 
