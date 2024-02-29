@@ -802,7 +802,6 @@ sub get_test_expected_results {
     }
     # In case if expected_results are not defined for specific benchmark_version
     else {
-        record_info("FAILED to download", "FAILED to download $expected_results_file_name");
         $expected_results_file_name = "openqa_tests_expected_results.yaml";
         $return = download_file_from_https_repo($url, $expected_results_file_name);
     }
@@ -868,7 +867,6 @@ sub get_test_exclusions {
         }
         # In case if exclusions are not defined for specific benchmark_version
         else {
-            record_info("FAILED to download", "FAILED to download $exclusions_file_name");
             $exclusions_file_name = "openqa_tests_exclusions.yaml";
             $return = download_file_from_https_repo($url, $exclusions_file_name);
         }
