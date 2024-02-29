@@ -837,6 +837,7 @@ sub get_test_exclusions {
     my $found = -1;
     my $type = "";
     my $arch = "";
+    my $return = -1
 
     # If set in configuration to not use excusions
     if ($use_exclusions == 0) {
