@@ -1011,14 +1011,6 @@ sub oscap_security_guide_setup {
         my $ansible_rules_missing_fixes_ref;
         my $bash_rules_missing_fixes_ref;
         modify_ds_ansible_files($missing_rules_full_path, $bash_rules_missing_fixes_ref, $ansible_rules_missing_fixes_ref);
-        if ($ansible_remediation == 1) {
-            push(@test_run_report, "ansible_rules_missing_fixes = \"" . (join ",",
-                    @$ansible_rules_missing_fixes_ref) . "\"");
-        }
-        else {
-            push(@test_run_report, "bash_rules_missing_fixes = \"" . (join ",",
-                    @$bash_rules_missing_fixes_ref) . "\"");
-        }
     }
     else {
         record_info("Do not modify DS or Ansible files", "Do not modify DS or Ansible files because remove_rules_missing_fixes = $remove_rules_missing_fixes");
