@@ -805,7 +805,7 @@ sub get_test_expected_results {
         $expected_results_file_name = "openqa_tests_expected_results.yaml";
         $return = download_file_from_https_repo($url, $expected_results_file_name);
     }
-    if  ($return == 1) {
+    if ($return == 1) {
         upload_logs("$expected_results_file_name") if script_run "! [[ -e $expected_results_file_name ]]";
         my $data = script_output("cat $expected_results_file_name", quiet => 1);
 
@@ -870,7 +870,7 @@ sub get_test_exclusions {
             $exclusions_file_name = "openqa_tests_exclusions.yaml";
             $return = download_file_from_https_repo($url, $exclusions_file_name);
         }
-        if  ($return == 1) {
+        if ($return == 1) {
             upload_logs("$exclusions_file_name") if script_run "! [[ -e $exclusions_file_name ]]";
             my $data = script_output("cat $exclusions_file_name", quiet => 1);
 
