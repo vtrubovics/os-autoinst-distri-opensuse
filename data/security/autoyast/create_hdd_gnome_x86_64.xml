@@ -278,6 +278,7 @@
         <service>wicked</service>
         <service>sshd</service>
         <service>systemd-remount-fs</service>
+        <service>kdump</service>
       </enable>
     </services>
   </services-manager>
