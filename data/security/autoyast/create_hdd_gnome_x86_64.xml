@@ -299,6 +299,8 @@
       <package>e2fsprogs</package>
       <package>btrfsprogs</package>
       <package>autoyast2</package>
+      <package>kdump</package>
+      <package>yast2-kdump</package>
     </packages>
     <patterns t="list">
       <pattern>apparmor</pattern>
@@ -412,4 +414,12 @@
       <username>root</username>
     </user>
   </users>
+  <kdump>
+    <!-- memory reservation (high and low) -->
+    <add_crash_kernel config:type="boolean">true</add_crash_kernel>
+    <crash_kernel config:type="list">
+      <listentry>72M,low</listentry>
+      <listentry>345M,high</listentry>
+    </crash_kernel>
+  </kdump>
 </profile>
