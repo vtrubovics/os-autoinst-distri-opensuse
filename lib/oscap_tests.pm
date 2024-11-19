@@ -641,7 +641,7 @@ sub modify_ds_ansible_files {
         }
 
         # Write exclusions to the file
-        if ($ret_get_bash_exclusions == 1) {
+        if (@$bash_exclusions > 0) {
             my $exclusions = (join "\n", @$bash_exclusions);
             assert_script_run("printf \"\n$exclusions\" >> \"$bash_fix_missing\"");
             record_info("Writing bash exceptions to file", "Writing bash exclusions:\n$exclusions\n\nto file: $bash_fix_missing");
