@@ -587,14 +587,17 @@ sub modify_ds_ansible_files {
         # Write rules to file
         assert_script_run("printf \"$ansible_f\" > \"$ansible_fix_missing\"");
 
-        my $ret_get_ansible_exclusions = 0;
-        my $ansible_exclusions;
+        my ($ansible_exclusions, $ansible_exclusions_diff);
 
         # Get rule exclusions for ansible playbook
-        $ret_get_ansible_exclusions
-          = get_test_exclusions($ansible_exclusions);
+        get_test_exclusions($ansible_exclusions);
+        get_test_exclusions_diff($ansible_exclusions_diff);
+        if (@$ansible_exclusions_diff > 0) {    # if found SP specific exclusion
+            push(@$ansible_exclusions, @$ansible_exclusions_diff); 
+        }
+
         # Write exclusions to the file
-        if ($ret_get_ansible_exclusions == 1) {
+        if (@$ansible_exclusions > 0) {
             my $exclusions = (join "\n", @$ansible_exclusions);
             assert_script_run("printf \"\n$exclusions\" >> \"$ansible_fix_missing\"");
             record_info("Writing ansible exceptions to file", "Writing ansible exclusions:\n$exclusions\n\nto file: $ansible_fix_missing");
@@ -628,12 +631,15 @@ sub modify_ds_ansible_files {
         # Write rules to file
         assert_script_run("printf \"$bash_f\" > \"$bash_fix_missing\"");
 
-        my $ret_get_bash_exclusions = 0;
-        my $bash_exclusions;
+        my ($bash_exclusions, $bash_exclusions_diff);
 
         # Get rule exclusions for bash playbook
-        $ret_get_bash_exclusions
-          = get_test_exclusions($bash_exclusions);
+        get_test_exclusions($bash_exclusions);
+        get_test_exclusions_diff($bash_exclusions_diff);
+        if (@$bash_exclusions_diff > 0) {    # if found SP specific exclusion
+            push(@$bash_exclusions, @$bash_exclusions_diff); 
+        }
+
         # Write exclusions to the file
         if ($ret_get_bash_exclusions == 1) {
             my $exclusions = (join "\n", @$bash_exclusions);
@@ -805,7 +811,7 @@ sub get_test_expected_results {
     my $sles_sp = (split('-', $version))[1];
 
     my $exp_fail_list_name = $sle_version . "-exp_fail_list";
-    my $expected_results_file_name = "openqa_tests_expected_results_base" . $benchmark_version . ".yaml";
+    my $expected_results_file_name = "openqa_tests_expected_results_base_" . $benchmark_version . ".yaml";
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
     my @eval_match = ();
 
@@ -863,7 +869,7 @@ sub get_test_expected_results_diff {
     my $sles_sp = (split('-', $version))[1];
 
     my $exp_fail_list_name = $sle_version . "-exp_fail_list";
-    my $expected_results_file_name = "openqa_tests_expected_results_diff" . $benchmark_version . ".yaml";
+    my $expected_results_file_name = "openqa_tests_expected_results_diff_" . $benchmark_version . ".yaml";
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
     my @eval_match = ();
 
@@ -928,7 +934,7 @@ sub get_test_exclusions {
         my $sles_sp = (split('-', $version))[1];
 
         my $exclusions_list_name = $sle_version . "-exclusions_list";
-        my $exclusions_file_name = "openqa_tests_exclusions_" . $benchmark_version . ".yaml";
+        my $exclusions_file_name = "openqa_tests_exclusions_base_" . $benchmark_version . ".yaml";
         my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
         my @exclusions = ();
 
@@ -938,7 +944,75 @@ sub get_test_exclusions {
         }
         # In case if exclusions are not defined for specific benchmark_version
         else {
-            $exclusions_file_name = "openqa_tests_exclusions.yaml";
+            $exclusions_file_name = "openqa_tests_exclusions_base.yaml";
+            $return = download_file_from_https_repo($url, $exclusions_file_name);
+        }
+        if ($return == 1) {
+            uload_log_file($exclusions_file_name);
+            my $data = script_output("cat $exclusions_file_name", quiet => 1);
+
+            # Phrase the expected results
+            my $exclusions_data = YAML::PP::Load($data);
+            record_info("Looking exclusions", "Looking exclusions for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nname: $exclusions_list_name\nService Pack: $sles_sp");
+
+            $exclusions = $exclusions_data->{$profile_ID}->{$type}->{$arch}->{$exclusions_list_name};
+            # If results defined
+            if (defined $exclusions) {
+                @exclusions = @$exclusions;
+                $found = 1;
+                record_info("Got exclusions", "Got exclusions for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nname: $exclusions_list_name\nService Pack: $sles_sp\nBenchmark: $benchmark_version\nList of excluded rules:\n" . (join "\n", @exclusions));
+            }
+            else {
+                record_info("No exclusions", "Exclusions are not defined.");
+            }
+        }
+        else {
+            record_info("No file for exclusions", "Not able to download file with exclusions.\nExclusions are not defined.");
+        }
+
+        $_[0] = \@exclusions;
+        return $found;
+    }
+}
+
+sub get_test_exclusions_diff {
+    # Get exclusions from remote file - contains exclusions for SPs if different from base
+    my $exclusions = ();
+    my $found = -1;
+    my $type = "";
+    my $arch = "";
+    my $return = -1;
+
+    # If set in configuration to not use excusions
+    if ($use_exclusions == 0) {
+        return $found;
+    }
+    else {
+        if ($ansible_remediation == 1) {
+            $type = 'ansible';
+        }
+        else {
+            $type = 'bash';
+        }
+        if (is_s390x) { $arch = "s390x"; }
+        if (is_aarch64 or is_arm) { $arch = "aarch64"; }
+        if (is_ppc64le) { $arch = "ppc"; }
+        if (is_x86_64) { $arch = "x86_64"; }
+        my $version = get_var('VERSION');
+        my $sles_sp = (split('-', $version))[1];
+
+        my $exclusions_list_name = $sle_version . "-exclusions_list";
+        my $exclusions_file_name = "openqa_tests_exclusions_diff_" . $benchmark_version . ".yaml";
+        my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
+        my @exclusions = ();
+
+        $return = download_file_from_https_repo($url, $exclusions_file_name);
+        if ($return == 1) {
+            record_info("Downloded exclusions", "Downloded exclusions for benchmark version $benchmark_version");
+        }
+        # In case if exclusions are not defined for specific benchmark_version
+        else {
+            $exclusions_file_name = "openqa_tests_exclusions_diff.yaml";
             $return = download_file_from_https_repo($url, $exclusions_file_name);
         }
         if ($return == 1) {
