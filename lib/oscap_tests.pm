@@ -805,7 +805,7 @@ sub get_test_expected_results {
     my $sles_sp = (split('-', $version))[1];
 
     my $exp_fail_list_name = $sle_version . "-exp_fail_list";
-    my $expected_results_file_name = "openqa_tests_expected_results_" . $benchmark_version . ".yaml";
+    my $expected_results_file_name = "openqa_tests_expected_results_base" . $benchmark_version . ".yaml";
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
     my @eval_match = ();
 
@@ -815,7 +815,7 @@ sub get_test_expected_results {
     }
     # In case if expected_results are not defined for specific benchmark_version
     else {
-        $expected_results_file_name = "openqa_tests_expected_results.yaml";
+        $expected_results_file_name = "openqa_tests_expected_results_base.yaml";
         $return = download_file_from_https_repo($url, $expected_results_file_name);
     }
     if ($return == 1) {
@@ -826,7 +826,7 @@ sub get_test_expected_results {
         my $expected_results = YAML::PP::Load($data);
         record_info("Looking expected results", "Looking expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nname: $exp_fail_list_name\nService Pack: $sles_sp");
 
-        $eval_match = $expected_results->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name}->{$sles_sp};
+        $eval_match = $expected_results->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name};
         if (defined $eval_match) {
             @eval_match = @$eval_match;
             record_info("Got expected results", "Got expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nname: $exp_fail_list_name\nService Pack: $sles_sp\nBenchmark: $benchmark_version\nList of expected to fail rules:\n" . (join "\n", @eval_match));
@@ -837,6 +837,64 @@ sub get_test_expected_results {
     }
     else {
         record_info("No file for expected results", "Not able to download file with expected results.\nExpected results are not defined.");
+    }
+
+    $_[0] = \@eval_match;
+    return 1;
+}
+
+sub get_test_expected_results_diff {
+    # Get expected results if different from base from remote file 
+    my $eval_match = ();
+    my $type = "";
+    my $arch = "";
+
+    if ($ansible_remediation == 1) {
+        $type = 'ansible';
+    }
+    else {
+        $type = 'bash';
+    }
+    if (is_s390x) { $arch = "s390x"; }
+    if (is_aarch64 or is_arm) { $arch = "aarch64"; }
+    if (is_ppc64le) { $arch = "ppc"; }
+    if (is_x86_64) { $arch = "x86_64"; }
+    my $version = get_var('VERSION');
+    my $sles_sp = (split('-', $version))[1];
+
+    my $exp_fail_list_name = $sle_version . "-exp_fail_list";
+    my $expected_results_file_name = "openqa_tests_expected_results_diff" . $benchmark_version . ".yaml";
+    my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
+    my @eval_match = ();
+
+    my $return = download_file_from_https_repo($url, $expected_results_file_name);
+    if ($return == 1) {
+        record_info("Downloded results", "Downloded expected results for benchmark version $benchmark_version");
+    }
+    # In case if expected_results are not defined for specific benchmark_version
+    else {
+        $expected_results_file_name = "openqa_tests_expected_results_diff.yaml";
+        $return = download_file_from_https_repo($url, $expected_results_file_name);
+    }
+    if ($return == 1) {
+        uload_log_file($expected_results_file_name);
+        my $data = script_output("cat $expected_results_file_name", quiet => 1);
+
+        # Phrase the expected results
+        my $expected_results = YAML::PP::Load($data);
+        record_info("Looking expected diff results", "Looking expected diff results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nname: $exp_fail_list_name\nService Pack: $sles_sp");
+
+        $eval_match = $expected_results->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name}->{$sles_sp};
+        if (defined $eval_match) {
+            @eval_match = @$eval_match;
+            record_info("Got expected diff results", "Got expected diff results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nname: $exp_fail_list_name\nService Pack: $sles_sp\nBenchmark: $benchmark_version\nList of expected to fail rules:\n" . (join "\n", @eval_match));
+        }
+        else {
+            record_info("No expected diff results", "Expected diff results are not defined.");
+        }
+    }
+    else {
+        record_info("No file for expected results diff", "Not able to download file with expected results.\nExpected results are not defined.");
     }
 
     $_[0] = \@eval_match;
@@ -1216,8 +1274,8 @@ sub oscap_evaluate {
     my ($failed_cce_rules_ref, $failed_id_rules_ref);
     my $lc;
     my ($fail_count, $pass_count);
-    my $expected_eval_match;
-    my $ret_expected_results;
+    my ($expected_eval_match, $expected_eval_match_diff);
+    my ($ret_expected_results, $ret_expected_results_diff);
     my $oval_results_fname = "oval_results.xml";
 
     # Verify detection mode
@@ -1254,10 +1312,15 @@ sub oscap_evaluate {
         else {
             #Verify remediated rules
             $ret_expected_results = get_test_expected_results($expected_eval_match);
+            $ret_expected_results_diff = get_test_expected_results_diff($expected_eval_match_diff);
             # Found expected results in yaml file
             if ($ret_expected_results == 1) {
                 $n_failed_rules = @$expected_eval_match;
                 $eval_match = $expected_eval_match;
+            }
+            if (@$expected_eval_match_diff > 0) {    # if found SP specific results
+                $n_failed_rules += @$expected_eval_match_diff;
+                push(@$eval_match, @$expected_eval_match_diff); 
             }
             record_info('remediated', 'after remediation less rules are failing');
             #Verify failed rules
