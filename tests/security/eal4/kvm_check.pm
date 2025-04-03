@@ -12,6 +12,7 @@ use strict;
 use warnings;
 use testapi;
 use utils;
+use eal4_test;
 
 sub run {
     my ($self) = shift;
