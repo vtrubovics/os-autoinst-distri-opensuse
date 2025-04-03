@@ -88,8 +88,8 @@ sub run {
 
     my %dbus_send_results = parse_results($output_dbus_send);
     record_info('Results of parsing dbus-send', Dumper(\%dbus_send_results));
-    assert_script_run("printf \"" . Dumper(\%dbus_send_results) . "\" >> \"dbus_send_results.txt\"");
-    upload_log_file("dbus_send_results.txt");
+    # assert_script_run("printf \"" . Dumper(\%dbus_send_results) . "\" >> \"dbus_send_results.txt\"");
+    # upload_log_file("dbus_send_results.txt");
 
     my $output_busctl_list = script_output('busctl list');
     assert_script_run('busctl list > busctl_list_output.txt');
@@ -97,11 +97,8 @@ sub run {
 
     my %busctl_list_result = parse_results($output_busctl_list);
     record_info('Results of parsing busctl list', Dumper(\%busctl_list_result));
-    assert_script_run("printf \"" . Dumper(\%busctl_list_result) . "\" >> \"busctl_list_result.txt\"");
-    upload_log_file("busctl_list_result.txt");
-
-    # assert_script_run("printf \"" . (join "\n", map {"$_ => $dbus_send_results{$_}"} keys %dbus_send_results)."\" > "$filename"");
-    # assert_script_run("printf \"" . (join "\n", @test_run_report) . "\" >> \"$test_run_report_name\"");
+    # assert_script_run("printf \"" . Dumper(\%busctl_list_result) . "\" >> \"busctl_list_result.txt\"");
+    # upload_log_file("busctl_list_result.txt");
 
     # https://bugzilla.suse.com/show_bug.cgi?id=1216538
     if (is_sle('>=15-SP6') && is_s390x) {

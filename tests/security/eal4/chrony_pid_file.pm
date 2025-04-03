@@ -25,14 +25,20 @@ sub run {
 
     # Check chronyd status: inactive is the expected result
     validate_script_output('systemctl status --no-pager chronyd.service', sub { m/Active: inactive/ }, proceed_on_failure => 1);
+    assert_script_run('systemctl status --no-pager chronyd.service > 1_chronyd_service_status.txt');
+    upload_log_file("1_chronyd_service_status.txt");
 
     # Start chronyd
     systemctl('start chronyd.service');
 
     # Check chronyd status: active is the expected result
     validate_script_output('systemctl status --no-pager chronyd.service', sub { m/Active: active/ });
+    assert_script_run('systemctl status --no-pager chronyd.service > 2_chronyd_service_status_after_start.txt');
+    upload_log_file("2_chronyd_service_status_after_start.txt");
 
     validate_script_output('find /run -name "*chrony*" | grep \'\\.pid\'', sub { m/chronyd\.pid/ });
+    assert_script_run('find /run -name "*chrony*" | grep \'\\.pid\' > 3_chronyd_service_find_name_chrony.txt');
+    upload_log_file("3_chronyd_service_find_name_chrony.txt");
 
     select_console 'user-console';
 

@@ -32,9 +32,13 @@ sub run {
         '(sshd.*s390kvm.*openqaworker.*\(ESTABLISHED\))',    # ssh connection s390x
         '(systemd.*:5901 \(LISTEN\))',    # vnc on s390x
         '(sshd.*\(ESTABLISHED\))');    # ssh connection to test system
+    assert_script_run("printf \"" . (join "\n", @expected_listen_ports) . "\" >> \"expected_listen_ports.txt\"");
+    upload_log_file("expected_listen_ports.txt");
 
     my $regex = join('|', @expected_listen_ports);
     my $output = script_output('lsof -i -P');
+    assert_script_run('lsof -i -P > listen_ports_output.txt');
+    upload_log_file("listen_ports_output.txt");
     my @lines = split(/\n/, $output);
     foreach my $port (@lines) {
         if ($port =~ /^COMMAND/) {
