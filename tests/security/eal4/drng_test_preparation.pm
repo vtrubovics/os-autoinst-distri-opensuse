@@ -52,7 +52,7 @@ sub run {
 
         # Skip gather_random_data
         next if ($file_name eq $exe_file);
-        $self->upload_log_file($file_name);
+        upload_log_file($file_name);
 
         # The size of file should be 5M
         if (int($file_size) != 5242880) {
