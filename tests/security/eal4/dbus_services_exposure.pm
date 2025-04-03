@@ -82,18 +82,36 @@ sub run {
 
     # Run the test
     my $output_dbus_send = script_output('/bin/dbus-send --system --print-reply --dest=org.freedesktop.DBus --type=method_call /org/freedesktop/DBUS org.freedesktop.DBus.ListNames');
+    # Write output to a file for evidence
+    assert_script_run('/bin/dbus-send --system --print-reply --dest=org.freedesktop.DBus --type=method_call /org/freedesktop/DBUS org.freedesktop.DBus.ListNames > dbus-send_output.txt');
+    $self->upload_log_file("dbus-send_output.txt");
+
     my %dbus_send_results = parse_results($output_dbus_send);
     record_info('Results of parsing dbus-send', Dumper(\%dbus_send_results));
+    assert_script_run("printf \"" . Dumper(\%dbus_send_results) . "\" >> \"dbus_send_results.txt\"");
+    $self->upload_log_file("dbus_send_results.txt");
 
     my $output_busctl_list = script_output('busctl list');
+    assert_script_run('busctl list > busctl_list_output.txt');
+    $self->upload_log_file("busctl_list_output.txt");
+
     my %busctl_list_result = parse_results($output_busctl_list);
     record_info('Results of parsing busctl list', Dumper(\%busctl_list_result));
+    assert_script_run("printf \"" . Dumper(\%busctl_list_result) . "\" >> \"busctl_list_result.txt\"");
+    $self->upload_log_file("busctl_list_result.txt");
+
+    # assert_script_run("printf \"" . (join "\n", map {"$_ => $dbus_send_results{$_}"} keys %dbus_send_results)."\" > "$filename"");
+    # assert_script_run("printf \"" . (join "\n", @test_run_report) . "\" >> \"$test_run_report_name\"");
 
     # https://bugzilla.suse.com/show_bug.cgi?id=1216538
     if (is_sle('>=15-SP6') && is_s390x) {
         $white_list_for_busctl{virtqemud} = 1;
         push(@eal4_test::white_list_for_dbus, '1.28', '1.38');
     }
+
+    # Write to file and upload white_list_for_dbus
+    assert_script_run("printf \"" . (join "\n", @eal4_test::white_list_for_dbus) . "\" >> \"white_list_for_dbus.txt\"");
+    $self->upload_log_file("white_list_for_dbus.txt");
 
     # Analyse the results.
     foreach my $wl (@eal4_test::white_list_for_dbus) {
