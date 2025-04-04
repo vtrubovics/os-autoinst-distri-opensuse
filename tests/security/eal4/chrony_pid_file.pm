@@ -18,50 +18,51 @@ sub run {
     my ($self) = shift;
 
     select_console 'root-console';
+    script_run('echo "# Starting chrony_pid test #"');
 
     # The chrony pid file does not exist is the expected result
+    script_run('echo "# Check chronyd status: active is the expected result #"');
     if (script_run('find / -name "*chrony*" | grep \'\\.pid\'') == 0) {
         record_info('There is chronyd pid file in system', script_output('systemctl status chronyd.service'), result => 'fail');
     }
 
     # Check chronyd status: inactive is the expected result
+    script_run('echo "# Check chronyd status: inactive is the expected result"');
+    script_run('echo "systemctl status --no-pager chronyd.service"');
     validate_script_output('systemctl status --no-pager chronyd.service', sub { m/Active: inactive/ }, proceed_on_failure => 1);
-    script_run('printf "\nCheck chronyd status: inactive is the expected result\n" >> chronyd_pid_file_log.txt');
-    script_run('printf "systemctl status --no-pager chronyd.service\n" >> chronyd_pid_file_log.txt');
-    script_run('systemctl status --no-pager chronyd.service >> chronyd_pid_file_log.txt');
 
     # Start chronyd
+    script_run('echo "# Start chronyd"');
+    script_run('echo "start chronyd.service"');
     systemctl('start chronyd.service');
 
     # Check chronyd status: active is the expected result
+    script_run('echo "# Check chronyd status: active is the expected result"');
+    script_run('echo "systemctl status --no-pager chronyd.service"');
     validate_script_output('systemctl status --no-pager chronyd.service', sub { m/Active: active/ });
-    script_run('printf "\n# Check chronyd status: active is the expected result\n" >> chronyd_pid_file_log.txt');
-    script_run('printf "systemctl status --no-pager chronyd.service\n" >> chronyd_pid_file_log.txt');
-    script_run('systemctl status --no-pager chronyd.service >> chronyd_pid_file_log.txt');
 
+    script_run('echo "find /run -name "*chrony*" | grep \'\\.pid\'" ');
     validate_script_output('find /run -name "*chrony*" | grep \'\\.pid\'', sub { m/chronyd\.pid/ });
-    script_run('printf "find /run -name "*chrony*" | grep \'\\.pid\'\n" >> chronyd_pid_file_log.txt');
-    script_run('find /run -name "*chrony*" | grep \'\\.pid\' >> chronyd_pid_file_log.txt');
 
     select_console 'user-console';
+    script_run('echo "# Selected non root user"');
 
     # Create a temp file for testing
+    script_run('echo "# Create a temp file for testin"');
+    script_run('echo "touch test"');
     assert_script_run('touch test');
 
     # Create file and link in /run folder, expected result: fail
+    script_run('echo "# Create file and link in /run folder, expected result: fail"');
+    script_run('echo "ln -s test /run/testlink 2>&1"');
     validate_script_output('ln -s test /run/testlink 2>&1', sub { m/Permission denied/ }, proceed_on_failure => 1);
 
-    script_run('printf "\n# Create file and link in /run folder, expected result: fail\n" >> chronyd_pid_file_log.txt');
-    script_run('printf "ln -s test /run/testlink\n" >> chronyd_pid_file_log.txt');
-    script_run('ln -s test /run/testlink >> chronyd_pid_file_log.txt');
-
     # Attempt to create a file in /run, expected result: fail
+    script_run('echo "# Attempt to create a file in /run, expected result: fail"');
+    script_run('echo "touch /run/test 2>&1"');
     validate_script_output('touch /run/test 2>&1', sub { m/Permission denied/ }, proceed_on_failure => 1);
 
-    script_run('printf "\n# Attempt to create a file in /run, expected result: fail\n" >> chronyd_pid_file_log.txt');
-    script_run('printf "touch /run/test\n" >> chronyd_pid_file_log.txt');
-    script_run('touch /run/test >> chronyd_pid_file_log.txt');
-    upload_log_file("chronyd_pid_file_log.txt");
+    script_run('echo "# Ending chrony_pid test #"');
 }
 
 sub test_flags {
