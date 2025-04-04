@@ -26,20 +26,22 @@ sub run {
 
     # Check chronyd status: inactive is the expected result
     validate_script_output('systemctl status --no-pager chronyd.service', sub { m/Active: inactive/ }, proceed_on_failure => 1);
-    assert_script_run('systemctl status --no-pager chronyd.service > 1_chronyd_service_status.txt');
-    upload_log_file("1_chronyd_service_status.txt");
+    script_run('printf "\nCheck chronyd status: inactive is the expected result\n" >> chronyd_pid_file_log.txt');
+    script_run('printf "systemctl status --no-pager chronyd.service\n" >> chronyd_pid_file_log.txt');
+    script_run('systemctl status --no-pager chronyd.service >> chronyd_pid_file_log.txt');
 
     # Start chronyd
     systemctl('start chronyd.service');
 
     # Check chronyd status: active is the expected result
     validate_script_output('systemctl status --no-pager chronyd.service', sub { m/Active: active/ });
-    assert_script_run('systemctl status --no-pager chronyd.service > 2_chronyd_service_status_after_start.txt');
-    upload_log_file("2_chronyd_service_status_after_start.txt");
+    script_run('printf "\n# Check chronyd status: active is the expected result\n" >> chronyd_pid_file_log.txt');
+    script_run('printf "systemctl status --no-pager chronyd.service\n" >> chronyd_pid_file_log.txt');
+    script_run('systemctl status --no-pager chronyd.service >> chronyd_pid_file_log.txt');
 
     validate_script_output('find /run -name "*chrony*" | grep \'\\.pid\'', sub { m/chronyd\.pid/ });
-    assert_script_run('find /run -name "*chrony*" | grep \'\\.pid\' > 3_chronyd_service_find_name_chrony.txt');
-    upload_log_file("3_chronyd_service_find_name_chrony.txt");
+    script_run('printf "find /run -name "*chrony*" | grep \'\\.pid\'\n" >> chronyd_pid_file_log.txt');
+    script_run('find /run -name "*chrony*" | grep \'\\.pid\' >> chronyd_pid_file_log.txt');
 
     select_console 'user-console';
 
@@ -49,8 +51,17 @@ sub run {
     # Create file and link in /run folder, expected result: fail
     validate_script_output('ln -s test /run/testlink 2>&1', sub { m/Permission denied/ }, proceed_on_failure => 1);
 
+    script_run('printf "\n# Create file and link in /run folder, expected result: fail\n" >> chronyd_pid_file_log.txt');
+    script_run('printf "ln -s test /run/testlink\n" >> chronyd_pid_file_log.txt');
+    script_run('ln -s test /run/testlink >> chronyd_pid_file_log.txt');
+
     # Attempt to create a file in /run, expected result: fail
     validate_script_output('touch /run/test 2>&1', sub { m/Permission denied/ }, proceed_on_failure => 1);
+
+    script_run('printf "\n# Attempt to create a file in /run, expected result: fail\n" >> chronyd_pid_file_log.txt');
+    script_run('printf "touch /run/test\n" >> chronyd_pid_file_log.txt');
+    script_run('touch /run/test >> chronyd_pid_file_log.txt');
+    upload_log_file("chronyd_pid_file_log.txt");
 }
 
 sub test_flags {

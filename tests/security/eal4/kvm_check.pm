@@ -47,8 +47,8 @@ sub run {
 
     assert_script_run('virsh net-start default');
     validate_script_output 'virsh net-list --all | grep default', qr/default\s+active\s+no\s+yes/;
-    assert_script_run('printf "\nvirsh net-start default\n" >> kvm_check_default.txt');
-    assert_script_run('virsh net-start default >> kvm_check_default.txt');
+    script_run('printf "\nvirsh net-list --all | grep default\n" >> kvm_check_default.txt');
+    script_run('virsh net-list --all | grep default >> kvm_check_default.txt');
     upload_log_file("kvm_check_default.txt");
 }
 
