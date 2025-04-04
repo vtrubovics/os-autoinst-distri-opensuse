@@ -31,8 +31,8 @@ sub run {
     my $exists_default_info = script_output('virsh net-list --all | grep default', proceed_on_failure => 1);
     
     if ($exists_default_info =~ /default\s+(\S+)\s+(\S+)\s+(\S+)/) {
-        assert_script_run('printf "virsh net-list --all | grep default\n" > kvm_check_default.txt');
-        assert_script_run('virsh net-list --all | grep default >> kvm_check_default.txt');
+        script_run('printf "virsh net-list --all | grep default\n" > kvm_check_default.txt');
+        script_run('virsh net-list --all | grep default >> kvm_check_default.txt');
         assert_script_run('virsh net-destroy default') if ($1 eq 'active');
         assert_script_run('virsh net-undefine default');
     }
