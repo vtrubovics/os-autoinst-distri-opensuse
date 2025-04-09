@@ -7,17 +7,18 @@
 # Maintainer: QE Security <none@suse.de>
 # Tags: poo#180638
 
-use base "consoletest";
+use base 'consoletest';
 use strict;
 use warnings;
 use testapi;
 use utils;
+use eal4_test;
+use Data::Dumper;
 
 sub run {
-    my ($self) = @_;
+    my ($self) = shift;
 
-    # Get to a root console
-    select_console('root-console');
+    select_console 'root-console';
 
     # Calculate test time (current time + 1 hour)
     my $test_time = time() + 3600;
