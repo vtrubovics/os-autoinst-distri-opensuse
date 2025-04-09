@@ -16,6 +16,37 @@ use eal4_test;
 use version_utils qw(is_sle is_opensuse);
 use registration qw(add_suseconnect_product get_addon_fullname is_phub_ready);
 
+sub test_failed_logins {
+    my ($self, $user, $pass, $attempts) = @_;
+    
+    # Create expect script
+    assert_script_run('cat > /tmp/ssh_test.exp <<EOF
+#!/usr/bin/expect -f
+set user [lindex $argv 0]
+set pass [lindex $argv 1]
+set max_attempts [lindex $argv 2]
+set attempt 1
+
+while {$attempt <= $max_attempts} {
+    spawn ssh -o StrictHostKeyChecking=no $user\@localhost "echo Test"
+    expect {
+        "password:" {
+            send "$pass\\r"
+            expect {
+                "Permission denied" { incr attempt }
+                eof
+            }
+        }
+        eof
+    }
+}
+EOF');
+    
+    # Make executable and run
+    assert_script_run('chmod +x /tmp/ssh_test.exp');
+    script_output("/tmp/ssh_test.exp $user $pass $attempts", proceed_on_failure => 1);
+}
+
 sub run {
     my ($self) = @_;
     
