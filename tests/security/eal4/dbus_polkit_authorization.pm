@@ -24,8 +24,7 @@ sub run {
     my $test_time = time() + 3600;
 
     # Start DBus monitoring in background
-    assert_script_run("dbus-monitor --system 'interface=org.freedesktop.PolicyKit1.Authority' > /tmp/dbus-monitor.log &");
-    my $monitor_pid = script_output("echo $!");
+    my $monitor_pid = background_script_run("dbus-monitor --system 'interface=org.freedesktop.PolicyKit1.Authority' > /tmp/dbus-monitor.log");
 
     # # Create test user (if needed - OpenQA usually has a dedicated test user)
     # assert_script_run('useradd -m -g users test_user') unless script_run('id test_user') == 0;
@@ -56,7 +55,7 @@ sub run {
         unless $root_output =~ /method return/;
 
     # Stop DBus monitoring and check logs
-    assert_script_run("kill $monitor_pid");
+    assert_script_run("kill $monitor_pid; wait $monitor_pid");
     my $dbus_log = script_output("cat /tmp/dbus-monitor.log");
 
     # Verify Polkit authorization checks were visible
