@@ -34,7 +34,7 @@ sub run {
     my $unpriv_output = script_output(
         qq{dbus-send --system --print-reply --dest="org.freedesktop.timedate1" } .
         qq{/org/freedesktop/timedate1 org.freedesktop.timedate1.SetTime } .
-        qq{int64:$test_time boolean:true boolean:true},
+        qq{int64:$test_time boolean:true boolean:true 2>&1},
         proceed_on_failure => 1
     );
 
@@ -44,6 +44,7 @@ sub run {
         $self->result('fail');
     }
     # validate_script_output 'virsh net-list --all | grep default', qr/default\s+inactive\s+no\s+yes/;
+    # validate_script_output("dbus-send --system --print-reply --dest=\"org.freedesktop.timedate1\" /org/freedesktop/timedate1 org.freedesktop.timedate1.SetTime int64:$test_time boolean:true boolean:true", sub { m/org\.freedesktop\.DBus\.Error\.InteractiveAuthorizationRequired/ });
 
     # die "Polkit did not deny unprivileged access" 
         # unless $unpriv_output =~ /org\.freedesktop\.DBus\.Error\.InteractiveAuthorizationRequired/;
@@ -53,22 +54,34 @@ sub run {
     my $root_output = script_output(
         qq{dbus-send --system --print-reply --dest="org.freedesktop.timedate1" } .
         qq{/org/freedesktop/timedate1 org.freedesktop.timedate1.SetTime } .
-        qq{int64:$test_time boolean:true boolean:true}
+        qq{int64:$test_time boolean:true boolean:true 2>&1}
     );
 
     # Verify root attempt succeeded
-    die "Root access to SetTime failed" 
-        unless $root_output =~ /method return/;
+    if ($root_output !~ /method return/) {
+        record_info("Root access failure",
+        "Expected successful time setting, got:\n$root_output",
+        result => 'fail'
+        );
+        $self->result('fail');
+    }
+    # die "Root access to SetTime failed" 
+        # unless $root_output =~ /method return/;
 
     # Stop DBus monitoring and check logs
-    assert_script_run("kill $monitor_pid; wait $monitor_pid");
+    script_run("kill $monitor_pid");
     my $dbus_log = script_output("cat /tmp/dbus-monitor.log");
 
     # Verify Polkit authorization checks were visible
-    die "Polkit authorization checks not visible" 
-        unless $dbus_log =~ /org\.freedesktop\.PolicyKit1\.Authority/ &&
-               $dbus_log =~ /org\.freedesktop\.timedate1\.set-time/;
-
+    if ($dbus_log !~ /org\.freedesktop\.PolicyKit1\.Authority/ || 
+        $dbus_log !~ /org\.freedesktop\.timedate1\.set-time/) {
+        record_info(
+            "DBus monitor failure",
+            "Missing Polkit traces in monitor log:\n$dbus_log",
+            result => 'fail'
+        );
+        $self->result('fail');
+    }
     # upload_log_file("/tmp/dbus-monitor.log");
     upload_logs("/tmp/dbus-monitor.log", timeout => 600);
 
