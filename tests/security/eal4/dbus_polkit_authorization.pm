@@ -39,8 +39,14 @@ sub run {
     );
 
     # Verify unprivileged attempt was denied
-    die "Polkit did not deny unprivileged access" 
-        unless $unpriv_output =~ /org\.freedesktop\.DBus\.Error\.InteractiveAuthorizationRequired/;
+    if ($unpriv_output !~ /org\.freedesktop\.DBus\.Error\.InteractiveAuthorizationRequired/) {
+        record_info("Unpriv. attempt", $unpriv_output, result => 'fail');
+        $self->result('fail');
+    }
+    # validate_script_output 'virsh net-list --all | grep default', qr/default\s+inactive\s+no\s+yes/;
+
+    # die "Polkit did not deny unprivileged access" 
+        # unless $unpriv_output =~ /org\.freedesktop\.DBus\.Error\.InteractiveAuthorizationRequired/;
 
     # Attempt to set time as root (should succeed)
     select_console('root-console');
