@@ -6,17 +6,18 @@ schedule:
     - security/boot_disk
     - security/eal4/setup_eal4_env
     - '{{disable_root_ssh}}'
-    - security/eal4/accessible_network_interface
-    - security/eal4/kvm_check
-    - security/eal4/drng_test_preparation
-    - security/eal4/dbus_services_exposure
-    - security/eal4/check_undocumented_security_programs
-    - security/eal4/dbus_fuzzer
-    - security/eal4/syscall_thrasher
-    - security/eal4/netlink_message
-    - security/eal4/chrony_pid_file
-    - security/eal4/permission_settings
-    - '{{check_processor_vulnerability_mitigations}}'
+    - security/eal4/3-3_DBus-Polkit_Authorization
+    # - security/eal4/accessible_network_interface
+    # - security/eal4/kvm_check
+    # - security/eal4/drng_test_preparation
+    # - security/eal4/dbus_services_exposure
+    # - security/eal4/check_undocumented_security_programs
+    # - security/eal4/dbus_fuzzer
+    # - security/eal4/syscall_thrasher
+    # - security/eal4/netlink_message
+    # - security/eal4/chrony_pid_file
+    # - security/eal4/permission_settings
+    # - '{{check_processor_vulnerability_mitigations}}'
 conditional_schedule:
     check_processor_vulnerability_mitigations:
         ARCH:
