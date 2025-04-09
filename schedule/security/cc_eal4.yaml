@@ -6,7 +6,7 @@ schedule:
     - security/boot_disk
     - security/eal4/setup_eal4_env
     - '{{disable_root_ssh}}'
-    - security/eal4/3-3_DBus-Polkit_Authorization
+    - security/eal4/dbus_polkit_authorization
     # - security/eal4/accessible_network_interface
     # - security/eal4/kvm_check
     # - security/eal4/drng_test_preparation
