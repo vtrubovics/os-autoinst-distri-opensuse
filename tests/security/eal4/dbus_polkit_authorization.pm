@@ -17,6 +17,7 @@ use Data::Dumper;
 
 sub run {
     my ($self) = shift;
+    my $test_log = "/tmp/dbus_polkit_authorization_log.txt";
 
     select_console 'root-console';
 
@@ -46,6 +47,15 @@ sub run {
         return;
     }
 
+    script_run('printf "\nUnpriviledged dbus-send command:\n' . 
+        qq{dbus-send --system --print-reply --dest="org.freedesktop.timedate1" } .
+        qq{/org/freedesktop/timedate1 org.freedesktop.timedate1.SetTime } .
+        qq{int64:$test_time boolean:true boolean:true 2>&1} .
+        '" >> ' . $test_log);
+
+    script_run('printf "\ndbus-send unpriv_output:\n' . $unpriv_output . '" >> ' . $test_log );
+    script_run('printf "\n\nPolkit correctly denied access for unpriviledged user\n" >> ' . $test_log );
+
    # Attempt to set time as root (should succeed)
     select_console('root-console');
     my $root_output = script_output(
@@ -53,6 +63,14 @@ sub run {
         qq{/org/freedesktop/timedate1 org.freedesktop.timedate1.SetTime } .
         qq{int64:$test_time boolean:true boolean:true 2>&1}
     );
+
+    script_run('printf "\ndbus-send command:\n' . 
+        qq{dbus-send --system --print-reply --dest=org.freedesktop.timedate1 } .
+        qq{/org/freedesktop/timedate1 org.freedesktop.timedate1.SetTime } .
+        qq{int64:$test_time boolean:true boolean:true 2>&1} .
+        '" >> ' . $test_log);
+
+    script_run('printf "\n\ndbus-send output:\n' . $root_output . '" >> ' . $test_log );
 
     # Verify root attempt succeeded
     if ($root_output !~ /method return/) {
@@ -65,8 +83,9 @@ sub run {
     else {
         record_info(
             "Root access pass",
-            "Got uccessful time setting",
+            "Got successful time setting",
         );
+        script_run('printf "\nRoot got successful time setting\n" >> ' . $test_log );
     }
 
     # Stop DBus monitoring and check logs
@@ -88,10 +107,13 @@ sub run {
             "DBus monitor pass",
             "Found Polkit traces in monitor log",
         );
+        script_run('printf "\nDBus monitor pass, found Polkit traces in monitor log (See dbus-monitor.log).\n" >> ' . $test_log );
     }
-    # upload_log_file("/tmp/dbus-monitor.log");
     upload_logs("/tmp/dbus-monitor.log", timeout => 600);
-
+    upload_logs($test_log, timeout => 600);
+    # upload_log_file("/tmp/dbus-monitor.log");
+    # upload_log_file($test_log);
+    
     # Cleanup
     assert_script_run('rm -f /tmp/dbus-monitor.log');
 }
