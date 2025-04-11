@@ -3,10 +3,12 @@ use strict;
 use warnings;
 use testapi;
 use utils;
+use MIME::Base64;
 
 # Global variables
-my $test_log = '/tmp/pam_test.log';
-my $expect_script = '/tmp/ssh_test.exp';
+my $test_log = '/tmp/pam_test.log';          # Main test log
+my $bash_log = '/tmp/pam_bash_test.log';     # Bash command outputs
+my $expect_script = '/tmp/ssh_test.exp';     # Expect script path
 my $test_user = 'tester01';
 my $test_password = 'right_test_password';
 my $wrong_password = 'wrongpassword123';
@@ -29,7 +31,7 @@ sub install_expect {
 sub create_expect_script {
     my ($self) = @_;
     
-    # Build expect script - NO escaping of $variables
+    # Build expect script with proper Expect syntax (no escaping $variables)
     my @script_lines = (
         '#!/usr/bin/expect -f',
         'set user [lindex $argv 0]',
@@ -55,7 +57,7 @@ sub create_expect_script {
         '}'
     );
 
-    # Write script using base64 to avoid escaping issues
+    # Write script using base64 to avoid shell escaping issues
     my $script_content = join("\n", @script_lines);
     my $encoded = encode_base64($script_content);
     assert_script_run("printf '%s' '$encoded' | base64 -d > '$expect_script'");
@@ -75,17 +77,26 @@ sub create_expect_script {
 sub test_failed_logins {
     my ($self, $user, $pass, $attempts) = @_;
     
-    # Check/Create expect script
-    if (script_run("test -x '$expect_script'") != 0) {
-        return 0 unless $self->create_expect_script();
+    # Clear previous bash log
+    assert_script_run(": > '$bash_log'");
+    
+    # Verify and create script if needed
+    unless ($self->create_expect_script()) {
+        return 0;
     }
     
-    # Execute with proper arguments
+    # Execute with detailed logging to bash-specific log
     my $output = script_output(
-        "'$expect_script' '$user' '$pass' '$attempts' 2>&1 | tee -a '$test_log'",
+        "printf '\\n=== Test Run: '; date; printf ' ===\\n' >> '$bash_log'; " .
+        "'$expect_script' '$user' '$pass' '$attempts' 2>&1 | tee -a '$bash_log'",
         proceed_on_failure => 1,
         timeout => 120
     );
+    
+    # Log command and output to main log
+    assert_script_run("printf '\\nFailed login test executed. Command output:\\n' >> '$test_log'");
+    assert_script_run("cat '$bash_log' >> '$test_log'");
+    upload_logs($bash_log);
     
     return $output;
 }
