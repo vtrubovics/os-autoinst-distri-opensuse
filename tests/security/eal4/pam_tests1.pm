@@ -6,40 +6,67 @@ use utils;
 
 # Global test log file
 my $test_log = '/tmp/pam_test.log';
+my $expect_script = '/tmp/ssh_test.exp';
+
+sub create_expect_script {
+    my ($self) = @_;
+
+    # Build script content in array
+    my @expect_script = (
+        '#!/usr/bin/expect -f',
+        'set user [lindex $argv 0]',
+        'set pass [lindex $argv 1]',
+        'set max_attempts [lindex $argv 2]',
+        'set attempt 1',
+        '',
+        'while {$attempt <= $max_attempts} {',
+        '    spawn ssh -o StrictHostKeyChecking=no $user\@localhost "echo Test"',
+        '    expect {',
+        '        "password:" {',
+        '            send "$pass\r"',
+        '            expect {',
+        '                "Permission denied" {',
+        '                    puts "Attempt $attempt failed"',
+        '                    incr attempt',
+        '                }',
+        '                eof',
+        '            }',
+        '        }',
+        '        eof',
+        '    }',
+        '}'
+    );
+
+    # Write script in one operation
+    my $script_content = join("\n", @expect_script);
+    assert_script_run("printf \"$script_content\" > \"$expect_script\"");
+
+    # Verify script was created
+    if (script_run("test -f \"$expect_script\"") != 0) {
+        record_info("Script error", "Failed to create expect script", result => 'fail');
+        $self->result('fail');
+        return 0;
+    }
+
+    assert_script_run("chmod +x \"$expect_script\"");
+    return 1;
+}
 
 sub test_failed_logins {
     my ($self, $user, $pass, $attempts) = @_;
 
-    # Create expect script
-    assert_script_run('cat > /tmp/ssh_test.exp <<EOF
-#!/usr/bin/expect -f
-set user [lindex \$argv 0]
-set pass [lindex \$argv 1]
-set max_attempts [lindex \$argv 2]
-set attempt 1
-
-while {\$attempt <= \$max_attempts} {
-    spawn ssh -o StrictHostKeyChecking=no \$user\@localhost "echo Test"
-    expect {
-        "password:" {
-            send "\$pass\\r"
-            expect {
-                "Permission denied" { 
-                    puts "Attempt \$attempt failed"
-                    incr attempt 
-                }
-                eof
-            }
-        }
-        eof
+    # Check if script exists, create if needed
+    if (script_run("test -x \"$expect_script\"") != 0) {
+        return unless $self->create_expect_script();
     }
-}
-EOF');
 
-    # Make executable and run
-    assert_script_run('chmod +x /tmp/ssh_test.exp');
-    my $output = script_output("/tmp/ssh_test.exp $user $pass $attempts 2>&1 | tee -a $test_log", 
-                              proceed_on_failure => 1);
+    # Execute with proper logging
+    my $output = script_output(
+        "\"$expect_script\" \"$user\" \"$pass\" \"$attempts\" 2>&1 | tee -a \"$test_log\"",
+        proceed_on_failure => 1,
+        timeout => 120  # Increased timeout for multiple attempts
+    );
+
     return $output;
 }
 
@@ -177,6 +204,7 @@ sub post_fail_hook {
 
     # Save the expect script for debugging
     upload_logs('/tmp/ssh_test.exp', failok => 1);
+    # $expect_script
 }
 
 1;
