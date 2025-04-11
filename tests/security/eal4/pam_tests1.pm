@@ -80,14 +80,15 @@ sub test_failed_logins {
     }
     
     # Execute with detailed logging
+    my $test_log_b = "/tmp/pam_bash_test.log";
     my $output = script_output(
-        "printf '\\n=== Test Run: '; date; printf ' ===\\n' >> '$test_log'; " .
-        "'$expect_script' '$user' '$pass' '$attempts' 2>&1 | tee -a '$test_log'",
+        "printf '\\n=== Test Run: '; date; printf ' ===\\n' >> '$test_log_b'; " .
+        "'$expect_script' '$user' '$pass' '$attempts' 2>&1 | tee -a '$test_log_b'",
         proceed_on_failure => 1,
         timeout => 120
     );
     
-    upload_logs($test_log);
+    upload_logs($test_log_b);
     return $output;
 }
 
