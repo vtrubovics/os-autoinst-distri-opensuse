@@ -56,9 +56,15 @@ sub create_expect_script {
         '}'
     );
 
-    # Write script atomically with proper escaping
+    # Escape special characters for printf
     my $script_content = join("\n", @script_lines);
-    assert_script_run("cat > '$expect_script' <<'EXPECT_EOF'\n$script_content\nEXPECT_EOF");
+    $script_content =~ s/'/'\\''/g;  # Escape single quotes
+    $script_content =~ s/"/\\"/g;    # Escape double quotes
+    $script_content =~ s/`/\\`/g;    # Escape backticks
+    $script_content =~ s/\$/\\\$/g;  # Escape dollar signs
+    
+    # Write script using printf in one atomic operation
+    assert_script_run("printf '%s' '$script_content' > '$expect_script'");
     
     # Verify script creation
     if (script_run("test -f '$expect_script' && grep -q '^#!/' '$expect_script'") != 0) {
@@ -141,16 +147,22 @@ sub run {
     record_info("User Created", "Test user setup complete", result => 'ok');
     
     # 3. Reset authentication systems
-    assert_script_run("faillock --reset");
-    assert_script_run("pam_tally2 --reset 2>/dev/null || true");
+    assert_script_run("printf '\\n=== Resetting authentication ===\\n' >> '$bash_log'");
+    assert_script_run("faillock --reset >> '$bash_log' 2>&1");
+    assert_script_run("pam_tally2 --reset 2>/dev/null >> '$bash_log' || true");
     systemctl('restart auditd');
+    assert_script_run("cat '$bash_log' >> '$test_log'");
+    upload_logs($bash_log);
     
     # 4. Test successful login
+    assert_script_run("printf '\\n=== Testing successful login ===\\n' >> '$bash_log'");
     my $output = script_output(
         "expect -c 'spawn ssh -o StrictHostKeyChecking=no $test_user\@localhost \"echo Login successful\"; " .
-        "expect \"password:\"; send \"$test_password\\r\"; expect eof' 2>&1 | tee -a '$test_log'",
+        "expect \"password:\"; send \"$test_password\\r\"; expect eof' 2>&1 | tee -a '$bash_log'",
         proceed_on_failure => 1
     );
+    assert_script_run("cat '$bash_log' >> '$test_log'");
+    upload_logs($bash_log);
     
     unless ($output =~ /Login successful/) {
         record_info("Login Failed", "Initial authentication failed", result => 'fail');
@@ -170,15 +182,21 @@ sub run {
     }
     
     # 7. Reset and verify unlock
-    assert_script_run("faillock --user '$test_user' --reset | tee -a '$test_log'");
-    assert_script_run("pam_tally2 --user '$test_user' --reset 2>/dev/null || true | tee -a '$test_log'");
-    assert_script_run("passwd -u '$test_user' | tee -a '$test_log'");
+    assert_script_run("printf '\\n=== Resetting account lock ===\\n' >> '$bash_log'");
+    assert_script_run("faillock --user '$test_user' --reset >> '$bash_log' 2>&1");
+    assert_script_run("pam_tally2 --user '$test_user' --reset 2>/dev/null >> '$bash_log' || true");
+    assert_script_run("passwd -u '$test_user' >> '$bash_log' 2>&1");
+    assert_script_run("cat '$bash_log' >> '$test_log'");
+    upload_logs($bash_log);
     
+    assert_script_run("printf '\\n=== Testing unlock ===\\n' >> '$bash_log'");
     $output = script_output(
         "expect -c 'spawn ssh -o StrictHostKeyChecking=no $test_user\@localhost \"echo Login after unlock\"; " .
-        "expect \"password:\"; send \"$test_password\\r\"; expect eof' 2>&1 | tee -a '$test_log'",
+        "expect \"password:\"; send \"$test_password\\r\"; expect eof' 2>&1 | tee -a '$bash_log'",
         proceed_on_failure => 1
     );
+    assert_script_run("cat '$bash_log' >> '$test_log'");
+    upload_logs($bash_log);
     
     unless ($output =~ /Login after unlock/) {
         record_info("Unlock Failed", "Post-unlock authentication failed", result => 'fail');
@@ -188,10 +206,10 @@ sub run {
     record_info("Unlock Success", "Account unlocked successfully", result => 'ok');
     
     # 8. Final verification
-    my $pam_config = script_output(
-        "echo '=== PAM Configuration ===' | tee -a '$test_log'; " .
-        "grep -r 'pam_faillock\\|pam_tally' /etc/pam.d/ | tee -a '$test_log'"
-    );
+    assert_script_run("printf '\\n=== PAM Configuration ===\\n' >> '$bash_log'");
+    assert_script_run("grep -r 'pam_faillock\\|pam_tally' /etc/pam.d/ >> '$bash_log' 2>&1");
+    assert_script_run("cat '$bash_log' >> '$test_log'");
+    upload_logs($bash_log);
     record_info("Config", "PAM configuration verified", result => 'ok');
     
     # Final cleanup
