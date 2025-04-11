@@ -5,8 +5,9 @@ use testapi;
 use utils;
 
 # Global variables
-my $test_log = '/tmp/pam_test.log';
-my $expect_script = '/tmp/ssh_test.exp';
+my $test_log = '/tmp/pam_test.log';          # Main test log
+my $bash_log = '/tmp/pam_bash_test.log';     # Bash command outputs
+my $expect_script = '/tmp/ssh_test.exp';     # Expect script path
 my $test_user = 'tester01';
 my $test_password = 'right_test_password';
 my $wrong_password = 'wrongpassword123';
@@ -55,7 +56,7 @@ sub create_expect_script {
         '}'
     );
 
-    # Write script atomically
+    # Write script atomically with proper escaping
     my $script_content = join("\n", @script_lines);
     assert_script_run("cat > '$expect_script' <<'EXPECT_EOF'\n$script_content\nEXPECT_EOF");
     
@@ -74,28 +75,39 @@ sub create_expect_script {
 sub test_failed_logins {
     my ($self, $user, $pass, $attempts) = @_;
     
+    # Clear previous bash log
+    assert_script_run(": > '$bash_log'");
+    
     # Verify and create script if needed
     unless (-e $expect_script) {
         return 0 unless $self->create_expect_script();
     }
     
-    # Execute with detailed logging
-    my $test_log_b = "/tmp/pam_bash_test.log";
+    # Execute with detailed logging to bash-specific log
     my $output = script_output(
-        "printf '\\n=== Test Run: '; date; printf ' ===\\n' >> '$test_log_b'; " .
-        "'$expect_script' '$user' '$pass' '$attempts' 2>&1 | tee -a '$test_log_b'",
+        "printf '\\n=== Test Run: '; date; printf ' ===\\n' >> '$bash_log'; " .
+        "'$expect_script' '$user' '$pass' '$attempts' 2>&1 | tee -a '$bash_log'",
         proceed_on_failure => 1,
         timeout => 120
     );
     
-    upload_logs($test_log_b);
+    # Log command and output to main log
+    assert_script_run("printf '\\nFailed login test executed. Command output:\\n' >> '$test_log'");
+    assert_script_run("cat '$bash_log' >> '$test_log'");
+    upload_logs($bash_log);
+    
     return $output;
 }
 
 sub verify_account_lock {
     my ($self, $user) = @_;
     
-    my $status = script_output("faillock --user '$user' | tee -a '$test_log'");
+    # Use bash log for this operation
+    assert_script_run("printf '\\n=== Checking account lock status ===\\n' >> '$bash_log'");
+    my $status = script_output("faillock --user '$user' | tee -a '$bash_log'");
+    assert_script_run("cat '$bash_log' >> '$test_log'");
+    upload_logs($bash_log);
+    
     if ($status =~ /$user/m) {
         record_info("Lock Verified", "Account successfully locked after $max_attempts attempts", result => 'ok');
         return 1;
@@ -110,7 +122,8 @@ sub run {
     
     # Initialize environment
     select_console('root-console');
-    assert_script_run(": > '$test_log'");  # Clear log file
+    assert_script_run(": > '$test_log'");  # Clear main log
+    assert_script_run(": > '$bash_log'");  # Clear bash log
     assert_script_run("echo '=== Test Started: ' >> '$test_log'; date >> '$test_log'");
     
     # 1. Install dependencies
@@ -119,9 +132,12 @@ sub run {
         return;
     }
     
-    # 2. Create test user
-    assert_script_run("useradd -m -g users '$test_user'");
-    assert_script_run("echo '$test_user:$test_password' | chpasswd");
+    # 2. Create test user (log to bash_log)
+    assert_script_run("printf '\\n=== Creating test user ===\\n' >> '$bash_log'");
+    assert_script_run("useradd -m -g users '$test_user' >> '$bash_log' 2>&1");
+    assert_script_run("echo '$test_user:$test_password' | chpasswd >> '$bash_log' 2>&1");
+    assert_script_run("cat '$bash_log' >> '$test_log'");
+    upload_logs($bash_log);
     record_info("User Created", "Test user setup complete", result => 'ok');
     
     # 3. Reset authentication systems
@@ -190,13 +206,16 @@ sub test_flags {
 sub post_fail_hook {
     my ($self) = @_;
     
-    # Comprehensive debugging info
+    # Upload all log files
+    upload_logs($test_log);
+    upload_logs($bash_log);
+    upload_logs($expect_script);
+    
+    # Additional debug info
     $self->save_and_upload_log('journalctl -u auditd -n 100', 'auditd.log');
     $self->save_and_upload_log('faillock', 'faillock.log');
     upload_logs('/var/log/secure', failok => 1);
     upload_logs('/var/log/auth.log', failok => 1);
-    upload_logs($test_log);
-    upload_logs($expect_script);
     
     # System state
     script_run("ps auxf > /tmp/processes.log");
@@ -206,6 +225,7 @@ sub post_fail_hook {
     
     # Cleanup
     script_run("userdel -r '$test_user' 2>/dev/null || true");
+    script_run("rm -f '$expect_script' '$test_log' '$bash_log' 2>/dev/null || true");
 }
 
 1;
