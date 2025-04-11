@@ -5,9 +5,8 @@ use testapi;
 use utils;
 
 # Global variables
-my $test_log = '/tmp/pam_test.log';          # Main test log
-my $bash_log = '/tmp/pam_bash_test.log';     # Bash command outputs
-my $expect_script = '/tmp/ssh_test.exp';     # Expect script path
+my $test_log = '/tmp/pam_test.log';
+my $expect_script = '/tmp/ssh_test.exp';
 my $test_user = 'tester01';
 my $test_password = 'right_test_password';
 my $wrong_password = 'wrongpassword123';
@@ -30,7 +29,7 @@ sub install_expect {
 sub create_expect_script {
     my ($self) = @_;
     
-    # Build expect script with proper formatting
+    # Build expect script - NO escaping of $variables
     my @script_lines = (
         '#!/usr/bin/expect -f',
         'set user [lindex $argv 0]',
@@ -39,7 +38,7 @@ sub create_expect_script {
         'set attempt 1',
         '',
         'while {$attempt <= $max_attempts} {',
-        '    spawn ssh -o StrictHostKeyChecking=no $user\@localhost "echo Test"',
+        '    spawn ssh -o StrictHostKeyChecking=no $user@localhost "echo Test"',
         '    expect {',
         '        "password:" {',
         '            send "$pass\r"',
@@ -56,15 +55,10 @@ sub create_expect_script {
         '}'
     );
 
-    # Escape special characters for printf
+    # Write script using base64 to avoid escaping issues
     my $script_content = join("\n", @script_lines);
-    $script_content =~ s/'/'\\''/g;  # Escape single quotes
-    $script_content =~ s/"/\\"/g;    # Escape double quotes
-    $script_content =~ s/`/\\`/g;    # Escape backticks
-    $script_content =~ s/\$/\\\$/g;  # Escape dollar signs
-    
-    # Write script using printf in one atomic operation
-    assert_script_run("printf '%s' '$script_content' > '$expect_script'");
+    my $encoded = encode_base64($script_content);
+    assert_script_run("printf '%s' '$encoded' | base64 -d > '$expect_script'");
     
     # Verify script creation
     if (script_run("test -f '$expect_script' && grep -q '^#!/' '$expect_script'") != 0) {
@@ -81,26 +75,17 @@ sub create_expect_script {
 sub test_failed_logins {
     my ($self, $user, $pass, $attempts) = @_;
     
-    # Clear previous bash log
-    assert_script_run(": > '$bash_log'");
-    
-    # Verify and create script if needed
-    unless (-e $expect_script) {
+    # Check/Create expect script
+    if (script_run("test -x '$expect_script'") != 0) {
         return 0 unless $self->create_expect_script();
     }
     
-    # Execute with detailed logging to bash-specific log
+    # Execute with proper arguments
     my $output = script_output(
-        "printf '\\n=== Test Run: '; date; printf ' ===\\n' >> '$bash_log'; " .
-        "'$expect_script' '$user' '$pass' '$attempts' 2>&1 | tee -a '$bash_log'",
+        "'$expect_script' '$user' '$pass' '$attempts' 2>&1 | tee -a '$test_log'",
         proceed_on_failure => 1,
         timeout => 120
     );
-    
-    # Log command and output to main log
-    assert_script_run("printf '\\nFailed login test executed. Command output:\\n' >> '$test_log'");
-    assert_script_run("cat '$bash_log' >> '$test_log'");
-    upload_logs($bash_log);
     
     return $output;
 }
