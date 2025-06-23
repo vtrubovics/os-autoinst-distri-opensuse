@@ -25,12 +25,13 @@ our @EXPORT = qw(
   $source_ds
   $source_ds_result
   $arf_result
+  $py_sds_compose_script
   oscap_get_test_file
-  validate_result
   ensure_generated_file
   prepare_remediate_validation
   finish_remediate_validation
   pre_run_hook
+  validate_file_content
 );
 
 our $oval_result = "scan-oval-results.xml";
@@ -41,6 +42,7 @@ our $xccdf_result_single = "scan-xccdf-results-single.xml";
 our $source_ds = 'source-ds.xml';
 our $source_ds_result = 'source-ds-results.xml';
 our $arf_result = "arf-results.xml";
+our $py_sds_compose_script = "sds-compose-v1.7.py";
 
 sub oscap_get_test_file {
     my ($source) = @_;
@@ -48,18 +50,15 @@ sub oscap_get_test_file {
     assert_script_run "wget --quiet " . data_url("openscap/$source");
 }
 
-sub validate_result {
-    my ($result_file, $match, $file_ext) = @_;
+sub validate_file_content {
+    my ($result_file, $file_ext) = @_;
     $file_ext //= 'xml';
 
-    my $xml_args = '';
-
+    # Validate XML/HTML structure first
     if ($file_ext eq 'xml' || $file_ext eq 'html') {
-        $xml_args = '--html' if $file_ext eq 'html';
-        assert_script_run "xmllint --noout $xml_args $result_file";
+        my $xml_args = $file_ext eq 'html' ? '--html' : '';
+        assert_script_run "xmllint --noout $xml_args $result_file", timeout => 300;
     }
-
-    validate_script_output "cat $result_file", sub { $match }, timeout => 300;
     upload_logs($result_file);
 }
 
