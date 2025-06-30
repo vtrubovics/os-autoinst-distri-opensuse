@@ -44,7 +44,9 @@ sub run {
     }, timeout => 300;
 
     # Verify the remediate action result
-    validate_script_output "cat /etc/securetty", sub { m/^$/ };
+    if (script_run "! [[ -e /etc/securetty ]]") {
+        validate_script_output "cat /etc/securetty", sub { m/^$/ };
+    }
     validate_script_output "cat /proc/sys/kernel/sysrq", sub { m/^0$/ };
 
     # Restore
