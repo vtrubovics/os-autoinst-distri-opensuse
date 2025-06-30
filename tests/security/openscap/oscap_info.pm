@@ -15,7 +15,7 @@ use openscaptest;
 sub run {
 
     validate_script_output "oscap info oval.xml", sub {
-        m/
+        qr/
             Document\ type:\ OVAL\ Definitions.*
             OVAL\ version:\ [0-9]+.*
             Generated:\ [0-9]+.*
@@ -23,7 +23,7 @@ sub run {
     };
 
     validate_script_output "oscap info xccdf.xml", sub {
-        m/
+        qr/
             Document\ type:\ XCCDF\ Checklist.*
             Checklist\ version:\ [0-9]+.*
             Imported:\ [0-9]+.*

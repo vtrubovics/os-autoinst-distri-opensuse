@@ -19,7 +19,7 @@ sub run {
 
     # Remediate
     validate_script_output "oscap xccdf eval --remediate --profile standard --results $remediate_result xccdf.xml", sub {
-        m/
+        qr/
             Rule.*no_direct_root_logins.*Result.*fail.*
             Rule.*rule_misc_sysrq.*Result.*fail.*
             Starting\s+Remediation.*
@@ -29,7 +29,7 @@ sub run {
 
     validate_file_content($remediate_result);
     validate_script_output "cat $remediate_result", sub {
-        m/
+        qr/
             version="[0-9]+\.[0-9]+"\s+encoding="UTF-8".*
             <Benchmark.*<Profile\s+id="standard".*
             select.*no_direct_root_logins.*selected="true".*

@@ -23,7 +23,7 @@ sub run {
 
     validate_file_content($fix_script, 'sh');
     validate_script_output "cat $fix_script", sub {
-        m/
+        qr/
             echo\s*>\s*\/etc\/securetty.*
             echo\s+0\s*>\s*\/proc\/sys\/kernel\/sysrq/sxx
     }, timeout => 300;

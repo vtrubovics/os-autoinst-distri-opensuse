@@ -19,14 +19,14 @@ sub run {
     prepare_remediate_validation;
 
     validate_script_output "oscap xccdf remediate --results $remediate_result $xccdf_result", sub {
-        m/
+        qr/
               Rule.*no_direct_root_logins.*Result.*fixed.*
               Rule.*rule_misc_sysrq.*Result.*fixed/sxx
     }, timeout => 300;
 
     validate_file_content($remediate_result);
     validate_script_output "cat $remediate_result", sub {
-        m/
+        qr/
             <\?xml\s+version="[0-9]+\.[0-9]+"\s+encoding="UTF-8".*
             <Benchmark.*<Profile\s+id="standard".*
             select.*no_direct_root_logins.*selected="true".*

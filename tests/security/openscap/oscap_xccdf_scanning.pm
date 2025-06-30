@@ -17,13 +17,13 @@ use version_utils qw(is_sle is_leap);
 sub run {
     # Always return failed here, so we use "||true" as workaround
     validate_script_output "oscap xccdf eval --profile standard --results $xccdf_result xccdf.xml || true", sub {
-        m/
+        qr/
             Rule.*no_direct_root_logins.*fail.*
             Rule.*rule_misc_sysrq.*fail/sxx;
     };
     validate_file_content($xccdf_result);
     validate_script_output "cat $xccdf_result", sub {
-        m/
+        qr/
             encoding="UTF-8".*
             <Benchmark.*<Profile\s+id="standard".*<select.*
             idref="no_direct_root_logins"\ selected="true".*
@@ -41,14 +41,14 @@ sub run {
     if (!(is_sle('<15') or is_leap('<15.0'))) {    # openscap >= 1.2.16
         validate_script_output "oscap xccdf eval --profile standard --rule no_direct_root_logins --results $xccdf_result_single xccdf.xml || true",
           sub {
-            m/
+            qr/
                 Title.*Direct\ root\ Logins\ Not\ Allowed.*
                 Rule.*no_direct_root_logins.*fail/sxx
           };
 
         validate_file_content($xccdf_result_single);
         validate_script_output "cat $xccdf_result_single", sub {
-            m/
+            qr/
                 encoding="UTF-8".*
                 <Benchmark.*<Profile\s+id="standard".*<select.*
                 idref="no_direct_root_logins"\ selected="true".*
