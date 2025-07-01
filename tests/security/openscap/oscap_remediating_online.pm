@@ -18,14 +18,26 @@ sub run {
     prepare_remediate_validation;
 
     # Remediate
-    validate_script_output "oscap xccdf eval --remediate --profile standard --results $remediate_result xccdf.xml", sub {
-        qr/
-            Rule.*no_direct_root_logins.*Result.*fail.*
-            Rule.*rule_misc_sysrq.*Result.*fail.*
-            Starting\s+Remediation.*
-            Rule.*no_direct_root_logins.*Result.*fixed.*
-            Rule.*rule_misc_sysrq.*Result.*fixed/sxx
-    }, timeout => 300;
+    # validate_script_output "oscap xccdf eval --remediate --profile standard --results $remediate_result xccdf.xml", sub {
+        # qr/
+            # Rule.*no_direct_root_logins.*Result.*fail.*
+            # Rule.*rule_misc_sysrq.*Result.*fail.*
+            # Starting\s+Remediation.*
+            # Rule.*no_direct_root_logins.*Result.*fixed.*
+            # Rule.*rule_misc_sysrq.*Result.*fixed/sxx
+    # }, timeout => 300;
+    my $eval_output = script_output "oscap xccdf eval --remediate --profile standard --results $remediate_result xccdf.xml";
+    if ($eval_output =~ qr/
+        Rule.*no_direct_root_logins.*Result.*fail.*
+        Rule.*rule_misc_sysrq.*Result.*fail.*
+        Starting\s+Remediation.*
+        Rule.*no_direct_root_logins.*Result.*fixed.*
+        Rule.*rule_misc_sysrq.*Result.*fixed/sxx){
+        record_info("Remediate output eval passed", "oscap xccdf eval --remediate --profile standard --results $remediate_result xccdf.xml");
+    }
+    else {
+        record_soft_failure('bsc#1245559 - Open SCAP 1.3.7.+ remediation check failed. Possible issues: XML structure changed or rules not fixed.');
+    }
 
     validate_file_content($remediate_result);
     if ($remediate_result =~ qr{
@@ -39,12 +51,10 @@ sub run {
         rule-result idref="no_direct_root_logins.*?result.*?fixed
         rule-result idref="rule_misc_sysrq.*?result.*?fixed
         .*?score\s+system="urn:xccdf:scoring:default".*?maximum="[0-9]+"
-        }sx) 
-    {
+        }sx) {
         record_info("Remediate eval passed", "scap online remediation output check passed");
     }
-    else
-    {
+    else {
         record_soft_failure('bsc#1245559 - Open SCAP 1.3.7.+ remediation check failed. Possible issues: XML structure changed or rules not fixed.');
         # result('fail');
     }
@@ -55,7 +65,9 @@ sub run {
     else {
         record_soft_failure('bsc#1245559 - Open SCAP 1.3.7.+ changed remediation functionality: 2 test rules in the xccdf are not fixied - became [notapplicable]');
     }
-    if (validate_script_output "cat /proc/sys/kernel/sysrq", sub { m/^0$/ }) {
+    # validate_script_output "cat /proc/sys/kernel/sysrq", sub { m/^0$/ };
+    if (script_run("grep -q '^0$' /proc/sys/kernel/sysrq") == 0) {
+        record_info("sysrq eval passed", "/proc/sys/kernel/sysrq contains 0");
     }
     else {
         record_soft_failure('bsc#1245559 - Open SCAP 1.3.7.+ changed remediation functionality: 2 test rules in the xccdf are not fixied - became [notapplicable]');
