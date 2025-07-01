@@ -28,7 +28,7 @@ sub run {
     }, timeout => 300;
 
     validate_file_content($remediate_result);
-    if ($remediate_result_content =~ qr{
+    if ($remediate_result =~ qr{
         version="[0-9]+\.[0-9]+"\s+encoding="UTF-8"
         .*?<Benchmark.*?<Profile\s+id="standard"
         .*?select.*?no_direct_root_logins.*?selected="true"
