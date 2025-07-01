@@ -47,7 +47,15 @@ sub run {
     if (script_run "! [[ -e /etc/securetty ]]") {
         validate_script_output "cat /etc/securetty", sub { m/^$/ };
     }
-    validate_script_output "cat /proc/sys/kernel/sysrq", sub { m/^0$/ };
+    else {
+        record_soft_failure('bsc#1245559 - Open SCAP 1.3.7.+ changed remediation functionality: 2 test rules in the xccdf are not fixied - became [notapplicable]');
+    }
+    if (script_run "! [[ -e /proc/sys/kernel/sysrq ]]") {
+        validate_script_output "cat /proc/sys/kernel/sysrq", sub { m/^0$/ };
+    }
+    else {
+        record_soft_failure('bsc#1245559 - Open SCAP 1.3.7.+ changed remediation functionality: 2 test rules in the xccdf are not fixied - became [notapplicable]');
+    }
 
     # Restore
     finish_remediate_validation;
