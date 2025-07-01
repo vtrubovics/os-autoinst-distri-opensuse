@@ -28,20 +28,24 @@ sub run {
     }, timeout => 300;
 
     validate_file_content($remediate_result);
-    validate_script_output "cat $remediate_result", sub {
-        qr/
-            version="[0-9]+\.[0-9]+"\s+encoding="UTF-8".*
-            <Benchmark.*<Profile\s+id="standard".*
-            select.*no_direct_root_logins.*selected="true".*
-            select.*rule_misc_sysrq.*selected="true".*
-            Rule.*no_direct_root_logins"\s+selected="false".*
-            Rule.*rule_misc_sysrq"\s+selected="false".*
-            TestResult.*platform.*cpe:\/o:suse.*
-            rule-result.*idref="no_direct_root_logins".*result.*fixed.*
-            rule-result.*idref="rule_misc_sysrq".*result.*fixed.*
-            score\s+system="urn:xccdf:scoring:default".*
-            maximum="[0-9]+/sxx
-    }, timeout => 300;
+    if (validate_script_output "cat $remediate_result", sub {
+            qr{
+                version="[0-9]+\.[0-9]+"\s+encoding="UTF-8"
+                <Benchmark.*<Profile\s+id="standard"
+                select.*no_direct_root_logins.*selected="true"
+                select.*rule_misc_sysrq.*selected="true"
+                Rule.*no_direct_root_logins"\s+selected="false"
+                Rule.*rule_misc_sysrq"\s+selected="false"
+                TestResult.*platform.*cpe:\/o:suse
+                rule-result.*no_direct_root_logins.*\s+.*result.*fixed
+                rule-result.*rule_misc_sysrq.*\s+.*result.*fixed
+                score\s+system="urn:xccdf:scoring:default"
+                maximum="[0-9]+}sx
+        }, timeout => 300)
+    }
+    else {
+        record_soft_failure('bsc#1245559 - Open SCAP 1.3.7.+ changed remediation functionality: 2 test rules in the xccdf are not fixied - became [notapplicable]');
+    }
 
     # Verify the remediate action result
     if (script_run "! [[ -e /etc/securetty ]]") {
@@ -50,8 +54,7 @@ sub run {
     else {
         record_soft_failure('bsc#1245559 - Open SCAP 1.3.7.+ changed remediation functionality: 2 test rules in the xccdf are not fixied - became [notapplicable]');
     }
-    if (script_run "! [[ -e /proc/sys/kernel/sysrq ]]") {
-        validate_script_output "cat /proc/sys/kernel/sysrq", sub { m/^0$/ };
+    if (validate_script_output "cat /proc/sys/kernel/sysrq", sub { m/^0$/ }) {
     }
     else {
         record_soft_failure('bsc#1245559 - Open SCAP 1.3.7.+ changed remediation functionality: 2 test rules in the xccdf are not fixied - became [notapplicable]');
