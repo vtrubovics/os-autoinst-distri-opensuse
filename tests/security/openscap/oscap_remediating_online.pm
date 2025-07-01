@@ -66,7 +66,7 @@ sub run {
         record_soft_failure('bsc#1245559 - Open SCAP 1.3.7.+ changed remediation functionality: 2 test rules in the xccdf are not fixied - became [notapplicable]');
     }
     # validate_script_output "cat /proc/sys/kernel/sysrq", sub { m/^0$/ };
-    if (script_run('grep -e \'^0$\' /proc/sys/kernel/sysrq') == 0) {
+    if (script_run('grep -e \'^0$\' /proc/sys/kernel/sysrq') == 0, timeout => 30) {
         record_info("sysrq eval passed", "/proc/sys/kernel/sysrq contains 0");
     }
     else {
