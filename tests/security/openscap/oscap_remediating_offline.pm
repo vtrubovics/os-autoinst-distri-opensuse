@@ -18,7 +18,7 @@ sub run {
     ensure_generated_file($xccdf_result);
     prepare_remediate_validation;
 
-    my $offline_rem_out = validate_script_output "oscap xccdf remediate --results $remediate_result $xccdf_result", timeout => 300;
+    my $offline_rem_out = validate_script_output "oscap xccdf remediate --results $remediate_result $xccdf_result";
     if ($offline_rem_out =~ qr/
         Rule.*no_direct_root_logins.*Result.*fixed.*
         Rule.*rule_misc_sysrq.*Result.*fixed/sx) {
