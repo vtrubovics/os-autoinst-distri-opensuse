@@ -30,7 +30,7 @@ sub run {
     }
 
     validate_file_content($remediate_result);
-    my $remediate_result_out = script_output "cat $remediate_result");
+    my $remediate_result_out = script_output "cat $remediate_result";
     if ($remediate_result_out =~ qr/
         <\?xml\s+version="[0-9]+\.[0-9]+"\s+encoding="UTF-8".*
         <Benchmark.*<Profile\s+id="standard".*
