@@ -19,33 +19,41 @@ sub run {
     prepare_remediate_validation;
 
     my $offline_rem_out = script_output "oscap xccdf remediate --results $remediate_result $xccdf_result";
-    if ($offline_rem_out =~ qr/
-        Rule.*no_direct_root_logins.*Result.*fixed.*
-        Rule.*rule_misc_sysrq.*Result.*fixed/sx) {
+    my @rem_out_regex_list = (
+        qr/Rule.*no_direct_root_logins.*Result.*fixed/s,
+        qr/Rule.*rule_misc_sysrq.*Result.*fixed/s
+    );
+    my $val_out = validate_file_content_regex ($offline_rem_out, \@rem_out_regex_list, "oscap xccdf remediate --results $remediate_result $xccdf_result");
+
+    if ($val_out == 0) {
         record_info("Offline remediate passed", "scap remediation output check passed");
     }
     else {
-        record_info("Remediate eval failed", "scap online remediation output check failed", result => 'fail');
+        record_info("Remediate eval failed", "scap offline remediation output check failed", result => 'fail');
         record_soft_failure('bsc#1245559 - Open SCAP 1.3.7.+ remediation check failed. Possible issues: XML structure changed or rules not fixed.');
     }
 
     validate_file_content($remediate_result);
     my $remediate_result_out = script_output "cat $remediate_result";
-    if ($remediate_result_out =~ qr/
-        <\?xml\s+version="[0-9]+\.[0-9]+"\s+encoding="UTF-8".*
-        <Benchmark.*<Profile\s+id="standard".*
-        select.*no_direct_root_logins.*selected="true".*
-        select.*rule_misc_sysrq.*selected="true".*
-        Rule.*no_direct_root_logins"\s+selected="false".*
-        Rule.*rule_misc_sysrq"\s+selected="false".*
-        TestResult.*
-        rule-result.*idref="no_direct_root_logins".*result.*fail.*
-        rule-result.*idref="rule_misc_sysrq".*result.*fail.*
-        TestResult.*
-        rule-result.*idref="no_direct_root_logins".*result.*fixed.*
-        rule-result.*idref="rule_misc_sysrq".*result.*fixed.*
-        score\s+system="urn:xccdf:scoring:default".*
-        maximum="[0-9]+/sx) {
+    my @result_regex_list = (
+        qr/<\?xml\s+version="[0-9]+\.[0-9]+"\s+encoding="UTF-8".*/s,
+        qr/<Benchmark.*<Profile\s+id="standard".*/s,
+        qr/<select.*no_direct_root_logins.*selected="true".*/s,
+        qr/<select.*rule_misc_sysrq.*selected="true".*/s,
+        qr/<Rule.*no_direct_root_logins"\s+selected="false".*/s,
+        qr/<Rule.*rule_misc_sysrq"\s+selected="false".*/s,
+        qr/<TestResult.*/s,
+        qr/<rule-result.*idref="no_direct_root_logins".*result.*fail.*/s,
+        qr/<rule-result.*idref="rule_misc_sysrq".*result.*fail.*/s,
+        qr/<TestResult.*/s,
+        qr/<rule-result.*idref="no_direct_root_logins".*result.*fixed.*/s,
+        qr/<rule-result.*idref="rule_misc_sysrq".*result.*fixed.*/s,
+        qr/<score\s+system="urn:xccdf:scoring:default".*/s,
+        qr/maximum="[0-9]+/s
+    );
+    my $val_out_cat = validate_file_content_regex ($remediate_result_out, \@result_regex_list, $remediate_result);
+
+    if ($val_out_cat == 0) {
         record_info("Check Passed", "Remediation result check passed");
     }
     else {
