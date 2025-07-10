@@ -14,28 +14,31 @@ use openscaptest;
 
 sub run {
 
-    validate_script_output "oscap info oval.xml", sub {
-        qr/
-            Document\ type:\ OVAL\ Definitions.*
-            OVAL\ version:\ [0-9]+.*
-            Generated:\ [0-9]+.*
-            Imported:\ [0-9]+/sxx
-    };
+    my $oscap_info = script_output "oscap info oval.xml";
+    my @oval_regex_list = (
+        qr/Document type: OVAL Definitions/s,
+        qr/OVAL version: [0-9]+/s,
+        qr/Generated: [0-9]+/s,
+        qr/Imported: [0-9]+/s
+    );
+    validate_file_content_regex ($oscap_info, \@oval_regex_list, "oscap info oval.xml");
 
-    validate_script_output "oscap info xccdf.xml", sub {
-        qr/
-            Document\ type:\ XCCDF\ Checklist.*
-            Checklist\ version:\ [0-9]+.*
-            Imported:\ [0-9]+.*
-            Status:\ draft.*
-            Generated:\ [0-9]+.*
-            Resolved:\ false.*
-            Profiles:.*
-            standard.*
-            Referenced\ check\ files:.*
-            oval\.xml.*
-            system:/sxx
-    };
+    my $info_xccdf = script_output "oscap info xccdf.xml";
+    my @xccdf_regex_list = (
+        qr/Document type: XCCDF Checklist/s,
+        qr/Checklist version: [0-9]+/s,
+        qr/Imported: [0-9]+/s,
+        qr/Status: draft/s,
+        qr/Generated: [0-9]+/s,
+        qr/Resolved: false/s,
+        qr/Profiles:/s,
+        qr/standard/s,
+        qr/Referenced check files:/s,
+        qr/oval\.xml/s,
+        qr/system:/s
+    );
+    validate_file_content_regex ($info_xccdf, \@xccdf_regex_list, "oscap info xccdf.xml");
+
 }
 
 1;

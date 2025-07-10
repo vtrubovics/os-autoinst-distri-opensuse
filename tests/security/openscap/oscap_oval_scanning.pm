@@ -15,57 +15,58 @@ use openscaptest;
 
 sub run {
 
-    validate_script_output "oscap oval eval --results $oval_result oval.xml", sub {
-        qr{
-        Definition\ oval:rule_misc_sysrq:def:[0-9]:\ false.*
-        Definition\ oval:no_direct_root_logins:def:[0-9]:\ false.*
-        Evaluation\ done
-        }sx;
-    };
+    my $oval_eval_out = script_output "oscap oval eval --results $oval_result oval.xml";
+    my @eval_regex_list = (
+        qr/Definition oval:rule_misc_sysrq:def:[0-9]: false/s,
+        qr/Definition oval:no_direct_root_logins:def:[0-9]: false/s,
+        qr/Evaluation done/s
+    );
+    validate_file_content_regex ($oval_eval_out, \@eval_regex_list, "oscap oval eval");
 
     validate_file_content($oval_result);
-    validate_script_output "cat $oval_result", sub {
-        qr{
-            encoding="UTF-8".*
-            <oval_results\ xmlns:xsi.*XMLSchema-instance.*
-            xmlns:oval=.*oval-common-5.*xmlns=.*oval-results-5.*
-            xsi:schemaLocation=.*oval-results-5.*
-            oval-results-schema.xsd.*oval-common-schema.xsd">.*
-            <generator>.*product_name>cpe:\/a:open-scap:oscap.*
-            product_version>.*
-            <oval_definitions.*
-            <definition.*id="oval:rule_misc_sysrq:def:1".*compliance.*
-            <criterion.*test_ref="oval:rule_misc_sysrq:tst:1".*
-            <definition.*id="oval:no_direct_root_logins:def:1".*compliance.*
-            <criterion.*test_ref="oval:no_direct_root_logins:tst:1".*
-                        test_ref="oval:etc_securetty_exists:tst:2".*
-            <results.*<system.*<definitions.*
-            definition_id="oval:rule_misc_sysrq:def:1".*
-            result="false".*
-            definition_id="oval:no_direct_root_logins:def:1".*
-            result="false"
-        }sx
-    }, timeout => 300;
+    my $oval_result_out = script_output "cat $oval_result";
+
+    my @result_regex_list = (
+        qr/encoding="UTF-8".*/s,
+        qr/<oval_results\s+xmlns:xsi.*XMLSchema-instance.*/s,
+        qr/xmlns:oval=.*oval-common-5.*xmlns=.*oval-results-5.*/s,
+        qr/xsi:schemaLocation=.*oval-results-5.*/s,
+        qr/oval-results-schema.xsd.*oval-common-schema.xsd">.*/s,
+        qr/<generator>.*product_name>cpe:\/a:open-scap:oscap.*/s,
+        qr/product_version>.*/s,
+        qr/<oval_definitions.*/s,
+        qr/<definition.*id="oval:rule_misc_sysrq:def:1".*compliance.*/s,
+        qr/<criterion.*test_ref="oval:rule_misc_sysrq:tst:1".*/s,
+        qr/<definition.*id="oval:no_direct_root_logins:def:1".*compliance.*/s,
+        qr/<criterion.*test_ref="oval:no_direct_root_logins:tst:1".*/s,
+        qr/test_ref="oval:etc_securetty_exists:tst:2".*/s,
+        qr/<results.*<system.*<definitions.*/s,
+        qr/definition_id="oval:rule_misc_sysrq:def:1".*/s,
+        qr/result="false".*/s,
+        qr/definition_id="oval:no_direct_root_logins:def:1".*/s,
+        qr/result="false"/s
+    );
+    validate_file_content_regex ($oval_result_out, \@result_regex_list, $oval_result);
 
     #$scanning_match_single
-    validate_script_output "oscap oval eval --id oval:rule_misc_sysrq:def:1 --results $oval_result_single oval.xml", sub {
-        qr{
-        Definition\ oval:rule_misc_sysrq:def:[0-9]:\ false.*
-        Evaluation\ done
-        }sx
-    };
+    my $oval_eval_id_out = script_output "oscap oval eval --id oval:rule_misc_sysrq:def:1 --results $oval_result_single oval.xml";
+    my @eval_id_regex_list = (
+        qr/Definition oval:rule_misc_sysrq:def:[0-9]: false/s,
+        qr/Evaluation done/s
+    );
+    validate_file_content_regex ($oval_eval_id_out, \@eval_id_regex_list, "oscap oval eval --id oval:rule_misc_sysrq:def:1");
 
     validate_file_content($oval_result_single);
-    validate_script_output "cat $oval_result_single", sub {
-        qr{
-            encoding="UTF-8".*
-            <results.*<system.*<definitions.*
-            definition_id="oval:rule_misc_sysrq:def:1".*
-            result="false".*
-            definition_id="oval:no_direct_root_logins:def:1".*
-            result="not\ evaluated"
-        }sx
-    }, timeout => 300;
+    my $oval_result_single_out = script_output "cat $oval_result_single";
+    my @result_single_regex_list = (
+        qr/encoding="UTF-8".*/s,
+        qr/<results.*<system.*<definitions.*/s,
+        qr/definition_id="oval:rule_misc_sysrq:def:1".*/s,
+        qr/result="false".*/s,
+        qr/definition_id="oval:no_direct_root_logins:def:1".*/s,
+        qr/result="not evaluated"/s
+    );
+    validate_file_content_regex ($oval_result_single_out, \@result_single_regex_list, $oval_result_single);
 }
 
 1;
