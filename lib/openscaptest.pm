@@ -32,6 +32,7 @@ our @EXPORT = qw(
   finish_remediate_validation
   pre_run_hook
   validate_file_content
+  validate_file_content_regex
 );
 
 our $oval_result = "scan-oval-results.xml";
@@ -48,6 +49,34 @@ sub oscap_get_test_file {
     my ($source) = @_;
 
     assert_script_run "wget --quiet " . data_url("openscap/$source");
+}
+
+sub validate_file_content_regex {
+    my ($file_content, $regex_list, $file_name) = @_;
+
+    my $failed = 0;
+    my @failed_patterns = ();
+    my @matched_patterns = ();
+    my @test_patterns = @$regex_list;
+    for my $i (0..$#test_patterns) {
+        my $pattern = $test_patterns[$i];
+        if ($content =~ $pattern) {
+            push(@matched_patterns, "Pattern $i MATCHED: $pattern");
+        } else {
+            # print "Pattern $i FAILED: $pattern\n";
+            push(@failed_patterns, "Pattern $i FAILED: $pattern");
+            $failed++;
+        }
+    }
+    if ($failed > 0) {
+        record_info(
+            "Regex check failed",
+            "For file $file_name failed following regex:\n" . (join "\n",
+                @failed_patterns), result => 'fail'
+        );
+    }
+    $_[3] = \@failed_patterns;
+    return $failed;
 }
 
 sub validate_file_content {

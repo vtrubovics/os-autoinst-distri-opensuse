@@ -35,34 +35,37 @@ sub run {
     }
 
     validate_file_content($source_ds);
-    validate_script_output "cat $source_ds", sub {
-        qr/
-            <ds:data-stream-collection.*
-            <ds:component\s+id=.*xml.*
-            <ns\d+:definition.*class.*compliance.*oval:no_direct_root_logins:def:1
-            <ns\d+:reference\s+ref_id.*no_direct_root_logins.*
-            <ds:component\s+id=.*xml.*
-            Benchmark.*xccdf_com.suse_benchmark_test.*
-            Profile.*xccdf_com.suse_profile_standard.*
-            Rule.*xccdf_com.suse_rule_no_direct_root_logins.*selected.*false.*
-            Rule.*xccdf_com.suse_rule_rule_misc_sysrq.*selected.*false/sx
-    }, timeout => 300;
+    my $source_ds_content = script_output "cat $source_ds", timeout => 300;
+    my @ds_regex_list = (
+        qr/<ds:data-stream-collection.*/s,
+        qr/<ds:component\s+id=.*xml.*/s,
+        qr/<ns\d+:definition.*class.*compliance.*oval:no_direct_root_logins:def:1/s,
+        qr/<ns\d+:reference\s+ref_id.*no_direct_root_logins.*/s,
+        qr/<ds:component\s+id=.*xml.*/s,
+        qr/Benchmark.*xccdf_com.suse_benchmark_test.*/s,
+        qr/Profile.*xccdf_com.suse_profile_standard.*/s,
+        qr/Rule.*xccdf_com.suse_rule_no_direct_root_logins.*selected.*false.*/s,
+        qr/Rule.*xccdf_com.suse_rule_rule_misc_sysrq.*selected.*false/s
+    );
+    validate_file_content_regex ($source_ds_content, \@ds_regex_list, $source_ds);
 
     # Scanning with source datastream
     assert_script_run "oscap xccdf eval --results $source_ds_result $source_ds";
     validate_file_content($source_ds_result);
-    validate_script_output "cat $source_ds_result", sub {
-        qr/
-            version="[0-9]+\.[0-9]+"\s+encoding="UTF-8".*
-            <Profile\s+id="xccdf_com\.suse_profile_standard".*
-            select.*xccdf_com\.suse_rule_no_direct_root_logins".*selected="true".*
-            select.*xccdf_com\.suse_rule_rule_misc_sysrq".*selected="true".*
-            Rule.*xccdf_com\.suse_rule_no_direct_root_logins".*selected="false".*
-            Rule.*xccdf_com\.suse_rule_rule_misc_sysrq".*selected="false".*
-            <TestResult.*<benchmark.*id="xccdf_com\.suse_benchmark_test".*
-            rule-result.*xccdf_com\.suse_rule_no_direct_root_logins".*\n.*notselected.*
-            rule-result.*xccdf_com\.suse_rule_rule_misc_sysrq.*\n.*notselected/sxx
-    }, timeout => 300;
+    my $source_ds_resul_content = script_output "cat $source_ds_result", timeout => 300;
+    my @ds_result_regex_list = (
+        qr/version="[0-9]+\.[0-9]+"\s+encoding="UTF-8".*/s,
+        qr/<Profile\s+id="xccdf_com\.suse_profile_standard".*/s,
+        qr/select.*xccdf_com\.suse_rule_no_direct_root_logins".*selected="true".*/s,
+        qr/select.*xccdf_com\.suse_rule_rule_misc_sysrq".*selected="true".*/s,
+        qr/Rule.*xccdf_com\.suse_rule_no_direct_root_logins".*selected="false".*/s,
+        qr/Rule.*xccdf_com\.suse_rule_rule_misc_sysrq".*selected="false".*/s,
+        qr/<TestResult.*<benchmark.*id="xccdf_com\.suse_benchmark_test".*/s,
+        qr/rule-result.*xccdf_com\.suse_rule_no_direct_root_logins".*\n.*notselected.*/s,
+        qr/rule-result.*xccdf_com\.suse_rule_rule_misc_sysrq.*\n.*notselected/s
+    );
+    validate_file_content_regex ($source_ds_resul_content, \@ds_result_regex_list, $source_ds_result);
+
 }
 
 1;
