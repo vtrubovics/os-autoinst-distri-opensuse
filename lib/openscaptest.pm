@@ -71,8 +71,15 @@ sub validate_file_content_regex {
     if ($failed > 0) {
         record_info(
             "Regex check failed",
-            "For file $file_name failed following regex:\n" . (join "\n",
+            "For file $file_name failed following regex checks:\n" . (join "\n",
                 @failed_patterns), result => 'fail'
+        );
+    }
+    else {
+        record_info(
+            "Regex check passed",
+            "For file $file_name PASSED following regex checks:\n" . (join "\n",
+                @matched_patterns)
         );
     }
     $_[3] = \@failed_patterns;

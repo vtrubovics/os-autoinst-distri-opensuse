@@ -39,7 +39,7 @@ sub run {
     my @ds_regex_list = (
         qr/<ds:data-stream-collection.*/s,
         qr/<ds:component\s+id=.*xml.*/s,
-        qr/<ns\d+:definition.*class.*compliance.*oval:no_direct_root_logins:def:1/s,
+        qr/<ns\d+:definition.*oval:no_direct_root_logins:def:1/s,
         qr/<ns\d+:reference\s+ref_id.*no_direct_root_logins.*/s,
         qr/<ds:component\s+id=.*xml.*/s,
         qr/Benchmark.*xccdf_com.suse_benchmark_test.*/s,
