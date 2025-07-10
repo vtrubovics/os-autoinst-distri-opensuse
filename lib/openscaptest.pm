@@ -60,7 +60,7 @@ sub validate_file_content_regex {
     my @test_patterns = @$regex_list;
     for my $i (0..$#test_patterns) {
         my $pattern = $test_patterns[$i];
-        if ($content =~ $pattern) {
+        if ($file_content =~ $pattern) {
             push(@matched_patterns, "Pattern $i MATCHED: $pattern");
         } else {
             # print "Pattern $i FAILED: $pattern\n";
@@ -76,6 +76,7 @@ sub validate_file_content_regex {
         );
     }
     $_[3] = \@failed_patterns;
+    $_[4] = \@matched_patterns;
     return $failed;
 }
 
