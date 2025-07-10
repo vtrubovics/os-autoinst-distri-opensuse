@@ -19,12 +19,16 @@ sub run {
 
     # Remediate
     my $eval_output = script_output "oscap xccdf eval --remediate --profile standard --results $remediate_result xccdf.xml";
-    if ($eval_output =~ qr/
-        Rule.*no_direct_root_logins.*Result.*fail.*
-        Rule.*rule_misc_sysrq.*Result.*fail.*
-        Starting\s+Remediation.*
-        Rule.*no_direct_root_logins.*Result.*fixed.*
-        Rule.*rule_misc_sysrq.*Result.*fixed/sxx){
+    my @eval_regex_list = (
+        qr/Rule.*no_direct_root_logins.*Result.*fail.*/s,
+        qr/Rule.*rule_misc_sysrq.*Result.*fail.*/s,
+        qr/Starting\s+Remediation.*/s,
+        qr/Rule.*no_direct_root_logins.*Result.*fixed.*/s,
+        qr/Rule.*rule_misc_sysrq.*Result.*fixed/s
+    );
+    my $regex_res = validate_file_content_regex ($eval_output, \@eval_regex_list, "eval_output");
+
+    if ($regex_res == 0) {
         record_info("Remediate output eval passed", "oscap xccdf eval --remediate --profile standard --results $remediate_result xccdf.xml");
     }
     else {
@@ -32,22 +36,26 @@ sub run {
     }
 
     validate_file_content($remediate_result);
-    if ($remediate_result =~ qr{
-        version="[0-9]+\.[0-9]+"\s+encoding="UTF-8"
-        .*?<Benchmark.*?<Profile\s+id="standard"
-        .*?select.*?no_direct_root_logins.*?selected="true"
-        .*?select.*?rule_misc_sysrq.*?selected="true"
-        .*?Rule.*?no_direct_root_logins".*?selected="false"
-        .*?Rule.*?rule_misc_sysrq".*?selected="false"
-        .*?TestResult.*?platform.*?cpe:\/o:suse
-        rule-result idref="no_direct_root_logins.*?result.*?fixed
-        rule-result idref="rule_misc_sysrq.*?result.*?fixed
-        .*?score\s+system="urn:xccdf:scoring:default".*?maximum="[0-9]+"
-        }sx) {
+    my @remediate_regex_list = (
+        qr/version="[0-9]+\.[0-9]+"\s+encoding="UTF-8"/s,
+        qr/<Benchmark.*?<Profile\s+id="standard"/s,
+        qr/select.*?no_direct_root_logins.*?selected="true"/s,
+        qr/select.*?rule_misc_sysrq.*?selected="true"/s,
+        qr/Rule.*?no_direct_root_logins".*?selected="false"/s,
+        qr/Rule.*?rule_misc_sysrq".*?selected="false"/s,
+        qr/TestResult.*?platform.*?cpe:\/o:suse/s,
+        qr/rule-result idref="no_direct_root_logins.*?result.*?fixed/s,
+        qr/rule-result idref="rule_misc_sysrq.*?result.*?fixed/s,
+        qr/score\s+system="urn:xccdf:scoring:default".*?maximum="[0-9]+"/s
+    );
+    my $remediate_output = script_output "cat $remediate_result";
+    $regex_res = validate_file_content_regex ($remediate_output, \@remediate_regex_list, $remediate_result);
+
+    if ($regex_res == 0) {
         record_info("Remediate eval passed", "scap online remediation output check passed");
     }
     else {
-        record_info("Remediate eval faled", "scap online remediation output check faled");
+        record_info("Remediate eval faled", "scap online remediation output check faled", result => 'fail');
         record_soft_failure('bsc#1245559 - Open SCAP 1.3.7.+ remediation check failed. Possible issues: XML structure changed or rules not fixed.');
         # result('fail');
     }
