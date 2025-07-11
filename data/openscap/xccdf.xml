@@ -4,12 +4,9 @@
   <title>Hardening SUSE Linux Enterprise</title>
   <platform idref="cpe:/o:suse"/>
   <platform idref="cpe:/o:opensuse"/>
-  <platform idref="cpe:2.3:/o:suse"/>
-  <platform idref="cpe:2.3:/o:opensuse"/>
-  <platform idref="cpe:2.3:o:suse"/>
-  <platform idref="cpe:2.3:o:opensuse"/>
-  <platform idref="cpe:/2.3:/o:suse"/>
-  <platform idref="cpe:/2.3:/o:opensuse"/>
+  <platform idref="cpe:2.3:o:opensuse:tumbleweed:*:*:*:*:*:*:*:*"/>
+  <platform idref="cpe:2.3:o:opensuse:*:*:*:*:*:*:*:*:*"/>
+  <platform idref="cpe:2.3:o:suse:*:*:*:*:*:*:*:*:*"/>
   <version>1</version>
 
   <Profile id="standard">
