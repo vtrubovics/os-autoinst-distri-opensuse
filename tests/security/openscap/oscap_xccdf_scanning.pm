@@ -15,6 +15,9 @@ use openscaptest;
 use version_utils qw(is_sle is_leap);
 
 sub run {
+    # Check OS release
+    script_output "cat /etc/os-release";
+
     # Always return failed here, so we use "||true" as workaround
     my $xccdf_eval_out = script_output "oscap xccdf eval --profile standard --results $xccdf_result xccdf.xml || true";
     my @xccdf_eval_regex_list = (
