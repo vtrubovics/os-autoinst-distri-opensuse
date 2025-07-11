@@ -6,6 +6,10 @@
   <platform idref="cpe:/o:opensuse"/>
   <platform idref="cpe:2.3:/o:suse"/>
   <platform idref="cpe:2.3:/o:opensuse"/>
+  <platform idref="cpe:2.3:o:suse"/>
+  <platform idref="cpe:2.3:o:opensuse"/>
+  <platform idref="cpe:/2.3:/o:suse"/>
+  <platform idref="cpe:/2.3:/o:opensuse"/>
   <version>1</version>
 
   <Profile id="standard">
