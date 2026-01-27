@@ -587,14 +587,10 @@ sub modify_ds_ansible_files {
         # Write rules to file
         assert_script_run("printf \"$ansible_f\" > \"$ansible_fix_missing\"");
 
-        my ($ansible_exclusions, $ansible_exclusions_diff);
+        my ($ansible_exclusions);
 
         # Get rule exclusions for ansible playbook
-        get_test_exclusions("openqa_tests_exclusions_base", $ansible_exclusions);
-        get_test_exclusions("openqa_tests_exclusions_diff", $ansible_exclusions_diff);
-        if (@$ansible_exclusions_diff > 0) {    # if found SP specific exclusion
-            push(@$ansible_exclusions, @$ansible_exclusions_diff);
-        }
+        get_test_exclusions("openqa_tests_exclusions", $ansible_exclusions);
 
         # Write exclusions to the file
         if (@$ansible_exclusions > 0) {
@@ -631,14 +627,10 @@ sub modify_ds_ansible_files {
         # Write rules to file
         assert_script_run("printf \"$bash_f\" > \"$bash_fix_missing\"");
 
-        my ($bash_exclusions, $bash_exclusions_diff);
+        my ($bash_exclusions);
 
         # Get rule exclusions for bash playbook
-        get_test_exclusions("openqa_tests_exclusions_base", $bash_exclusions);
-        get_test_exclusions("openqa_tests_exclusions_diff", $bash_exclusions_diff);
-        if (@$bash_exclusions_diff > 0) {    # if found SP specific exclusion
-            push(@$bash_exclusions, @$bash_exclusions_diff);
-        }
+        get_test_exclusions("openqa_tests_exclusions", $bash_exclusions);
 
         # Write exclusions to the file
         if (@$bash_exclusions > 0) {
@@ -812,20 +804,13 @@ sub get_test_expected_results {
     my $sles_sp = (split('-', $version))[1];
 
     my $exp_fail_list_name = $sle_version . "-exp_fail_list";
-    my $expected_results_file_name = $file_name . "_" . $benchmark_version . ".yaml";
+    my $expected_results_file_name = $sle_version . "_" . $file_name . ".yaml";
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
     my @eval_match = ();
 
     my $return = download_file_from_https_repo($url, $expected_results_file_name);
     if ($return == 1) {
-        record_info("Downloded results", "Downloded expected results for benchmark version $benchmark_version");
-    }
-    # In case if expected_results are not defined for specific benchmark_version
-    else {
-        $expected_results_file_name = "$file_name.yaml";
-        $return = download_file_from_https_repo($url, $expected_results_file_name);
-    }
-    if ($return == 1) {
+        record_info("Downloded results", "Downloded expected results for OS version $sle_version");
         uload_log_file($expected_results_file_name);
         my $data = script_output("cat $expected_results_file_name", quiet => 1);
 
@@ -833,12 +818,7 @@ sub get_test_expected_results {
         my $expected_results = YAML::PP::Load($data);
         record_info("Looking expected results", "Looking expected results for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nname: $exp_fail_list_name\nService Pack: $sles_sp");
 
-        if ($expected_results_file_name =~ /base/) {
-            $eval_match = $expected_results->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name};
-        }
-        else {
-            $eval_match = $expected_results->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name}->{$sles_sp};
-        }
+        $eval_match = $expected_results->{$profile_ID}->{$type}->{$arch}->{$exp_fail_list_name};
 
         if (defined $eval_match) {
             @eval_match = @$eval_match;
@@ -884,20 +864,13 @@ sub get_test_exclusions {
         my $sles_sp = (split('-', $version))[1];
 
         my $exclusions_list_name = $sle_version . "-exclusions_list";
-        my $exclusions_file_name = $file_name . "_" . $benchmark_version . ".yaml";
+        my $exclusions_file_name = $sle_version . "_" . $file_name . ".yaml";
         my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
         my @exclusions = ();
 
         $return = download_file_from_https_repo($url, $exclusions_file_name);
         if ($return == 1) {
-            record_info("Downloded exclusions", "Downloded exclusions for benchmark version $benchmark_version");
-        }
-        # In case if exclusions are not defined for specific benchmark_version
-        else {
-            $exclusions_file_name = "$file_name.yaml";
-            $return = download_file_from_https_repo($url, $exclusions_file_name);
-        }
-        if ($return == 1) {
+            record_info("Downloded exclusions", "Downloded exclusions for OS version $sle_version");
             uload_log_file($exclusions_file_name);
             my $data = script_output("cat $exclusions_file_name", quiet => 1);
 
@@ -905,12 +878,7 @@ sub get_test_exclusions {
             my $exclusions_data = YAML::PP::Load($data);
             record_info("Looking exclusions", "Looking exclusions for \nprofile_ID: $profile_ID\ntype: $type\narch: $arch\nname: $exclusions_list_name\nService Pack: $sles_sp");
 
-            if ($exclusions_file_name =~ /base/) {
-                $exclusions = $exclusions_data->{$profile_ID}->{$type}->{$arch}->{$exclusions_list_name};
-            }
-            else {
-                $exclusions = $exclusions_data->{$profile_ID}->{$type}->{$arch}->{$exclusions_list_name}->{$sles_sp};
-            }
+            $exclusions = $exclusions_data->{$profile_ID}->{$type}->{$arch}->{$exclusions_list_name};
             # If results defined
             if (defined $exclusions) {
                 @exclusions = @$exclusions;
@@ -1274,16 +1242,11 @@ sub oscap_evaluate {
         }
         else {
             #Verify remediated rules
-            $ret_expected_results = get_test_expected_results("openqa_tests_expected_results_base", $expected_eval_match);
-            $ret_expected_results_diff = get_test_expected_results("openqa_tests_expected_results_diff", $expected_eval_match_diff);
+            $ret_expected_results = get_test_expected_results("openqa_tests_expected_results", $expected_eval_match);
             # Found expected results in yaml file
             if ($ret_expected_results == 1) {
                 $n_failed_rules = @$expected_eval_match;
                 $eval_match = $expected_eval_match;
-            }
-            if (@$expected_eval_match_diff > 0) {    # if found SP specific results
-                $n_failed_rules += @$expected_eval_match_diff;
-                push(@$eval_match, @$expected_eval_match_diff);
             }
             record_info('remediated', 'after remediation less rules are failing');
             #Verify failed rules
@@ -1341,11 +1304,11 @@ sub oscap_evaluate {
                 @$passed_rules_ref
             );
             # Write collected report to file
-            my $test_run_report_name = "test_run_report.txt";
-            record_info('Writing report', "Writing test report to file: $test_run_report_name");
-            assert_script_run("printf \"" . (join "\n", @test_run_report) . "\" >> \"$test_run_report_name\"");
-            # Upload logs & ouputs for reference
-            upload_logs("$test_run_report_name") if script_run "! [[ -e $test_run_report_name ]]";
+            # my $test_run_report_name = "test_run_report.txt";
+            # record_info('Writing report', "Writing test report to file: $test_run_report_name");
+            # assert_script_run("printf \"" . (join "\n", @test_run_report) . "\" >> \"$test_run_report_name\"");
+            # # Upload logs & ouputs for reference
+            # upload_logs("$test_run_report_name") if script_run "! [[ -e $test_run_report_name ]]";
             uload_log_file($oval_results_fname);
             upload_logs_reports();
         }
