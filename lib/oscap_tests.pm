@@ -40,11 +40,10 @@ our @EXPORT = qw(
   $f_report
   $remediated
   $ansible_remediation
-  $sle_version
+  $os_version
   $compliance_as_code_path
   $evaluate_count
   set_ds_file
-  set_ds_file_name
   upload_logs_reports
   pattern_count_in_file
   oscap_security_guide_setup
@@ -143,8 +142,8 @@ our $failed_cce_ids_ref;
 # List to collect needed run results
 our @test_run_report = ();
 
-# Get sle version "sle12", "sle15" or "sle16"
-our $sle_version = '';
+# Get sle version "sle12", "sle15", "sle16", "slmicro5", "slmicro6", "opensuse"
+our $os_version = '';
 
 # Stores current SCAP benchmark version
 our $benchmark_version = '';
@@ -170,19 +169,8 @@ sub set_ds_file {
     }
     $f_ssg_sle_ds = "/usr/share/xml/scap/ssg/content/ssg-${p_name}${version}-ds.xml";
     $f_ssg_sle_xccdf = "/usr/share/xml/scap/ssg/content/ssg-${p_name}${version}-xccdf.xml";
-}
-
-sub set_ds_file_name {
-    # Set the ds file name for separate product, e.g.,
-    # for SLE16 the ds file is "ssg-sle16-ds.xml";
-    # for SLE15 the ds file is "ssg-sle15-ds.xml";
-    # for SLE12 the ds file is "ssg-sle12-ds.xml";
-    # for Tumbleweed the ds file is "ssg-opensuse-ds.xml"
-    my $version = get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
-    $ssg_sle_ds =
-      "ssg-sle${version}-ds.xml";
-    $ssg_sle_xccdf =
-      "ssg-sle${version}-xccdf.xml";
+    $ssg_sle_ds = "ssg-${p_name}${version}-ds.xml";
+    $ssg_sle_xccdf = "ssg-${p_name}${version}-xccdf.xml";
 }
 
 sub replace_ds_file {
@@ -774,7 +762,7 @@ sub get_cac_code {
             # Fix python version for the build script
             assert_script_run("mv /usr/bin/python3 /usr/bin/python3_bkp && ln -s python3.11 /usr/bin/python3");
             # Building CaC content
-            assert_script_run("cd $compliance_as_code_path && sh build_product $sle_version", timeout => 9000);
+            assert_script_run("cd $compliance_as_code_path && sh build_product $os_version", timeout => 9000);
             # Restore python3 path
             assert_script_run("rm -rf /usr/bin/python3 && mv /usr/bin/python3_bkp /usr/bin/python3");
         }
@@ -791,9 +779,9 @@ sub get_cac_code {
                 assert_script_run("pip3 install $py_libs pandas", timeout => 600);
             }
             # Building CaC content
-            assert_script_run("cd $compliance_as_code_path && sh build_product $sle_version", timeout => 9000);
+            assert_script_run("cd $compliance_as_code_path && sh build_product $os_version", timeout => 9000);
         }
-        record_info("build_product", "sh build_product $sle_version");
+        record_info("build_product", "sh build_product $os_version");
         assert_script_run("cd /root");
     }
     return $compliance_as_code_path;
@@ -849,7 +837,7 @@ sub get_test_expected_results {
     my $eval_match = ();
     my ($type, $arch, $minor_version, $minor_name) = get_execution_parameters();
 
-    my $exp_fail_list_name = $sle_version . "-exp_fail_list";
+    my $exp_fail_list_name = $os_version . "-exp_fail_list";
     my $expected_results_file_name = $file_name . "_" . $benchmark_version . ".yaml";
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
     my @eval_match = ();
@@ -907,7 +895,7 @@ sub get_test_exclusions {
         return $found;
     }
     else {
-        my $exclusions_list_name = $sle_version . "-exclusions_list";
+        my $exclusions_list_name = $os_version . "-exclusions_list";
         my $exclusions_file_name = $file_name . "_" . $benchmark_version . ".yaml";
         my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
         my @exclusions = ();
@@ -996,10 +984,14 @@ sub oscap_security_guide_setup {
         zypper_call('in openscap-utils scap-security-guide', timeout => 180);
     }
 
-    if (is_sle_micro(">=6.0")) {
+    elsif (is_sle_micro(">=6.0")) {
         my @pkgs = ("ansible", "scap-security-guide", "openscap-utils", "git-core", "python3-rpm");
         my $timeout = is_aarch64 ? 1200 : 300;
         install_package("@pkgs", trup_continue => 1, trup_reboot => 1, timeout => $timeout) if (script_run("rpm -q @pkgs") != 0);
+    }
+    elsif (is_tumbleweed) {
+        zypper_call('ref -s', timeout => 180);
+        zypper_call('in openscap-utils scap-security-guide', timeout => 180);
     }
 
     set_ds_file();
@@ -1021,8 +1013,7 @@ sub oscap_security_guide_setup {
     push(@test_run_report, "evaluate_count = $evaluate_count");
 
     # Replace original ds and xccdf files whith downloaded from local repository
-    set_ds_file_name();
-    push(@test_run_report, "sle_version = $sle_version");
+    push(@test_run_report, "os_version = $os_version");
     push(@test_run_report, "ssg_sle_ds = $ssg_sle_ds");
     push(@test_run_report, "ssg_sle_xccdf = $ssg_sle_xccdf");
     my $arch = get_var 'ARCH';
@@ -1104,7 +1095,7 @@ sub oscap_security_guide_setup {
     $benchmark_version = $lines[2];
     push(@test_run_report, "benchmark_version = $benchmark_version");
 
-    if ($remove_rules_missing_fixes == 1) {
+    if ($remove_rules_missing_fixes == 1 && is_sle) {
         # Generate text file that contains rules that missing implimentation for profile
         my $missing_rules_full_path = generate_missing_rules();
 
@@ -1358,7 +1349,7 @@ sub oscap_evaluate {
                 if (@ronly == 0) {    # All failed rules found in expected results
                     record_info(
                         "Passed fail rules check",
-                        "\nProfile_ID: $profile_ID\ntype: $type\nArch: $arch\nOS: $sle_version $minor_name:$minor_version\nBenchmark: $benchmark_version\n\n" .
+                        "\nProfile_ID: $profile_ID\ntype: $type\nArch: $arch\nOS: $os_version $minor_name:$minor_version\nBenchmark: $benchmark_version\n\n" .
                           "Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules or LESS. Failed rules:\n" . (join "\n",
                             @intersection) . "\n\nExpected rules to fail:\n" . (join "\n",
                             @$eval_match)
@@ -1367,7 +1358,7 @@ sub oscap_evaluate {
                 else {    # some expected to fail rules are passing
                     record_info(
                         "Passed fail rules check",
-                        "\nProfile_ID: $profile_ID\ntype: $type\nArch: $arch\nOS: $sle_version $minor_name:$minor_version\nBenchmark: $benchmark_version\n\n" .
+                        "\nProfile_ID: $profile_ID\ntype: $type\nArch: $arch\nOS: $os_version $minor_name:$minor_version\nBenchmark: $benchmark_version\n\n" .
                           "Pattern $f_fregex count in file $f_stdout is $fail_count, expected $n_failed_rules or LESS. Failed rules:\n" . (join "\n",
                             @intersection) . "\n\nExpected rules to fail:\n" . (join "\n",
                             @$eval_match) . "\n\nRULES PASSED, but are in expected to fail list:\n" . (join "\n",
@@ -1381,7 +1372,7 @@ sub oscap_evaluate {
             else {    # found rules NOT in expected results
                 record_info(
                     "Failed fail rules check for:",
-                    "\nProfile_ID: $profile_ID\ntype: $type\nArch: $arch\nOS: $sle_version $minor_name:$minor_version\nBenchmark: $benchmark_version\n\n" .
+                    "\nProfile_ID: $profile_ID\ntype: $type\nArch: $arch\nOS: $os_version $minor_name:$minor_version\nBenchmark: $benchmark_version\n\n" .
                       "Number of failed rules is $fail_count, expected $n_failed_rules.\n #Failed rules:\n" . (join "\n",
                         @$failed_rules_ref) . "\n\n#Expected $n_failed_rules rules to fail:\n" . (join "\n",
                         @$eval_match) . "\n\n#Rules failed (not in expected list):\n" . (join "\n",

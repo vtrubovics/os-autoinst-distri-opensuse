@@ -12,13 +12,23 @@ use version_utils qw(is_sle);
 sub run {
     my ($self) = @_;
     select_console 'root-console';
+    if (is_sle) {
+        $oscap_tests::os_version = 'sle' . get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
+        $oscap_tests::profile_ID = get_required_var('OSCAP_PROFILE_ID');
+    }
+    elsif (is_sle_micro) {
+        $oscap_tests::os_version = 'slmicro' . get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
+        $oscap_tests::profile_ID = $oscap_tests::os_version . '-' . get_required_var('OSCAP_PROFILE_ID');
+    }
+    elsif (is_tumbleweed) {
+        $oscap_tests::os_version = 'opensuse';
+        $oscap_tests::profile_ID = $oscap_tests::profile_ID_tw;
+    }
 
-    $oscap_tests::sle_version = 'sle' . get_required_var('VERSION') =~ s/([0-9]+).*/$1/r;
     $oscap_tests::evaluate_count = get_required_var('OSCAP_EVAL_COUNT');
-    $oscap_tests::profile_ID = is_sle ? get_required_var('OSCAP_PROFILE_ID') : $oscap_tests::profile_ID_tw;
     if (get_required_var('OSCAP_ANSIBLE_REMEDIATION')) {
         $oscap_tests::ansible_remediation = get_required_var('OSCAP_ANSIBLE_REMEDIATION');
-        $oscap_tests::ansible_profile_ID = is_sle ? $oscap_tests::sle_version . '-' . get_required_var('OSCAP_ANSIBLE_PROFILE_ID') : $oscap_tests::ansible_playbook_standart;
+        $oscap_tests::ansible_profile_ID = is_sle ? $oscap_tests::os_version . '-' . get_required_var('OSCAP_ANSIBLE_PROFILE_ID') : $oscap_tests::ansible_playbook_standart;
     }
     if (get_var('OSCAP_UPLOAD_DEBUG_LOGS')) {
         $oscap_tests::oscap_upload_debug_logs = get_var('OSCAP_UPLOAD_DEBUG_LOGS');
