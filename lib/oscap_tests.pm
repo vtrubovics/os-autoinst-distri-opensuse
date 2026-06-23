@@ -835,6 +835,7 @@ sub get_test_expected_results {
     # Get expected results from remote file
     my $file_name = $_[0];
     my $eval_match = ();
+    my @eval_match = ();
 
     if (is_tumbleweed) {
         $_[1] = \@eval_match;
@@ -846,7 +847,6 @@ sub get_test_expected_results {
     my $exp_fail_list_name = $os_version . "-exp_fail_list";
     my $expected_results_file_name = $file_name . "_" . $benchmark_version . ".yaml";
     my $url = "https://gitlab.suse.de/seccert-public/compliance-as-code-compiled/-/raw/main/content/";
-    my @eval_match = ();
 
     my $return = download_file_from_https_repo($url, $expected_results_file_name);
     if ($return == 1) {
