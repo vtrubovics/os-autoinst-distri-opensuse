@@ -7,7 +7,7 @@
 use Mojo::Base 'oscap_tests';
 use testapi;
 use utils;
-use version_utils qw(is_sle);
+use version_utils qw(is_sle is_sle_micro is_tumbleweed);
 
 sub run {
     my ($self) = @_;
