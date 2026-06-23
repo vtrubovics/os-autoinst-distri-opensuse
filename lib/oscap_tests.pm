@@ -835,6 +835,12 @@ sub get_test_expected_results {
     # Get expected results from remote file
     my $file_name = $_[0];
     my $eval_match = ();
+
+    if (is_tumbleweed) {
+        $_[1] = \@eval_match;
+        return 0;
+    }
+
     my ($type, $arch, $minor_version, $minor_name) = get_execution_parameters();
 
     my $exp_fail_list_name = $os_version . "-exp_fail_list";
@@ -891,7 +897,7 @@ sub get_test_exclusions {
     my ($type, $arch, $minor_version, $minor_name) = get_execution_parameters();
 
     # If set in configuration to not use excusions
-    if ($use_exclusions == 0) {
+    if ($use_exclusions == 0 || is_tumbleweed) {
         return $found;
     }
     else {
@@ -960,8 +966,12 @@ sub get_execution_parameters {
         $minor_version = (split('-', $version))[1];
         $minor_name = "Service Pack";
     }
-    if (is_sle('>=16')) {
+    elsif (is_sle('>=16')) {
         $minor_version = (split(/\./, $version))[1];
+        $minor_name = "Minor version";
+    }
+    elsif (is_tumbleweed) {
+        $minor_version = "";
         $minor_name = "Minor version";
     }
     return ($type, $arch, $minor_version, $minor_name);
@@ -1000,7 +1010,7 @@ sub oscap_security_guide_setup {
     display_oscap_information();
 
     # Get the tests configuration file from repository and set global configuration variables
-    get_tests_config();
+    if (is_sle || is_sle_micro) { get_tests_config(); }
     push(@test_run_report, "[configuration]");
     my $out = script_output("date", quiet => 1);
     push(@test_run_report, "date = $out");
