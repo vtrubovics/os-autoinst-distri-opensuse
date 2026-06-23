@@ -1081,7 +1081,7 @@ sub oscap_security_guide_setup {
             zypper_call "in ansible";
         }
     }
-    if (($remove_rules_missing_fixes == 1) or ($use_content_type == 3) or is_sle or is_sle_micro) {
+    if ((!is_tumbleweed and (($remove_rules_missing_fixes == 1) or ($use_content_type == 3) or is_sle or is_sle_micro) {
         # Get the code for the ComplianceAsCode by cloning its repository
         get_cac_code();
     }
