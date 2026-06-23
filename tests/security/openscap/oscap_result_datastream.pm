@@ -16,6 +16,7 @@ sub run {
 
     ensure_generated_file($source_ds);
     assert_script_run "oscap xccdf eval --results-arf $arf_result $source_ds";
+    uload_log_file($arf_result);
 
     validate_file_content($arf_result);
     my $arf_result_out = script_output "cat $arf_result";

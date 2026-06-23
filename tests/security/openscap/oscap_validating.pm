@@ -13,10 +13,10 @@ use utils;
 use openscaptest;
 
 sub run {
-    assert_script_run "oscap oval validate oval.xml";
+    assert_script_run "oscap oval validate $oval_file";
     assert_script_run "oscap oval validate $oval_result";
 
-    assert_script_run "oscap xccdf validate xccdf.xml";
+    assert_script_run "oscap xccdf validate $xccdf_file";
     assert_script_run "oscap xccdf validate $xccdf_result";
 }
 

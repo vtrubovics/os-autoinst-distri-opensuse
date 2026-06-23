@@ -16,7 +16,8 @@ use openscaptest;
 sub run {
     my $fix_script = "fix-script.sh";
 
-    assert_script_run "oscap xccdf generate fix --template urn:xccdf:fix:script:sh --profile standard --output $fix_script xccdf.xml";
+    assert_script_run "oscap xccdf generate fix --template urn:xccdf:fix:script:sh --profile standard --output $fix_script $xccdf_file";
+    uload_log_file($fix_script);
 
     my $script_output = script_output "cat $fix_script";
     prepare_remediate_validation;

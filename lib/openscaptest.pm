@@ -33,14 +33,33 @@ our @EXPORT = qw(
   pre_run_hook
   validate_file_content
   validate_file_content_regex
+  uload_log_file
+  $oval_file
+  $xccdf_file
+  $source_ds
 );
+
+if (is_sle('<16')) {
+    our $oval_file = "/usr/share/xml/scap/ssg/content/ssg-sle15-oval.xml";
+    our $xccdf_file = "/usr/share/xml/scap/ssg/content/ssg-sle15-xccdf.xml";
+    our $source_ds = '/usr/share/xml/scap/ssg/content/ssg-sle15-ds.xml';
+}
+elsif (is_sle('>16')) {
+    our $oval_file = "/usr/share/xml/scap/ssg/content/ssg-sle16-oval.xml";
+    our $xccdf_file = "/usr/share/xml/scap/ssg/content/ssg-sle16-xccdf.xml";
+    our $source_ds = '/usr/share/xml/scap/ssg/content/ssg-sle16-ds.xml';
+}
+elsif (is_leap) {
+    our $oval_file = "/usr/share/xml/scap/ssg/content/ssg-opensuse-oval.xml";
+    our $xccdf_file = "/usr/share/xml/scap/ssg/content/ssg-opensuse-xccdf.xml";
+    our $source_ds = '/usr/share/xml/scap/ssg/content/ssg-opensuse-ds.xml';
+}
 
 our $oval_result = "scan-oval-results.xml";
 our $oval_result_single = "scan-oval-results-single.xml";
 our $xccdf_result = "scan-xccdf-results.xml";
 our $xccdf_result_single = "scan-xccdf-results-single.xml";
 
-our $source_ds = 'source-ds.xml';
 our $source_ds_result = 'source-ds-results.xml';
 our $arf_result = "arf-results.xml";
 our $py_sds_compose_script = "sds-compose-v1.7.py";
@@ -129,6 +148,23 @@ sub finish_remediate_validation {
 sub pre_run_hook {
     my ($self) = @_;
     select_console 'root-console';
+}
+
+sub uload_log_file {
+    # Compress and upload single file for reference
+    my ($file_name) = @_;
+
+    $file_name =~ s/\s//g;    # remove whitespaces
+                              # Combine the file check and compression into a single shell execution.
+    my $cmd = "test -e '$file_name' && tar cJf '${file_name}.tar.xz' '$file_name'";
+
+    # script_run returns 0 only if BOTH the test and the tar command succeed
+    if (script_run($cmd) == 0) {
+        upload_logs("${file_name}.tar.xz", timeout => 600);
+
+        # Clean up the compressed file afterwards
+        script_run("rm -f '${file_name}.tar.xz'");
+    }
 }
 
 1;

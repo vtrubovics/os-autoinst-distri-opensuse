@@ -14,16 +14,16 @@ use openscaptest;
 
 sub run {
 
-    my $oscap_info = script_output "oscap info oval.xml";
+    my $oscap_info = script_output "oscap info $oval_file";
     my @oval_regex_list = (
         qr/Document type: OVAL Definitions/s,
         qr/OVAL version: [0-9]+/s,
         qr/Generated: [0-9]+/s,
         qr/Imported: [0-9]+/s
     );
-    validate_file_content_regex ($oscap_info, \@oval_regex_list, "oscap info oval.xml");
+    validate_file_content_regex ($oscap_info, \@oval_regex_list, "oscap info $oval_file");
 
-    my $info_xccdf = script_output "oscap info xccdf.xml";
+    my $info_xccdf = script_output "oscap info $xccdf_file";
     my @xccdf_regex_list = (
         qr/Document type: XCCDF Checklist/s,
         qr/Checklist version: [0-9]+/s,
@@ -37,7 +37,7 @@ sub run {
         qr/oval\.xml/s,
         qr/system:/s
     );
-    validate_file_content_regex ($info_xccdf, \@xccdf_regex_list, "oscap info xccdf.xml");
+    validate_file_content_regex ($info_xccdf, \@xccdf_regex_list, "oscap info $xccdf_file");
 
 }
 

@@ -18,7 +18,7 @@ sub run {
     prepare_remediate_validation;
 
     # Remediate
-    my $eval_output = script_output "oscap xccdf eval --remediate --profile standard --results $remediate_result xccdf.xml";
+    my $eval_output = script_output "oscap xccdf eval --remediate --profile standard --results $remediate_result $xccdf_file";
     my @eval_regex_list = (
         qr/Rule.*no_direct_root_logins.*Result.*fail.*/s,
         qr/Rule.*rule_misc_sysrq.*Result.*fail.*/s,
@@ -29,7 +29,7 @@ sub run {
     my $regex_res = validate_file_content_regex ($eval_output, \@eval_regex_list, "eval_output");
 
     if ($regex_res == 0) {
-        record_info("Remediate output eval passed", "oscap xccdf eval --remediate --profile standard --results $remediate_result xccdf.xml");
+        record_info("Remediate output eval passed", "oscap xccdf eval --remediate --profile standard --results $remediate_result $xccdf_file");
     }
     else {
         record_soft_failure('bsc#1245559 - Open SCAP 1.3.7.+ remediation check failed. Possible issues: XML structure changed or rules not fixed.');

@@ -14,11 +14,7 @@ use openscaptest;
 use version_utils 'is_opensuse';
 
 sub run {
-
-    zypper_call("in openscap-utils libxslt-tools wget python3");
-
-    oscap_get_test_file("oval.xml");
-    oscap_get_test_file("xccdf.xml");
+    zypper_call("in scap-security-guide openscap-utils libxslt-tools wget python3");
     oscap_get_test_file("$py_sds_compose_script");
 }
 

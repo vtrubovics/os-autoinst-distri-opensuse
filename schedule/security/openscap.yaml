@@ -11,8 +11,8 @@ schedule:
     - security/openscap/oscap_xccdf_scanning
     - security/openscap/oscap_source_datastream
     - security/openscap/oscap_result_datastream
-    - security/openscap/oscap_remediating_online
-    - security/openscap/oscap_remediating_offline
-    - security/openscap/oscap_generating_report
-    - security/openscap/oscap_generating_fix
-    - security/openscap/oscap_validating
+#    - security/openscap/oscap_remediating_online
+#    - security/openscap/oscap_remediating_offline
+#    - security/openscap/oscap_generating_report
+#    - security/openscap/oscap_generating_fix
+#    - security/openscap/oscap_validating

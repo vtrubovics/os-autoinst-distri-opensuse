@@ -24,6 +24,7 @@ sub run {
 
     # Generate XCCDF guide
     assert_script_run "oscap xccdf generate guide --profile standard --output $xccdf_guide $xccdf_result";
+    uload_log_file($xccdf_guide);
     validate_file_content($xccdf_guide, 'html');
     validate_script_output "cat $xccdf_guide", sub {
         qr/
@@ -35,6 +36,7 @@ sub run {
     }, timeout => 300;
     # Generate XCCDF report
     assert_script_run "oscap xccdf generate report --profile standard --output $xccdf_report $xccdf_result";
+    uload_log_file($xccdf_report);
     validate_file_content($xccdf_report, 'html');
     validate_script_output "cat $xccdf_report", sub {
         qr/
@@ -48,6 +50,7 @@ sub run {
 
     # Generate OVAL report
     assert_script_run "oscap oval generate report --output $oval_report $oval_result";
+    uload_log_file($oval_report);
     validate_file_content($oval_report, 'html');
     validate_script_output "cat $oval_report", sub {
         qr/
@@ -62,6 +65,7 @@ sub run {
 
     # Generate XCCDF report with additional information from failed OVAL tests
     assert_script_run "oscap xccdf generate report --oval-template $oval_result --output $xccdf_oval_report $xccdf_result";
+    uload_log_file($xccdf_oval_report);
     validate_file_content($xccdf_oval_report, 'html');
     validate_script_output "cat $xccdf_oval_report", sub {
         qr/
